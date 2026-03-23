@@ -27,6 +27,12 @@ export async function POST(req: NextRequest) {
     try {
         const rawPayload = await req.json();
 
+        // LOG DE DEPURAÇÃO: Registrar entrada bruta no banco
+        await LogService.info(clinicId || "unknown_clinic", "WEBHOOK_RAW_RECEIVED", {
+            payload: rawPayload,
+            url: req.url
+        }).catch(err => console.error("LogService failure:", err));
+
         // ── 1. Validação Multitenancy e Assinaturas ──────────────────────
         if (!clinicId) {
             return NextResponse.json(
