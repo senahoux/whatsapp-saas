@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { DashboardService } from "@/services/dashboard.service";
 import { prisma } from "@/lib/prisma";
 import { NotificationService } from "@/services/notification.service";

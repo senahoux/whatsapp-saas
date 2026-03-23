@@ -1,7 +1,7 @@
 // =============================================================
 // WhatsApp SaaS - Prisma Schema
 // Multi-tenant: TODAS as tabelas operacionais possuem clinicId
-// V1: SQLite  |  Fase 2: trocar provider para postgresql
+// V1: SQLite  |  Fase 2: PostgreSQL (Supabase)
 // =============================================================
 
 generator client {
@@ -9,16 +9,14 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // =============================================================
-// ENUMS
-// SQLite não suporta enum nativo → usamos String constrained
-// Os valores são documentados aqui e validados na camada de
-// serviço/aplicação. Na migração PostgreSQL basta trocar para
-// enum nativo do Prisma sem alterar o resto do schema.
+// ENUMS & CONSTANTS
+// Os valores são validados na camada de serviço/aplicação.
 // =============================================================
 
 // conversation.status  : NORMAL | HUMANO | PAUSADA | AGUARDANDO_IA | ERRO
@@ -173,7 +171,7 @@ model Appointment {
   subtype   String?
   // status: AGENDADO | CANCELADO | REMARCADO | CONCLUIDO
   status    String   @default("AGENDADO")
-  date      String   // formato YYYY-MM-DD (compatível SQLite e PostgreSQL)
+  date      String   // formato YYYY-MM-DD
   time      String   // formato HH:MM
   // source: MANUAL | ROBO
   source    String   @default("MANUAL")
