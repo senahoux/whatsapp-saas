@@ -11,7 +11,7 @@ O sistema foi categoricamente **migrado de um modelo local (Robô Playwright) pa
 - **Frontend & Backend (Orquestração):** Next.js 14+ (Hospedado na Vercel).
 - **Banco de Dados (CRUD e Vetores):** PostgreSQL (Hospedado no Supabase).
 - **ORM:** Prisma (Tipagem estrita e schema validation).
-- **Transporte de Mensageria:** API Oficial do WhatsApp (Provedor Dinâmico: Uazapi).
+- **Transporte de Mensageria:** API de WhatsApp via provider (Uazapi como implementação atual).
 - **Background Jobs & Debounce:** Upstash QStash / Redis (Compatibilidade Serverless).
 - **Motor de Inteligência (RAG):** OpenAI (`gpt-4o-mini`).
 
@@ -41,7 +41,7 @@ Quando o `QStash` aciona a rota `/api/process-conversation`:
 3. Injeta o perfil da Clínica (regras, preços, FAQ) do banco no Promtp de contexto.
 4. Aciona a OpenAI.
 5. Se a OpenAI devolver uma Ação `AUTO`: O sistema salva o texto e invoca a API HTTP da Uazapi (`sendMessage`) instantaneamente.
-6. **Fallback Crítico:** Se a OpenAI devolver um JSON corrompido, alucinar ou falhar (Timeout de Gateway), o sistema faz um Catch e entra em modo `ASSISTENTE`, notificando os administradores e travando o loop autônomo.
+6. **Fallback Crítico:** Se a OpenAI devolver um JSON corrompido, alucinar, apresentar ausência de campos obrigatórios ou inconsistência estrutural do JSON, o sistema faz um Catch e entra automaticamente em modo `ASSISTENTE`, notificando os administradores e travando o loop autônomo.
 
 ---
 
@@ -168,6 +168,7 @@ A premissa da arquitetura SaaS blinda a aplicação contra loops de consumo de O
 2. **Idempotência Radical do Webhook Inbound:** Múltiplas requisições do WhatsApp (Seja de falha de confirmação 200 da Meta) possuem UNIQUE Keys. Mensagens que contem o mesmo `externalMessageId` disparam Resposta `200 OK - duplicate_message`, impedindo de inflar o banco e faturar duplamente a OpenAI.
 3. **Resiliência Falha na IA (Graceful Fallback):** O parser do `AIService` não apenas decodifica `.parse()`, ele testa explicitamente cada chave num TypeGuard defensivo. JSONs corrompidos retornam NULL, fazendo o sistema cair automaticamente para modo `ASSISTENTE`, sem alertar e frustar o usuário final.
 4. **Isolamento de Transporte Externo (Domain Driven):** A lógica de Webhooks Rest da Vercel NUNCA conhece o payload original do Provedor na camada de Serviço. O Request intercepta o raw, passa no `ProviderInst.normalizeIncomingMessage()` e o transforma no DTO interno estrito. Somente DTOs transitam pelos Services.
+5. **Retry Outbound Controlado:** Falhas de envio ao provider devem ser tratadas com retry controlado e nunca devem gerar duplicidade de mensagens no domínio interno.
 
 ---
 

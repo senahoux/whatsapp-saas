@@ -9,8 +9,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 // =============================================================
@@ -177,9 +177,10 @@ model Appointment {
   time      String   // formato HH:MM
   // source: MANUAL | ROBO
   source    String   @default("MANUAL")
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  notes          String?
+  reminderSentAt DateTime? // Gerenciamento de lembrete D-1
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   clinic  Clinic  @relation(fields: [clinicId], references: [id], onDelete: Cascade)
   contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)

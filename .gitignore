@@ -48,3 +48,6 @@ prisma/dev.db-journal
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# whatsapp sessions
+/robot-session/

@@ -1,47 +1,55 @@
-import { NextRequest, NextResponse } from "next/server";
+/**
+ * API Route: PATCH /api/settings
+ * Permite atualizar configurações da robô (Multi-tenant).
+ */
+
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 import { ClinicService } from "@/services/clinic.service";
+import { LogService } from "@/services/log.service";
+import { LogEvent } from "@/lib/types";
 
-/**
- * GET /api/settings
- * Retorna configurações da clínica (dados base e tabela Setting).
- * Consome do service, respeitando regra da arquitetura.
- */
-export async function GET(req: NextRequest) {
-    const { searchParams } = new URL(req.url);
-    const clinicId = searchParams.get("clinicId");
-
-    if (!clinicId) return NextResponse.json({ error: "clinicId required" }, { status: 400 });
-
+export async function PATCH(req: Request) {
     try {
-        const clinic = await ClinicService.getClinicWithSettings(clinicId);
-        if (!clinic) return NextResponse.json({ error: "Clinic not found" }, { status: 404 });
+        const { searchParams } = new URL(req.url);
+        const clinicId = searchParams.get("clinicId");
 
-        return NextResponse.json({ ok: true, clinic });
-    } catch (e) {
-        console.error("[get settings] Unhandled error:", e);
-        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-    }
-}
+        if (!clinicId) {
+            return NextResponse.json({ error: "clinicId is required" }, { status: 400 });
+        }
 
-/**
- * POST /api/settings
- * Atualiza dados da clínica (serviços, promoções, etc).
- */
-export async function POST(req: NextRequest) {
-    let clinicId = "";
+        // Valida se a clínica existe
+        const clinic = await ClinicService.findById(clinicId);
+        if (!clinic) {
+            return NextResponse.json({ error: "Clinic not found" }, { status: 404 });
+        }
 
-    try {
         const body = await req.json();
-        clinicId = body.clinicId;
+        const { robotEnabled, debounceSeconds } = body;
 
-        if (!clinicId) return NextResponse.json({ error: "clinicId required" }, { status: 400 });
+        // Monta o objeto de update — restrito aos campos aprovados no plano
+        const updateData: any = {};
+        if (typeof robotEnabled === "boolean") updateData.robotEnabled = robotEnabled;
+        if (typeof debounceSeconds === "number") updateData.debounceSeconds = debounceSeconds;
 
-        const { clinicId: _drop, ...updateData } = body;
-        const clinic = await ClinicService.updateClinic(clinicId, updateData);
+        if (Object.keys(updateData).length === 0) {
+            return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
+        }
 
-        return NextResponse.json({ ok: true, clinic });
-    } catch (e) {
-        console.error("[post settings] Unhandled error:", e);
-        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+        const updatedSettings = await prisma.setting.update({
+            where: { clinicId },
+            data: updateData,
+        });
+
+        await LogService.info(clinicId, LogEvent.ACTION_EXECUTED, {
+            action: "UPDATE_SETTINGS",
+            changes: updateData
+        });
+
+        return NextResponse.json({ ok: true, settings: updatedSettings });
+
+    } catch (error: any) {
+        console.error("PATCH /api/settings error:", error);
+        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }

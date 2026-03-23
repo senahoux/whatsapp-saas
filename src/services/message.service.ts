@@ -27,6 +27,7 @@ export interface CreateMessageInput {
     messageType?: string; // MessageType (default: TEXT)
     content: string;
     sentAt?: Date;
+    processed?: boolean;
 }
 
 export interface ListMessagesOptions {
@@ -80,7 +81,7 @@ export const MessageService = {
                 messageType: input.messageType ?? MessageType.TEXT,
                 content: input.content,
                 sentAt: input.sentAt ?? null,
-                processed: false,
+                processed: input.processed ?? false,
             },
         });
 

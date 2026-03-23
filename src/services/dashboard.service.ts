@@ -35,11 +35,11 @@ export const DashboardService = {
                     status: ConversationStatus.HUMANO,
                 },
             }),
-            // Agendamentos de hoje
+            // Agendamentos de hoje (Ativos)
             prisma.appointment.count({
                 where: {
                     clinicId,
-                    status: AppointmentStatus.AGENDADO,
+                    status: { in: [AppointmentStatus.AGENDADO, AppointmentStatus.REMARCADO] },
                     date: today,
                 },
             }),

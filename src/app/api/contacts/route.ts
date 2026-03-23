@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
 
         const options = {
             onlyHotLeads: searchParams.get("hotLeads") === "true" ? true : undefined,
+            status: searchParams.get("status") || undefined,
             page: Number(searchParams.get("page") ?? 1),
             pageSize: Number(searchParams.get("pageSize") ?? 50),
         };

@@ -1,107 +1,115 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import "./settings.css";
 
-const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
-const CLINIC_ID = process.env.CLINIC_ID || "clinic-demo-id";
+const CLINIC_ID = process.env.NEXT_PUBLIC_CLINIC_ID || "clinic-demo-id";
 
-async function getSettings() {
-    try {
-        const res = await fetch(`${API_URL}/api/settings?clinicId=${CLINIC_ID}`, {
-            cache: "no-store",
-        });
-        if (!res.ok) return null;
-        const body = await res.json();
-        return body.clinic;
-    } catch (err) {
-        console.error("Fetch settings error:", err);
-        return null;
+export default function SettingsPage() {
+    const [clinic, setClinic] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [message, setMessage] = useState("");
+
+    useEffect(() => {
+        fetch(`/api/settings?clinicId=${CLINIC_ID}`)
+            .then(res => res.json())
+            .then(data => {
+                setClinic(data.clinic);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error(err);
+                setLoading(false);
+            });
+    }, []);
+
+    async function handleUpdate(e: React.FormEvent) {
+        e.preventDefault();
+        setSaving(true);
+        setMessage("");
+
+        try {
+            const res = await fetch(`/api/settings?clinicId=${CLINIC_ID}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    robotEnabled: clinic.settings.robotEnabled,
+                    debounceSeconds: Number(clinic.settings.debounceSeconds)
+                })
+            });
+
+            if (res.ok) {
+                setMessage("Configurações salvas com sucesso!");
+            } else {
+                setMessage("Falha ao salvar configurações.");
+            }
+        } catch (err) {
+            setMessage("Erro na conexão.");
+        } finally {
+            setSaving(false);
+        }
     }
-}
 
-export default async function SettingsPage() {
-    const clinic = await getSettings();
+    if (loading) return <div className="loading">Carregando...</div>;
+    if (!clinic) return <div className="error">Clínica não encontrada.</div>;
 
-    if (!clinic) {
-        return (
-            <div className="card">
-                <p className="error-text">Falha ao carregar configurações ou clínica não encontrada.</p>
-            </div>
-        );
-    }
-
-    // Tabela `setting` (1:1)
-    const settings = clinic.settings || {};
+    const { settings } = clinic;
 
     return (
-        <>
-            <div className="page-header">
-                <h2 className="page-title">Configurações da Clínica</h2>
-            </div>
+        <div className="settings-container">
+            <header className="page-header">
+                <h2 className="page-title">Configurações Operacionais</h2>
+            </header>
 
-            <div className="settings-grid">
-                <div className="card">
-                    <h3>Dados Básicos</h3>
-                    <form className="settings-form">
-                        <div className="form-group">
-                            <label>Nome da Clínica</label>
-                            <input type="text" defaultValue={clinic.nomeClinica} disabled />
-                            <small>Modo readonly na V1</small>
-                        </div>
-                        <div className="form-group">
-                            <label>Nome do Médico(a)</label>
-                            <input type="text" defaultValue={clinic.nomeMedico} disabled />
-                        </div>
-                        <div className="form-group">
-                            <label>Telefone</label>
-                            <input type="text" defaultValue={clinic.telefone || ""} disabled />
-                        </div>
-                    </form>
-                </div>
-
-                <div className="card">
-                    <h3>Parâmetros de IA</h3>
-                    <form className="settings-form">
-                        <div className="form-group">
-                            <label>Duração Consulta (min)</label>
-                            <input type="number" defaultValue={clinic.consultaDuracao || 30} disabled />
-                        </div>
-                        <div className="form-group">
-                            <label>Valor Consulta (R$)</label>
-                            <input type="number" defaultValue={clinic.consultaValor || ""} disabled />
-                        </div>
-                        <div className="form-group">
-                            <label>Descrição de Serviços</label>
-                            <textarea defaultValue={clinic.descricaoServicos || ""} rows={3} disabled></textarea>
-                        </div>
-                        <div className="form-group">
-                            <label>FAQ (JSON Local)</label>
-                            <textarea defaultValue={clinic.faq || ""} rows={4} disabled></textarea>
-                        </div>
-                    </form>
-                </div>
-
-                <div className="card">
-                    <h3>Comportamento do Robô</h3>
-                    <div className="settings-summary">
-                        <div className="summary-item">
-                            <span>Robô Ativado:</span>
-                            <strong>{settings.robotEnabled ? "Sim" : "Não"}</strong>
-                        </div>
-                        <div className="summary-item">
-                            <span>Modo Padrão:</span>
-                            <strong>{settings.robotModeDefault || "AUTO"}</strong>
-                        </div>
-                        <div className="summary-item">
-                            <span>Telefone Admin:</span>
-                            <strong>{settings.adminPhoneNumber || "Não configurado"}</strong>
-                        </div>
-                        <div className="summary-item">
-                            <span>Debounce (s):</span>
-                            <strong>{settings.debounceSeconds || 8}</strong>
-                        </div>
+            <div className="card">
+                <h3>Controle do Robô</h3>
+                <form onSubmit={handleUpdate} className="settings-form">
+                    <div className="form-group toggle">
+                        <label>
+                            <input
+                                type="checkbox"
+                                checked={settings.robotEnabled}
+                                onChange={e => setClinic({
+                                    ...clinic,
+                                    settings: { ...settings, robotEnabled: e.target.checked }
+                                })}
+                            />
+                            Robô Ativado (IA responde automaticamente)
+                        </label>
                     </div>
-                    <p className="text-muted" style={{ marginTop: "16px" }}>Edição dessas configurações chegará na versão V2.</p>
+
+                    <div className="form-group">
+                        <label>Debounce (Segundos de espera antes de processar)</label>
+                        <input
+                            type="number"
+                            value={settings.debounceSeconds}
+                            min={1}
+                            max={60}
+                            onChange={e => setClinic({
+                                ...clinic,
+                                settings: { ...settings, debounceSeconds: e.target.value }
+                            })}
+                        />
+                        <small>Tempo sugerido: 8-12 segundos</small>
+                    </div>
+
+                    <button type="submit" disabled={saving} className="btn-primary">
+                        {saving ? "Salvando..." : "Salvar Alterações"}
+                    </button>
+
+                    {message && <p className="form-message">{message}</p>}
+                </form>
+            </div>
+
+            <div className="card read-only">
+                <h3>Dados da Clínica (V1 - Apenas Leitura)</h3>
+                <div className="info-grid">
+                    <div className="info-item"><span>Nome:</span> <strong>{clinic.nomeClinica}</strong></div>
+                    <div className="info-item"><span>Médico:</span> <strong>{clinic.nomeMedico}</strong></div>
+                    <div className="info-item"><span>Status:</span> <span className="badge online">Ativo Cloud</span></div>
                 </div>
             </div>
-        </>
+        </div>
     );
 }

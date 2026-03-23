@@ -1,0 +1,93 @@
+.conv-container {
+    padding: 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 12px;
+}
+
+.tabs button {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    background: none;
+    font-weight: 600;
+    color: #6b7280;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.tabs button.active {
+    background: #3b82f6;
+    color: white;
+}
+
+.conv-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.conv-card {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #f3f4f6;
+}
+
+.conv-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.conv-info strong {
+    font-size: 1.1rem;
+    color: #111827;
+}
+
+.last-msg {
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin-top: 4px;
+}
+
+.conv-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.btn-release {
+    background: #10b981;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.btn-release:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-open {
+    background: white;
+    border: 1px solid #d1d5db;
+    padding: 8px 16px;
+    border-radius: 8px;
+    color: #374151;
+    font-weight: 600;
+    cursor: pointer;
+}

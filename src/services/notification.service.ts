@@ -104,4 +104,28 @@ export const NotificationService = {
             data: { sent: true, sentAt: new Date() },
         });
     },
+
+    /**
+     * Lista notificações de uma clínica (para o painel admin).
+     */
+    async list(clinicId: string, options: { page?: number; pageSize?: number } = {}) {
+        const page = options.page ?? 1;
+        const pageSize = options.pageSize ?? 50;
+        const skip = (page - 1) * pageSize;
+
+        const where = { clinicId };
+
+        const [data, total] = await prisma.$transaction([
+            prisma.notification.findMany({
+                where,
+                orderBy: { createdAt: "desc" },
+                skip,
+                take: pageSize,
+                include: { contact: { select: { name: true, phoneNumber: true } } }
+            }),
+            prisma.notification.count({ where }),
+        ]);
+
+        return { data, total };
+    },
 };

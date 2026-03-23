@@ -133,7 +133,11 @@ export const AppointmentService = {
         if (block) return [];
 
         const occupied = await prisma.appointment.findMany({
-            where: { clinicId, date, status: "AGENDADO" },
+            where: {
+                clinicId,
+                date,
+                status: { in: ["AGENDADO", "REMARCADO"] }
+            },
             select: { time: true },
         });
         const occupiedTimes = new Set(occupied.map((a: { time: string }) => a.time));
@@ -153,7 +157,7 @@ export const AppointmentService = {
                 clinicId,
                 date: input.date,
                 time: input.time,
-                status: AppointmentStatus.AGENDADO,
+                status: { in: ["AGENDADO", "REMARCADO"] },
             },
         });
         if (conflict) {
@@ -211,7 +215,7 @@ export const AppointmentService = {
                 clinicId,
                 date: input.date,
                 time: input.time,
-                status: AppointmentStatus.AGENDADO,
+                status: { in: ["AGENDADO", "REMARCADO"] },
                 NOT: { id: appointmentId },
             },
         });
@@ -247,6 +251,24 @@ export const AppointmentService = {
             data: {
                 status: AppointmentStatus.CANCELADO,
                 notes: notes ?? appt.notes,
+            },
+        });
+    },
+
+    /**
+     * Busca o agendamento ativo mais recente para um paciente.
+     * Considerado ativo: AGENDADO ou REMARCADO.
+     */
+    async findActiveAppointment(clinicId: string, contactId: string) {
+        return prisma.appointment.findFirst({
+            where: {
+                clinicId,
+                contactId,
+                status: { in: [AppointmentStatus.AGENDADO, AppointmentStatus.REMARCADO] },
+            },
+            orderBy: { createdAt: "desc" },
+            include: {
+                contact: { select: { name: true, phoneNumber: true } },
             },
         });
     },

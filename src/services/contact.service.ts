@@ -37,6 +37,7 @@ export interface ListContactsOptions {
     page?: number;       // 1-indexed (default: 1)
     pageSize?: number;   // default: 50
     onlyHotLeads?: boolean;
+    status?: string;     // Filtrar por status da conversa (ASSISTENTE, HUMANO, etc.)
 }
 
 // ──────────────────────────────────────────────
@@ -210,9 +211,10 @@ export const ContactService = {
         const pageSize = options.pageSize ?? 50;
         const skip = (page - 1) * pageSize;
 
-        const where = {
+        const where: any = {
             clinicId,
             ...(options.onlyHotLeads ? { isHotLead: true } : {}),
+            ...(options.status ? { conversations: { some: { status: options.status } } } : {}),
         };
 
         const [data, total] = await prisma.$transaction([

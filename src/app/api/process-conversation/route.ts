@@ -10,6 +10,7 @@ import {
     LogEvent,
     MessageAuthor,
     ConversationMode,
+    AppointmentSource,
 } from "@/lib/types";
 import { ProviderInst } from "@/providers/uazapi.provider";
 
@@ -190,7 +191,77 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ ok: false, error: "AI_FAILED", fallback: "ERRO" });
         }
 
-        // ── 9. Side-effects da resposta ─────────────────────────────────
+        // ── 9. Execução de Ações de Agenda (Escrita) ────────────────────
+        //      Se a IA retornou uma ação de escrita, tentamos executar no banco.
+        //      Qualquer falha (conflito de horário, erro de banco) → Fallback ASSISTENTE.
+
+        if (["AGENDAR", "REMARCAR", "CANCELAR"].includes(aiResponse.acao)) {
+            try {
+                if (aiResponse.acao === "AGENDAR") {
+                    if (!aiResponse.data || !aiResponse.hora) {
+                        throw new Error("Data ou hora ausentes para AGENDAR");
+                    }
+                    await AppointmentService.create(clinicId, {
+                        contactId: contact.id,
+                        date: aiResponse.data,
+                        time: aiResponse.hora,
+                        type: aiResponse.tipo ?? "CONSULTA",
+                        subtype: aiResponse.subtipo ?? null,
+                        source: AppointmentSource.ROBO,
+                        notes: `Agendado automaticamente via IA (${aiResponse.confianca})`
+                    });
+                }
+
+                if (aiResponse.acao === "REMARCAR" || aiResponse.acao === "CANCELAR") {
+                    // Centralizado: Busca o agendamento ativo (AGENDADO/REMARCADO)
+                    const targetAppt = await AppointmentService.findActiveAppointment(clinicId, contact.id);
+
+                    if (!targetAppt) {
+                        throw new Error(`Nenhum agendamento ativo encontrado para ${aiResponse.acao}`);
+                    }
+
+                    if (aiResponse.acao === "REMARCAR") {
+                        if (!aiResponse.data || !aiResponse.hora) {
+                            throw new Error("Data ou hora ausentes para REMARCAR");
+                        }
+                        await AppointmentService.reschedule(clinicId, targetAppt.id, {
+                            date: aiResponse.data,
+                            time: aiResponse.hora,
+                            notes: `Remarcado via IA. Original: ${targetAppt.date} ${targetAppt.time}`
+                        });
+                    } else {
+                        await AppointmentService.cancel(clinicId, targetAppt.id, "Cancelado via IA a pedido do paciente");
+                    }
+                }
+
+                await LogService.info(clinicId, LogEvent.ACTION_EXECUTED, {
+                    conversationId,
+                    action: aiResponse.acao,
+                    data: aiResponse.data,
+                    hora: aiResponse.hora
+                });
+
+            } catch (error: any) {
+                console.warn(`[Agenda Action Error] ${aiResponse.acao} falhou:`, error.message);
+
+                // Fallback para ASSISTENTE sem poluir a mensagem do paciente
+                aiResponse.modo = ConversationMode.ASSISTENTE;
+
+                await NotificationService.notifyAlert(
+                    clinicId,
+                    `Falha ao ${aiResponse.acao}: ${error.message}. Revisão manual necessária.`,
+                    contact.id
+                );
+
+                await LogService.warn(clinicId, LogEvent.ERROR, {
+                    conversationId,
+                    note: `Falha na ação ${aiResponse.acao}. Mudando para modo ASSISTENTE.`,
+                    error: error.message
+                });
+            }
+        }
+
+        // ── 10. Side-effects da resposta ─────────────────────────────────
 
         // 9a. Nome identificado → salva no contato
         if (aiResponse.nome_identificado) {

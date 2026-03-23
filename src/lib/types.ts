@@ -16,6 +16,7 @@
 export const ConversationStatus = {
     NORMAL: "NORMAL",
     HUMANO: "HUMANO",
+    ASSISTENTE: "ASSISTENTE",
     PAUSADA: "PAUSADA",
     AGUARDANDO_IA: "AGUARDANDO_IA",
     ERRO: "ERRO",
