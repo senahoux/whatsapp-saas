@@ -1,0 +1,64 @@
+/* logs.css */
+
+.log-table th {
+    font-size: 0.75rem;
+}
+
+.log-table td {
+    font-size: 0.875rem;
+    vertical-align: top;
+}
+
+.log-time {
+    white-space: nowrap;
+    color: var(--text-muted);
+    font-family: monospace;
+}
+
+.log-event {
+    font-weight: 500;
+    max-width: 200px;
+    word-break: break-all;
+}
+
+.log-level {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.log-level.info {
+    background-color: #e0f2fe;
+    color: #0369a1;
+}
+
+.log-level.warn {
+    background-color: #fef08a;
+    color: #a16207;
+}
+
+.log-level.error {
+    background-color: #fee2e2;
+    color: #b91c1c;
+}
+
+.log-level.debug {
+    background-color: #f1f5f9;
+    color: #475569;
+}
+
+.log-meta pre {
+    margin: 0;
+    padding: 8px;
+    background-color: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    max-width: 400px;
+    max-height: 120px;
+    overflow: auto;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}

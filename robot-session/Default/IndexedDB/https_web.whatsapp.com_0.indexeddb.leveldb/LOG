@@ -1,0 +1,60 @@
+2026/03/22-11:17:14.070 3e5c Reusing MANIFEST C:\Users\lucas\.gemini\antigravity\scratch\whatsapp-saas\robot-session\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/03/22-11:17:14.071 3e5c Recovering log #217
+2026/03/22-11:17:14.087 3e5c Reusing old log C:\Users\lucas\.gemini\antigravity\scratch\whatsapp-saas\robot-session\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000217.log 
+2026/03/22-11:18:46.160 73a4 Level-0 table #227: started
+2026/03/22-11:18:46.236 73a4 Level-0 table #227: 1172560 bytes OK
+2026/03/22-11:18:46.237 73a4 Delete type=0 #217
+2026/03/22-11:18:47.698 73a4 Compacting 1@1 + 6@2 files
+2026/03/22-11:18:48.213 73a4 Generated table #228@1: 87032 keys, 2236844 bytes
+2026/03/22-11:18:48.679 73a4 Generated table #229@1: 53659 keys, 2278844 bytes
+2026/03/22-11:18:48.744 73a4 Generated table #230@1: 1587 keys, 2131500 bytes
+2026/03/22-11:18:49.005 73a4 Generated table #231@1: 16435 keys, 2192103 bytes
+2026/03/22-11:18:49.453 73a4 Generated table #232@1: 56712 keys, 2198921 bytes
+2026/03/22-11:18:49.968 73a4 Generated table #233@1: 62787 keys, 1551951 bytes
+2026/03/22-11:18:49.969 73a4 Compacted 1@1 + 6@2 files => 12590163 bytes
+2026/03/22-11:18:49.969 73a4 compacted to: files[ 0 0 6 0 0 0 0 ]
+2026/03/22-11:22:55.552 73a4 Level-0 table #235: started
+2026/03/22-11:22:55.656 73a4 Level-0 table #235: 1180496 bytes OK
+2026/03/22-11:22:55.659 73a4 Delete type=2 #219
+2026/03/22-11:22:55.659 73a4 Delete type=2 #220
+2026/03/22-11:22:55.659 73a4 Delete type=2 #221
+2026/03/22-11:22:55.659 73a4 Delete type=2 #222
+2026/03/22-11:22:55.659 73a4 Delete type=2 #223
+2026/03/22-11:22:55.659 73a4 Delete type=2 #224
+2026/03/22-11:22:55.659 73a4 Delete type=0 #226
+2026/03/22-11:22:55.659 73a4 Delete type=2 #227
+2026/03/22-11:22:55.709 73a4 Compacting 1@1 + 5@2 files
+2026/03/22-11:22:56.037 73a4 Generated table #236@1: 86958 keys, 2237434 bytes
+2026/03/22-11:22:56.189 73a4 Generated table #237@1: 59749 keys, 2296417 bytes
+2026/03/22-11:22:56.229 73a4 Generated table #238@1: 1560 keys, 2136427 bytes
+2026/03/22-11:22:56.356 73a4 Generated table #239@1: 14397 keys, 2184356 bytes
+2026/03/22-11:22:56.487 73a4 Generated table #240@1: 52594 keys, 2200432 bytes
+2026/03/22-11:22:56.503 73a4 Generated table #241@1: 6267 keys, 147195 bytes
+2026/03/22-11:22:56.503 73a4 Compacted 1@1 + 5@2 files => 11202261 bytes
+2026/03/22-11:22:56.504 73a4 compacted to: files[ 0 0 7 0 0 0 0 ]
+2026/03/22-11:22:56.505 73a4 Delete type=2 #228
+2026/03/22-11:22:56.506 73a4 Delete type=2 #229
+2026/03/22-11:22:56.506 73a4 Delete type=2 #230
+2026/03/22-11:22:56.506 73a4 Delete type=2 #231
+2026/03/22-11:22:56.506 73a4 Delete type=2 #232
+2026/03/22-11:22:56.506 73a4 Delete type=2 #235
+2026/03/22-11:26:34.931 73a4 Level-0 table #243: started
+2026/03/22-11:26:34.968 73a4 Level-0 table #243: 1183851 bytes OK
+2026/03/22-11:26:34.969 73a4 Delete type=0 #234
+2026/03/22-11:26:35.017 73a4 Compacting 1@1 + 7@2 files
+2026/03/22-11:26:35.087 73a4 Generated table #244@1: 87289 keys, 2238467 bytes
+2026/03/22-11:26:35.139 73a4 Generated table #245@1: 64235 keys, 2303090 bytes
+2026/03/22-11:26:35.156 73a4 Generated table #246@1: 2526 keys, 2134598 bytes
+2026/03/22-11:26:35.192 73a4 Generated table #247@1: 12285 keys, 2174873 bytes
+2026/03/22-11:26:35.256 73a4 Generated table #248@1: 48542 keys, 2200496 bytes
+2026/03/22-11:26:35.324 73a4 Generated table #249@1: 75316 keys, 1845273 bytes
+2026/03/22-11:26:35.324 73a4 Compacted 1@1 + 7@2 files => 12896797 bytes
+2026/03/22-11:26:35.325 73a4 compacted to: files[ 0 0 6 0 0 0 0 ]
+2026/03/22-11:26:35.325 73a4 Delete type=2 #233
+2026/03/22-11:26:35.325 73a4 Delete type=2 #236
+2026/03/22-11:26:35.325 73a4 Delete type=2 #237
+2026/03/22-11:26:35.326 73a4 Delete type=2 #238
+2026/03/22-11:26:35.326 73a4 Delete type=2 #239
+2026/03/22-11:26:35.326 73a4 Delete type=2 #240
+2026/03/22-11:26:35.326 73a4 Delete type=2 #241
+2026/03/22-11:26:35.326 73a4 Delete type=2 #243

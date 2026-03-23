@@ -1,0 +1,268 @@
+// =============================================================
+// WhatsApp SaaS - Prisma Schema
+// Multi-tenant: TODAS as tabelas operacionais possuem clinicId
+// V1: SQLite  |  Fase 2: trocar provider para postgresql
+// =============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================================
+// ENUMS
+// SQLite não suporta enum nativo → usamos String constrained
+// Os valores são documentados aqui e validados na camada de
+// serviço/aplicação. Na migração PostgreSQL basta trocar para
+// enum nativo do Prisma sem alterar o resto do schema.
+// =============================================================
+
+// conversation.status  : NORMAL | HUMANO | PAUSADA | AGUARDANDO_IA | ERRO
+// message.author       : CLIENTE | USUARIO | ROBO | SISTEMA
+// message.messageType  : TEXT | AUDIO | IMAGE | SYSTEM
+// appointment.type     : CONSULTA | RETORNO | PROCEDIMENTO
+// appointment.status   : AGENDADO | CANCELADO | REMARCADO | CONCLUIDO
+// appointment.source   : MANUAL | ROBO
+// setting.robotModeDefault : AUTO | ASSISTENTE
+
+// =============================================================
+// 1. CLINICS — Dados públicos e configuração da clínica
+//    Não possui clinicId (é a raiz do tenant)
+// =============================================================
+model Clinic {
+  id                  String   @id @default(cuid())
+  nomeClinica         String
+  nomeMedico          String
+  endereco            String?
+  telefone            String?
+  consultaValor       Float?
+  consultaDuracao     Int?     // minutos
+  promocaoAtiva       Boolean  @default(false)
+  promocaoTexto       String?
+  descricaoServicos   String?
+  faq                 String?  // JSON serializado
+  regrasPersonalizadas String? // JSON serializado
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Relações
+  users          User[]
+  contacts       Contact[]
+  conversations  Conversation[]
+  messages       Message[]
+  appointments   Appointment[]
+  scheduleBlocks ScheduleBlock[]
+  notifications  Notification[]
+  settings       Setting?
+  logs           Log[]
+
+  @@map("clinics")
+}
+
+// =============================================================
+// 2. USERS — Usuários do painel (placeholder para auth Fase 2)
+// =============================================================
+model User {
+  id           String   @id @default(cuid())
+  clinicId     String
+  email        String
+  passwordHash String   @default("") // placeholder — auth real na Fase 2
+  role         String   @default("ADMIN") // ADMIN | VIEWER
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  @@unique([clinicId, email])
+  @@index([clinicId])
+  @@map("users")
+}
+
+// =============================================================
+// 3. CONTACTS — Pacientes/contatos vinculados à clínica
+// =============================================================
+model Contact {
+  id          String   @id @default(cuid())
+  clinicId    String
+  phoneNumber String
+  name        String?
+  isAdmin     Boolean  @default(false) // número ADMIN nunca entra na IA
+  isHotLead   Boolean  @default(false)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  clinic        Clinic         @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  conversations Conversation[]
+  appointments  Appointment[]
+  notifications Notification[]
+
+  @@unique([clinicId, phoneNumber])
+  @@index([clinicId])
+  @@map("contacts")
+}
+
+// =============================================================
+// 4. CONVERSATIONS — Uma conversa ativa por contato na clínica
+// =============================================================
+model Conversation {
+  id                   String    @id @default(cuid())
+  clinicId             String
+  contactId            String
+  // status: NORMAL | HUMANO | PAUSADA | AGUARDANDO_IA | ERRO
+  status               String    @default("NORMAL")
+  // lastMessageAuthor: CLIENTE | USUARIO | ROBO | SISTEMA
+  lastMessageAuthor    String?
+  lastMessageAt        DateTime?
+  lastProcessedMessageId String?
+  bufferStartedAt      DateTime?
+  humanInterventionAt  DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  clinic   Clinic    @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  contact  Contact   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@index([clinicId, contactId])
+  @@index([clinicId, status])
+  @@index([clinicId, lastMessageAt])
+  @@map("conversations")
+}
+
+// =============================================================
+// 5. MESSAGES — Registro de todas as mensagens de uma conversa
+// =============================================================
+model Message {
+  id                String   @id @default(cuid())
+  clinicId          String
+  conversationId    String
+  externalMessageId String?  // ID da mensagem no WhatsApp (para dedup)
+  // author: CLIENTE | USUARIO | ROBO | SISTEMA
+  author            String
+  // messageType: TEXT | AUDIO | IMAGE | SYSTEM
+  messageType       String   @default("TEXT")
+  content           String
+  sentAt            DateTime?
+  processed         Boolean  @default(false)
+  createdAt         DateTime @default(now())
+
+  clinic       Clinic       @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  // externalMessageId único por clínica (evita duplicatas de webhook)
+  @@unique([clinicId, externalMessageId])
+  @@index([clinicId, conversationId])
+  @@map("messages")
+}
+
+// =============================================================
+// 6. APPOINTMENTS — Agenda da clínica
+// =============================================================
+model Appointment {
+  id        String   @id @default(cuid())
+  clinicId  String
+  contactId String
+  // type: CONSULTA | RETORNO | PROCEDIMENTO
+  type      String   @default("CONSULTA")
+  // subtype: RETORNO_CONSULTA | RETORNO_PROCEDIMENTO | null
+  subtype   String?
+  // status: AGENDADO | CANCELADO | REMARCADO | CONCLUIDO
+  status    String   @default("AGENDADO")
+  date      String   // formato YYYY-MM-DD (compatível SQLite e PostgreSQL)
+  time      String   // formato HH:MM
+  // source: MANUAL | ROBO
+  source    String   @default("MANUAL")
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clinic  Clinic  @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([clinicId, date])
+  @@index([clinicId, contactId])
+  @@map("appointments")
+}
+
+// =============================================================
+// 7. SCHEDULE_BLOCKS — Bloqueios de disponibilidade da agenda
+// =============================================================
+model ScheduleBlock {
+  id          String   @id @default(cuid())
+  clinicId    String
+  blockDate   String   // formato YYYY-MM-DD
+  isAvailable Boolean  @default(false) // false = bloqueado
+  reason      String?
+  createdAt   DateTime @default(now())
+
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  @@index([clinicId, blockDate])
+  @@map("schedule_blocks")
+}
+
+// =============================================================
+// 8. NOTIFICATIONS — Fila de notificações para o ADMIN
+// =============================================================
+model Notification {
+  id        String    @id @default(cuid())
+  clinicId  String
+  // type: NOVO_AGENDAMENTO | LEAD_QUENTE | INTERVENCAO_HUMANA | REVISAO_IA | ALERTA
+  type      String
+  contactId String?
+  message   String
+  sent      Boolean   @default(false)
+  sentAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  clinic  Clinic   @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+  contact Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@index([clinicId, contactId])
+  @@index([clinicId, sent])
+  @@map("notifications")
+}
+
+// =============================================================
+// 9. SETTINGS — Configurações operacionais por clínica
+// =============================================================
+model Setting {
+  id               String   @id @default(cuid())
+  clinicId         String   @unique // 1 settings por clínica
+  robotEnabled     Boolean  @default(true)
+  // robotModeDefault: AUTO | ASSISTENTE
+  robotModeDefault String   @default("AUTO")
+  debounceSeconds  Int      @default(8)
+  adminPhoneNumber String?  // número que recebe notificações administrativas
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  @@map("settings")
+}
+
+// =============================================================
+// 10. LOGS — Registros de eventos do sistema por clínica
+// =============================================================
+model Log {
+  id        String   @id @default(cuid())
+  clinicId  String
+  // level: INFO | WARN | ERROR | DEBUG
+  level     String   @default("INFO")
+  // event: MESSAGE_RECEIVED | AI_RESPONSE | ACTION_EXECUTED | ERROR | etc.
+  event     String
+  details   String?  // JSON serializado com contexto adicional
+  createdAt DateTime @default(now())
+
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  @@index([clinicId, createdAt])
+  @@index([clinicId, level])
+  @@map("logs")
+}
