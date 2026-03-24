@@ -24,15 +24,22 @@ export class UazapiProvider implements WhatsAppProvider {
         try {
             // Busca a instância configurada para esta clínica no banco de dados
             const settings = await ClinicService.getSettings(clinicId);
-            const instance = settings?.whatsappInstance;
 
-            if (!instance) {
-                console.error(`[UazapiProvider] Clínica ${clinicId} não possui whatsappInstance configurada no banco.`);
-                return false;
+            if (!settings || !settings.whatsappToken) {
+                console.error(`[UazapiProvider] Clínica ${clinicId} não possui whatsappToken configurado no banco.`);
+                // Fallback para variável de ambiente se for a clínica demo e o token local existir
+                if (clinicId === 'clinic-demo-id' && this.apiKey) {
+                    console.log(`[UazapiProvider] Usando fallback UAZAPI_API_KEY para clínica demo.`);
+                } else {
+                    return false;
+                }
             }
 
-            // URL CORRETA (Confirmada): https://whatsapp-saas.uazapi.com/message/sendText/{instance}
-            const endpoint = `https://whatsapp-saas.uazapi.com/message/sendText/${instance}`;
+            const token = settings?.whatsappToken || this.apiKey;
+
+            // URL DEFINITIVA (Confirmada por teste manual): https://whatsapp-saas.uazapi.com/send/text
+            // A instância é identificada pelo token no header, não pela URL.
+            const endpoint = `https://whatsapp-saas.uazapi.com/send/text`;
 
             const payload = {
                 number: phone,
@@ -45,7 +52,7 @@ export class UazapiProvider implements WhatsAppProvider {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "token": this.apiKey // Continua usando o header 'token'
+                    "token": token
                 },
                 body: JSON.stringify(payload)
             });
