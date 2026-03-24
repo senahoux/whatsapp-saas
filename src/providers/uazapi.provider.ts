@@ -60,31 +60,38 @@ export class UazapiProvider implements WhatsAppProvider {
     }
 
     normalizeIncomingMessage(payload: any, clinicId: string): NormalizedMessage | null {
-        // Exemplo defensivo: O payload da Uazapi costuma ter body e from_me.
-        // O usuário deverá refinar esses nomes de campos quando ligar a Uazapi localmente.
         try {
-            // Supondo { event: 'message.upsert', data: { from: '5511999999@c.us', text: 'oi' } ... }
-            const data = payload?.data || payload;
-            if (!data) return null;
+            // Uazapi costuma enviar tudo dentro de um objeto 'payload'
+            const msgData = payload?.message || payload?.data?.message || payload?.data || payload;
 
-            const rawPhone = data.from || data.remoteJid || data.contactId;
-            const textRaw = data.text || data.body || data.message;
-            const msgId = data.id || data.messageId;
+            if (!msgData) return null;
+
+            // Mapeando campos reais observados nos logs de produção
+            const textRaw = msgData.text || msgData.content || msgData.body;
+
+            // O telefone pode estar em sender_pn (ex: 5511999999@s.whatsapp.net) ou chat.phone
+            const rawPhone = msgData.sender_pn || msgData.from || payload?.chat?.phone || payload?.chat?.wa_chatid;
+
+            const msgId = msgData.id || msgData.messageid;
+            const fromMe = msgData.fromMe ?? false;
 
             if (!rawPhone || !textRaw) {
                 return null;
             }
 
-            const cleanPhone = rawPhone.split("@")[0].replace(/\D/g, "");
+            // Limpeza do telefone: pega apenas números antes do @
+            const cleanPhone = String(rawPhone).split("@")[0].replace(/\D/g, "");
 
             return {
                 clinicId: clinicId,
                 phoneNumber: cleanPhone,
-                message: textRaw,
+                message: String(textRaw),
                 externalMessageId: msgId || `msg_${Date.now()}`,
-                isFromMe: !!data.fromMe,
-                messageType: data.type || "TEXT",
-                sentAt: data.timestamp ? new Date(data.timestamp * 1000) : new Date()
+                isFromMe: fromMe,
+                messageType: msgData.type || msgData.messageType || "TEXT",
+                sentAt: msgData.messageTimestamp
+                    ? new Date(msgData.messageTimestamp * 1000)
+                    : new Date()
             };
         } catch (error) {
             console.error("[UazapiProvider] Erro ao extrair propriedades do JSON da Uazapi:", error);
