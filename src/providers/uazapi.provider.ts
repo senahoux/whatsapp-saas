@@ -89,9 +89,13 @@ export class UazapiProvider implements WhatsAppProvider {
                 externalMessageId: msgId || `msg_${Date.now()}`,
                 isFromMe: fromMe,
                 messageType: msgData.type || msgData.messageType || "TEXT",
-                sentAt: msgData.messageTimestamp
-                    ? new Date(msgData.messageTimestamp * 1000)
-                    : new Date()
+                sentAt: (() => {
+                    const ts = msgData.messageTimestamp;
+                    if (!ts) return new Date();
+                    const d = new Date(ts > 10000000000 ? ts : ts * 1000);
+                    if (isNaN(d.getTime()) || d.getFullYear() > 2100 || d.getFullYear() < 2020) return new Date();
+                    return d;
+                })(),
             };
         } catch (error) {
             console.error("[UazapiProvider] Erro ao extrair propriedades do JSON da Uazapi:", error);
