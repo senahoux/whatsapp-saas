@@ -36,14 +36,9 @@ export class UazapiProvider implements WhatsAppProvider {
 
             const payload = {
                 number: phone,
-                textMessage: {
-                    text: message
-                },
-                options: {
-                    delay: 1500,
-                    presence: "composing",
-                    async: true
-                }
+                text: message,
+                delay: 1500,
+                async: true
             };
 
             const response = await fetch(endpoint, {
