@@ -13,7 +13,12 @@ export class UazapiProvider implements WhatsAppProvider {
     private readonly instanceKey: string;
 
     constructor() {
-        this.apiUrl = process.env.UAZAPI_API_URL || "https://uazapi.com.br/api";
+        let url = process.env.UAZAPI_API_URL || "https://uazapi.com.br/api";
+        // Garante que a URL termina em /api para compatibilidade com o construtor de endpoints
+        if (!url.endsWith("/api")) {
+            url = url.replace(/\/$/, "") + "/api";
+        }
+        this.apiUrl = url;
         this.apiKey = process.env.UAZAPI_API_KEY || "";
         this.instanceKey = process.env.UAZAPI_INSTANCE_KEY || "";
     }

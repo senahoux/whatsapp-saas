@@ -244,8 +244,11 @@ export async function POST(req: NextRequest) {
             } catch (error: any) {
                 console.warn(`[Agenda Action Error] ${aiResponse.acao} falhou:`, error.message);
 
-                // Fallback para ASSISTENTE sem poluir a mensagem do paciente
-                aiResponse.modo = ConversationMode.ASSISTENTE;
+                // Notificar admin mas NÃO bloquear a resposta da IA se o modo original era AUTO.
+                // Isso permite que o robô peça a data/hora faltante ao paciente.
+                if (aiResponse.modo !== ConversationMode.AUTO) {
+                    aiResponse.modo = ConversationMode.ASSISTENTE;
+                }
 
                 await NotificationService.notifyAlert(
                     clinicId,
@@ -255,7 +258,7 @@ export async function POST(req: NextRequest) {
 
                 await LogService.warn(clinicId, LogEvent.ERROR, {
                     conversationId,
-                    note: `Falha na ação ${aiResponse.acao}. Mudando para modo ASSISTENTE.`,
+                    note: `Falha na ação ${aiResponse.acao}. Mantendo resposta mas disparando alerta.`,
                     error: error.message
                 });
             }
