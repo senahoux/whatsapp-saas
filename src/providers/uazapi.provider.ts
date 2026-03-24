@@ -30,11 +30,15 @@ export class UazapiProvider implements WhatsAppProvider {
         }
 
         try {
-            // Exemplo endpoint genérico Uazapi: POST /instances/:instanceKey/messages/send
-            const endpoint = `${this.apiUrl}/instances/${this.instanceKey}/messages/send`;
+            // URL CORRETA (Uazapi v2+): POST /message/sendText/{instanceName}
+            // Importante: apiUrl já é normalizada no constructor para não ter /api se não necessário,
+            // mas aqui o usuário passou a base literal completa.
+            const baseUrl = this.apiUrl.replace("/api", ""); // Remove o sufixo /api se existir para este endpoint específico
+            const endpoint = `${baseUrl}/message/sendText/${this.instanceKey}`;
+
             const payload = {
                 number: phone,
-                body: message
+                text: message
             };
 
             const response = await fetch(endpoint, {
@@ -47,7 +51,8 @@ export class UazapiProvider implements WhatsAppProvider {
             });
 
             if (!response.ok) {
-                console.error(`[UazapiProvider] Falha HTTP ${response.status} ao enviar para ${phone}.`);
+                const errorText = await response.text();
+                console.error(`[UazapiProvider] Falha HTTP ${response.status} ao enviar para ${phone}. Detalhes: ${errorText}`);
                 return false;
             }
 
