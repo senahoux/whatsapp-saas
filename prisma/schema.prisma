@@ -239,6 +239,7 @@ model Setting {
   robotModeDefault String   @default("AUTO")
   debounceSeconds  Int      @default(8)
   adminPhoneNumber String?  // número que recebe notificações administrativas
+  whatsappInstance String?  // Nome da instância na Uazapi (ex: drsena)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

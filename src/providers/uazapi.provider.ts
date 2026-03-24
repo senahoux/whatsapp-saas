@@ -1,51 +1,50 @@
 import { WhatsAppProvider, NormalizedMessage } from "./whatsapp.provider";
+import { ClinicService } from "@/services/clinic.service";
 
 /**
  * UazapiProvider
  * 
- * Implementação da interface abstrata para a Uazapi.
- * Responsável APENAS por converter nosso DTO em chamadas HTTP esperadas pela Uazapi
- * e converter o Webhook da Uazapi no nosso DTO interno. Sem lógicas médicas.
+ * Implementação da interface abstrata para a Uazapi v2.
+ * Responsável por converter nosso DTO em chamadas HTTP esperadas pela Uazapi
+ * e converter o Webhook da Uazapi no nosso DTO interno.
  */
 export class UazapiProvider implements WhatsAppProvider {
-    private readonly apiUrl: string;
     private readonly apiKey: string;
-    private readonly instanceKey: string;
 
     constructor() {
-        let url = process.env.UAZAPI_API_URL || "https://uazapi.com.br/api";
-        // Garante que a URL termina em /api para compatibilidade com o construtor de endpoints
-        if (!url.endsWith("/api")) {
-            url = url.replace(/\/$/, "") + "/api";
-        }
-        this.apiUrl = url;
         this.apiKey = process.env.UAZAPI_API_KEY || "";
-        this.instanceKey = process.env.UAZAPI_INSTANCE_KEY || "";
     }
 
     async sendMessage(clinicId: string, phone: string, message: string): Promise<boolean> {
-        if (!this.apiKey || !this.instanceKey) {
-            console.warn(`[UazapiProvider] Env vars não configuráveis para envio na clínica ${clinicId}.`);
+        if (!this.apiKey) {
+            console.warn(`[UazapiProvider] UAZAPI_API_KEY não configurada.`);
             return false;
         }
 
         try {
-            // URL CORRETA (Uazapi v2+): POST /message/sendText/{instanceName}
-            // Importante: apiUrl já é normalizada no constructor para não ter /api se não necessário,
-            // mas aqui o usuário passou a base literal completa.
-            const baseUrl = this.apiUrl.replace("/api", ""); // Remove o sufixo /api se existir para este endpoint específico
-            const endpoint = `${baseUrl}/message/sendText/${this.instanceKey}`;
+            // Busca a instância configurada para esta clínica no banco de dados
+            const settings = await ClinicService.getSettings(clinicId);
+            const instance = settings?.whatsappInstance;
+
+            if (!instance) {
+                console.error(`[UazapiProvider] Clínica ${clinicId} não possui whatsappInstance configurada no banco.`);
+                return false;
+            }
+
+            // URL v2 por subdomínio: https://{instance}.uazapi.com/send/text
+            const endpoint = `https://${instance}.uazapi.com/send/text`;
 
             const payload = {
                 number: phone,
-                text: message
+                text: message,
+                linkPreview: true
             };
 
             const response = await fetch(endpoint, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${this.apiKey}`
+                    "token": this.apiKey // Uazapi v2 usa header 'token'
                 },
                 body: JSON.stringify(payload)
             });
@@ -65,7 +64,6 @@ export class UazapiProvider implements WhatsAppProvider {
 
     validateWebhook(payload: any, signature?: string): boolean {
         // Validação de token ou hash para Uazapi. 
-        // Retorna sempre true enquanto não configurado token secreto no Dashboard Uazapi
         return true;
     }
 
