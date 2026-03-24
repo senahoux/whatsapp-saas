@@ -31,20 +31,26 @@ export class UazapiProvider implements WhatsAppProvider {
                 return false;
             }
 
-            // URL v2 por subdomínio: https://{instance}.uazapi.com/send/text
-            const endpoint = `https://${instance}.uazapi.com/send/text`;
+            // URL CORRETA (Confirmada): https://whatsapp-saas.uazapi.com/message/sendText/{instance}
+            const endpoint = `https://whatsapp-saas.uazapi.com/message/sendText/${instance}`;
 
             const payload = {
                 number: phone,
-                text: message,
-                linkPreview: true
+                textMessage: {
+                    text: message
+                },
+                options: {
+                    delay: 1500,
+                    presence: "composing",
+                    async: true
+                }
             };
 
             const response = await fetch(endpoint, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "token": this.apiKey // Uazapi v2 usa header 'token'
+                    "token": this.apiKey // Continua usando o header 'token'
                 },
                 body: JSON.stringify(payload)
             });
