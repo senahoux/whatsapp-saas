@@ -3,6 +3,7 @@ import { AppointmentService } from "@/services/appointment.service";
 import { ClinicService } from "@/services/clinic.service";
 import { LogService } from "@/services/log.service";
 import { LogEvent } from "@/lib/types";
+import { getSession } from "@/lib/auth";
 
 /**
  * GET /api/appointments
@@ -17,7 +18,8 @@ import { LogEvent } from "@/lib/types";
  */
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
-    const clinicId = searchParams.get("clinicId");
+    const session = await getSession();
+    const clinicId = (session?.clinicId as string) || searchParams.get("clinicId");
 
     if (!clinicId) {
         return NextResponse.json({ error: "clinicId is required" }, { status: 400 });
@@ -60,10 +62,10 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
     let clinicId = "";
-
     try {
         const body = await req.json();
-        clinicId = body.clinicId;
+        const session = await getSession();
+        clinicId = (session?.clinicId as string) || body.clinicId;
 
         if (!clinicId || !body.contactId || !body.date || !body.time) {
             return NextResponse.json(
