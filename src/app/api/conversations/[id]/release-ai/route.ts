@@ -6,6 +6,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ConversationService } from "@/services/conversation.service";
+import { getSession } from "@/lib/auth";
 import { MessageService } from "@/services/message.service";
 import { ProviderInst } from "@/providers/uazapi.provider";
 import { LogService } from "@/services/log.service";
@@ -18,7 +19,9 @@ export async function POST(
     try {
         const { id: conversationId } = await params;
         const { searchParams } = new URL(req.url);
-        const clinicId = searchParams.get("clinicId");
+
+        const session = await getSession();
+        const clinicId = (session?.clinicId as string) || searchParams.get("clinicId");
 
         if (!clinicId) {
             return NextResponse.json({ error: "clinicId is required" }, { status: 400 });
