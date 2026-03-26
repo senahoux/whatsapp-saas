@@ -4,6 +4,7 @@ import { DashboardService } from "@/services/dashboard.service";
 import { prisma } from "@/lib/prisma";
 import { NotificationService } from "@/services/notification.service";
 import { getSession } from "@/lib/auth";
+import { formatTimeBR } from "@/lib/date";
 import "./dashboard.css";
 
 async function getHealth() {
@@ -78,7 +79,7 @@ export default async function AdminDashboard() {
                                 <div key={a.id} className={`alert-item ${a.type.toLowerCase()}`}>
                                     <div className="alert-header">
                                         <span className={`badge-alert ${a.type.toLowerCase()}`}>{a.type}</span>
-                                        <small>{new Date(a.createdAt).toLocaleTimeString("pt-BR")}</small>
+                                        <small>{formatTimeBR(a.createdAt)}</small>
                                     </div>
                                     <p className="alert-text">{a.message}</p>
                                 </div>

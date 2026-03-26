@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { formatDateBR } from "@/lib/date";
 import "./conversations.css";
 
 type Tab = "ASSISTENTE" | "HUMANO";
@@ -80,13 +81,7 @@ export default function ConversationsPage() {
     }
 
     function formatTime(raw: string | null): string {
-        if (!raw) return "—";
-        return new Date(raw).toLocaleString("pt-BR", {
-            day: "2-digit",
-            month: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-        });
+        return formatDateBR(raw);
     }
 
     return (

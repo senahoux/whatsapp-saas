@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import "./logs.css";
 import { getSession } from "@/lib/auth";
+import { formatDateBR } from "@/lib/date";
 
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
 
@@ -63,7 +64,7 @@ export default async function LogsPage({
                                 return (
                                     <tr key={log.id}>
                                         <td className="log-time">
-                                            {new Date(log.createdAt).toLocaleString("pt-BR")}
+                                            {formatDateBR(log.createdAt)}
                                         </td>
                                         <td>
                                             <span className={`log-level ${log.level.toLowerCase()}`}>

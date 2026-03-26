@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { formatDateBR } from "@/lib/date";
 import "./chat.css";
 
 interface Contact {
@@ -48,14 +49,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 };
 
 function formatTime(raw: string | null): string {
-    if (!raw) return "—";
-    return new Date(raw).toLocaleString("pt-BR", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-    });
+    return formatDateBR(raw);
 }
 
 export default function ChatDetailPage() {

@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import "./patients.css";
 import { getSession } from "@/lib/auth";
+import { formatDateOnlyBR } from "@/lib/date";
 
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
 
@@ -68,7 +69,7 @@ export default async function PatientsPage({
                                             <span className="badge-normal">Contato</span>
                                         )}
                                     </td>
-                                    <td>{new Date(contact.createdAt).toLocaleDateString("pt-BR")}</td>
+                                    <td>{formatDateOnlyBR(contact.createdAt)}</td>
                                 </tr>
                             ))
                         )}
