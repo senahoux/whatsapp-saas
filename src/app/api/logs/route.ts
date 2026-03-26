@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { LogService } from "@/services/log.service";
 import { ClinicService } from "@/services/clinic.service";
 import { LogLevel } from "@/lib/types";
+import { getSession } from "@/lib/auth";
 
 /**
  * GET /api/logs
@@ -9,7 +10,8 @@ import { LogLevel } from "@/lib/types";
  */
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
-    const clinicId = searchParams.get("clinicId");
+    const session = await getSession();
+    const clinicId = (session?.clinicId as string) || searchParams.get("clinicId");
 
     if (!clinicId) return NextResponse.json({ error: "clinicId is required" }, { status: 400 });
 

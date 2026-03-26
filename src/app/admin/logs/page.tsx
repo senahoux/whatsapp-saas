@@ -1,14 +1,14 @@
 export const dynamic = "force-dynamic";
 
 import "./logs.css";
+import { getSession } from "@/lib/auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
-const CLINIC_ID = process.env.CLINIC_ID || "clinic-demo-id";
 
 // Endpoint nativo da api/logs consome o LogService no servidor
-async function getLogs(page = 1) {
+async function getLogs(clinicId: string, page = 1) {
     try {
-        const res = await fetch(`${API_URL}/api/logs?clinicId=${CLINIC_ID}&page=${page}&pageSize=100`, {
+        const res = await fetch(`${API_URL}/api/logs?clinicId=${clinicId}&page=${page}&pageSize=100`, {
             cache: "no-store",
         });
         if (!res.ok) return { data: [], total: 0 };
@@ -24,8 +24,10 @@ export default async function LogsPage({
 }: {
     searchParams: { page?: string };
 }) {
+    const session = await getSession();
+    const clinicId = session?.clinicId as string || "Desconhecida";
     const page = Number(searchParams.page) || 1;
-    const { data: logs, total } = await getLogs(page);
+    const { data: logs, total } = await getLogs(clinicId, page);
 
     return (
         <>

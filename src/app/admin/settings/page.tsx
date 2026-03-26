@@ -3,8 +3,6 @@
 import { useEffect, useState } from "react";
 import "./settings.css";
 
-const CLINIC_ID = process.env.NEXT_PUBLIC_CLINIC_ID || "clinic-demo-id";
-
 export default function SettingsPage() {
     const [clinic, setClinic] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -12,7 +10,7 @@ export default function SettingsPage() {
     const [message, setMessage] = useState("");
 
     useEffect(() => {
-        fetch(`/api/settings?clinicId=${CLINIC_ID}`)
+        fetch(`/api/settings`)
             .then(res => res.json())
             .then(data => {
                 setClinic(data.clinic);
@@ -30,7 +28,7 @@ export default function SettingsPage() {
         setMessage("");
 
         try {
-            const res = await fetch(`/api/settings?clinicId=${CLINIC_ID}`, {
+            const res = await fetch(`/api/settings`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

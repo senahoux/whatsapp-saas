@@ -1,14 +1,14 @@
 export const dynamic = "force-dynamic";
 
 import "./patients.css";
+import { getSession } from "@/lib/auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
-const CLINIC_ID = process.env.CLINIC_ID || "clinic-demo-id";
 
 // Nao importamos services diretamente. Consumimos a API.
-async function getPatients(page = 1) {
+async function getPatients(clinicId: string, page = 1) {
     try {
-        const res = await fetch(`${API_URL}/api/contacts?clinicId=${CLINIC_ID}&page=${page}&pageSize=50`, {
+        const res = await fetch(`${API_URL}/api/contacts?clinicId=${clinicId}&page=${page}&pageSize=50`, {
             cache: "no-store",
         });
         if (!res.ok) return { data: [], total: 0 };
@@ -24,8 +24,10 @@ export default async function PatientsPage({
 }: {
     searchParams: { page?: string };
 }) {
+    const session = await getSession();
+    const clinicId = session?.clinicId as string || "Desconhecida";
     const page = Number(searchParams.page) || 1;
-    const { data: contacts, total } = await getPatients(page);
+    const { data: contacts, total } = await getPatients(clinicId, page);
 
     return (
         <>

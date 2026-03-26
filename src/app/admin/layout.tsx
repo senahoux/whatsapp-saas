@@ -1,11 +1,14 @@
 import Link from "next/link";
 import "./admin.css";
+import { getSession } from "@/lib/auth";
 
-export default function AdminLayout({
+export default async function AdminLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
+    const session = await getSession();
+    const clinicId = (session?.clinicId as string) || "Desconhecida";
     return (
         <div className="admin-container">
             <aside className="admin-sidebar">
@@ -25,8 +28,8 @@ export default function AdminLayout({
                 <div className="sidebar-footer">
                     <div className="clinic-info">
                         <span className="label">Clínica Atual</span>
-                        {/* Hardcoded para V1 local - num SaaS real viria de Auth/Context */}
-                        <span className="value">clinic-demo-id</span>
+                        {/* Identidade dinâmica via Sessão Autenticada */}
+                        <span className="value">{clinicId}</span>
                     </div>
                 </div>
             </aside>

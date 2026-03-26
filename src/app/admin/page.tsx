@@ -3,9 +3,8 @@ export const dynamic = 'force-dynamic';
 import { DashboardService } from "@/services/dashboard.service";
 import { prisma } from "@/lib/prisma";
 import { NotificationService } from "@/services/notification.service";
+import { getSession } from "@/lib/auth";
 import "./dashboard.css";
-
-const CLINIC_ID = process.env.CLINIC_ID || "clinic-demo-id";
 
 async function getHealth() {
     try {
@@ -29,15 +28,18 @@ async function getHealth() {
     }
 }
 
-async function getRecentAlerts() {
-    const { data } = await NotificationService.list(CLINIC_ID, { pageSize: 5 });
+async function getRecentAlerts(clinicId: string) {
+    const { data } = await NotificationService.list(clinicId, { pageSize: 5 });
     return data;
 }
 
 export default async function AdminDashboard() {
-    const stats = await DashboardService.getStats(CLINIC_ID);
+    const session = await getSession();
+    const clinicId = session?.clinicId as string || "Desconhecida";
+
+    const stats = await DashboardService.getStats(clinicId);
     const health = await getHealth();
-    const alerts = await getRecentAlerts();
+    const alerts = await getRecentAlerts(clinicId);
 
     return (
         <div className="dashboard-container">

@@ -8,11 +8,30 @@ import { prisma } from "@/lib/prisma";
 import { ClinicService } from "@/services/clinic.service";
 import { LogService } from "@/services/log.service";
 import { LogEvent } from "@/lib/types";
+import { getSession } from "@/lib/auth";
+
+export async function GET(req: Request) {
+    try {
+        const session = await getSession();
+        const clinicId = session?.clinicId as string;
+
+        if (!clinicId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+        const clinic = await ClinicService.findById(clinicId);
+        if (!clinic) return NextResponse.json({ error: "Clinic not found" }, { status: 404 });
+
+        return NextResponse.json({ clinic });
+    } catch (error) {
+        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    }
+}
 
 export async function PATCH(req: Request) {
     try {
         const { searchParams } = new URL(req.url);
-        const clinicId = searchParams.get("clinicId");
+
+        const session = await getSession();
+        const clinicId = (session?.clinicId as string) || searchParams.get("clinicId");
 
         if (!clinicId) {
             return NextResponse.json({ error: "clinicId is required" }, { status: 400 });

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ContactService } from "@/services/contact.service";
 import { ClinicService } from "@/services/clinic.service";
+import { getSession } from "@/lib/auth";
 
 /**
  * GET /api/contacts
@@ -10,7 +11,8 @@ import { ClinicService } from "@/services/clinic.service";
  */
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
-    const clinicId = searchParams.get("clinicId");
+    const session = await getSession();
+    const clinicId = (session?.clinicId as string) || searchParams.get("clinicId");
 
     if (!clinicId) {
         return NextResponse.json({ error: "clinicId is required" }, { status: 400 });
