@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { AppointmentService } from "@/services/appointment.service";
 import { getSession } from "@/lib/auth";
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, context: { params: Promise<{ id: string }> }) {
     try {
+        const { id } = await context.params;
         const session = await getSession();
         const clinicId = session?.clinicId as string;
 
@@ -12,7 +13,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         const body = await req.json().catch(() => ({}));
         const notes = body.notes;
 
-        const updated = await AppointmentService.cancel(clinicId, params.id, notes);
+        const updated = await AppointmentService.cancel(clinicId, id, notes);
 
         return NextResponse.json({ ok: true, appointment: updated });
     } catch (error: any) {
