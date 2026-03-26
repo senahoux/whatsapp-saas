@@ -1,6 +1,7 @@
 import Link from "next/link";
 import "./admin.css";
 import { getSession } from "@/lib/auth";
+import { ClinicService } from "@/services/clinic.service";
 
 export default async function AdminLayout({
     children,
@@ -8,7 +9,14 @@ export default async function AdminLayout({
     children: React.ReactNode;
 }) {
     const session = await getSession();
-    const clinicId = (session?.clinicId as string) || "Desconhecida";
+    const clinicId = session?.clinicId as string;
+
+    let nomeClinica = "Clínica Desconhecida";
+    if (clinicId) {
+        const c = await ClinicService.findById(clinicId);
+        if (c) nomeClinica = c.nomeClinica;
+    }
+
     return (
         <div className="admin-container">
             <aside className="admin-sidebar">
@@ -29,7 +37,7 @@ export default async function AdminLayout({
                     <div className="clinic-info">
                         <span className="label">Clínica Atual</span>
                         {/* Identidade dinâmica via Sessão Autenticada */}
-                        <span className="value">{clinicId}</span>
+                        <span className="value">{nomeClinica}</span>
                     </div>
                 </div>
             </aside>

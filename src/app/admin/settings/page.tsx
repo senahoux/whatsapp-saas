@@ -54,6 +54,9 @@ export default function SettingsPage() {
 
     const { settings } = clinic;
 
+    // Se para essa clínica a row setting não existir, exiba elegantemente:
+    if (!settings) return <div className="error">Configurações operacionais ainda não inicializadas para esta unidade.</div>;
+
     return (
         <div className="settings-container">
             <header className="page-header">

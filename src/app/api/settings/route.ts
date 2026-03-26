@@ -17,7 +17,7 @@ export async function GET(req: Request) {
 
         if (!clinicId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        const clinic = await ClinicService.findById(clinicId);
+        const clinic = await ClinicService.getClinicWithSettings(clinicId);
         if (!clinic) return NextResponse.json({ error: "Clinic not found" }, { status: 404 });
 
         return NextResponse.json({ clinic });
