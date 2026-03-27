@@ -401,7 +401,7 @@ function validateAIResponse(raw: string): AIResponse | null {
         // Validação estrutural detalhada apontando exatamente onde a IA descumpriu o contrato
         if (typeof parsed.mensagem !== "string" || !parsed.mensagem.trim()) throw new Error("Chave obrigatória 'mensagem' ausente ou mal formatada");
         if (!VALID_MODOS.includes(parsed.modo)) throw new Error(`Chave 'modo' não reconhecida (${parsed.modo})`);
-        if (!VALID_ACOES.includes(parsed.acao)) throw new Error(`Chave 'acao' não reconhecida (${parsed.acao})`);
+        if (parsed.acao !== null && !VALID_ACOES.includes(parsed.acao)) throw new Error(`Chave 'acao' não reconhecida (${parsed.acao})`);
         if (!VALID_CONFIANCA.includes(parsed.confianca)) throw new Error(`Chave 'confianca' não reconhecida (${parsed.confianca})`);
         if (typeof parsed.precisa_nome !== "boolean") throw new Error(`Chave 'precisa_nome' ausente ou não-booleana`);
 

@@ -162,7 +162,8 @@ export interface AIResponse {
     | "AGENDAR"
     | "REMARCAR"
     | "CANCELAR"
-    | "TRIAGEM";
+    | "TRIAGEM"
+    | null;
     tipo: AppointmentType | null;
     subtipo: AppointmentSubtype | null;
     data: string | null;   // YYYY-MM-DD
