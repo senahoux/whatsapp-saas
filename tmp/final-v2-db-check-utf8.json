@@ -1,0 +1,889 @@
+﻿--- CLINICS ---
+[
+  {
+    "id": "DrSena",
+    "nomeClinica": "Cl├¡nica Demo SaaS",
+    "nomeMedico": "Sistema",
+    "endereco": null,
+    "telefone": null,
+    "consultaValor": null,
+    "consultaDuracao": null,
+    "promocaoAtiva": false,
+    "promocaoTexto": null,
+    "descricaoServicos": null,
+    "faq": null,
+    "regrasPersonalizadas": null,
+    "prioritySuggestions": [],
+    "createdAt": "2026-03-26T19:27:54.844Z",
+    "updatedAt": "2026-03-26T19:27:54.844Z"
+  },
+  {
+    "id": "clinic-demo-id",
+    "nomeClinica": "Dr. Lucas Sena",
+    "nomeMedico": "Dr. Lucas Sena",
+    "endereco": "Rua Manoel de Paula, 33, Capela, Mogi Gua├ºu - SP",
+    "telefone": "5519996068411",
+    "consultaValor": 400,
+    "consultaDuracao": 60,
+    "promocaoAtiva": true,
+    "promocaoTexto": "Esse m├¬s estamos com uma avalia├º├úo hormonal inicial gratuita ≡ƒÿè",
+    "descricaoServicos": "Sa├║de hormonal, performance, reposi├º├úo hormonal, emagrecimento e implantes hormonais, com abordagem individualizada.",
+    "faq": "[{\"pergunta\":\"Como funciona a consulta?\",\"resposta\":\"A consulta tem dura├º├úo de 1 hora, no valor de R$400. ├ë feita uma avalia├º├úo completa do seu quadro e podem ser solicitados exames posteriormente. O retorno j├í est├í incluso.\"},{\"pergunta\":\"Tem alguma promo├º├úo?\",\"resposta\":\"Esse m├¬s estamos com uma avalia├º├úo hormonal inicial gratuita ≡ƒÿè ├ë uma avalia├º├úo inicial para entender seus sintomas hormonais e ver se h├í indica├º├úo de tratamento.\"},{\"pergunta\":\"O que s├úo implantes hormonais e como funcionam?\",\"resposta\":\"Os implantes hormonais fazem parte de um acompanhamento m├⌐dico de 6 meses. Eles s├úo uma forma moderna de reposi├º├úo hormonal, que liberam os horm├┤nios de forma cont├¡nua e est├ível no organismo. Ajudam em sintomas como cansa├ºo, baixa libido, altera├º├╡es de humor e menopausa.\"},{\"pergunta\":\"Quanto tempo dura o implante no corpo?\",\"resposta\":\"O implante costuma durar em m├⌐dia 6 meses no organismo ≡ƒÿè\"},{\"pergunta\":\"Precisa trazer exames para a avalia├º├úo inicial?\",\"resposta\":\"N├úo solicita exames na avalia├º├úo inicial, o primeiro passo ├⌐ a avalia├º├úo cl├¡nica. Mas se j├í tiver exames, pode trazer sim, o Dr. avalia tudo.\"},{\"pergunta\":\"Qual o valor da consulta?\",\"resposta\":\"A consulta custa R$400, com dura├º├úo de 1 hora e direito a retorno.\"},{\"pergunta\":\"Qual o endere├ºo da cl├¡nica?\",\"resposta\":\"ClinCare - Rua Manoel de Paula, 33, Capela, Mogi Gua├ºu - SP\"},{\"pergunta\":\"Voc├¬s trabalham com planos de emagrecimento?\",\"resposta\":\"O Dr. trabalha com protocolos espec├¡ficos para emagrecimento, sempre de forma individualizada.\"}]",
+    "regrasPersonalizadas": "[\"Sempre oferecer no m├íximo 2 op├º├╡es de hor├írio por vez.\",\"N├úo confirmar agendamento sem perguntar o nome completo do paciente.\",\"Se o paciente mencionar dor intensa ou urg├¬ncia, marcar como HUMANO_URGENTE imediatamente.\",\"Procedimentos est├⌐ticos: nunca prometer resultados espec├¡ficos.\",\"Retornos p├│s-procedimento t├¬m prioridade na agenda.\"]",
+    "prioritySuggestions": [
+      {
+        "date": "2026-03-30",
+        "period": "manha"
+      },
+      {
+        "date": "2026-03-31",
+        "period": "tarde"
+      }
+    ],
+    "createdAt": "2026-03-23T19:32:11.715Z",
+    "updatedAt": "2026-03-27T17:35:59.628Z"
+  }
+]
+
+--- APPOINTMENTS FOR Cl├¡nica Demo SaaS (DrSena) ---
+[]
+
+--- LOGS FOR Cl├¡nica Demo SaaS (DrSena) (LAST 50) ---
+[]
+
+--- MESSAGES FOR Cl├¡nica Demo SaaS (DrSena) (LAST 20) ---
+[]
+
+--- APPOINTMENTS FOR Dr. Lucas Sena (clinic-demo-id) ---
+[
+  {
+    "id": "cmn9dyesu0009l104y05nugrm",
+    "clinicId": "clinic-demo-id",
+    "contactId": "cmn4zfx610003ih04u9u4v6o7",
+    "type": "CONSULTA",
+    "subtype": null,
+    "status": "AGENDADO",
+    "date": "2026-03-31",
+    "time": "13:00",
+    "source": "ROBO",
+    "notes": "Agendado automaticamente via IA(ALTA)",
+    "reminderSentAt": null,
+    "createdAt": "2026-03-27T21:00:39.919Z",
+    "updatedAt": "2026-03-27T21:00:39.919Z",
+    "contact": {
+      "id": "cmn4zfx610003ih04u9u4v6o7",
+      "clinicId": "clinic-demo-id",
+      "phoneNumber": "5519999938883",
+      "name": "Lucas silva",
+      "isAdmin": false,
+      "isHotLead": false,
+      "notes": null,
+      "createdAt": "2026-03-24T19:03:17.930Z",
+      "updatedAt": "2026-03-27T21:00:40.230Z"
+    }
+  },
+  {
+    "id": "cmn96myng001zkz04y7gq23i6",
+    "clinicId": "clinic-demo-id",
+    "contactId": "cmn9586bs0003jv0419za30mh",
+    "type": "CONSULTA",
+    "subtype": null,
+    "status": "AGENDADO",
+    "date": "2026-03-30",
+    "time": "08:00",
+    "source": "ROBO",
+    "notes": "Agendado automaticamente via IA(ALTA)",
+    "reminderSentAt": null,
+    "createdAt": "2026-03-27T17:35:48.461Z",
+    "updatedAt": "2026-03-27T17:35:48.461Z",
+    "contact": {
+      "id": "cmn9586bs0003jv0419za30mh",
+      "clinicId": "clinic-demo-id",
+      "phoneNumber": "5519989514853",
+      "name": null,
+      "isAdmin": false,
+      "isHotLead": false,
+      "notes": null,
+      "createdAt": "2026-03-27T16:56:18.953Z",
+      "updatedAt": "2026-03-27T16:56:18.953Z"
+    }
+  },
+  {
+    "id": "cmn96ks1o0015kz046ycs1hy5",
+    "clinicId": "clinic-demo-id",
+    "contactId": "cmn96jawf000jkz04qsuxcvit",
+    "type": "CONSULTA",
+    "subtype": null,
+    "status": "AGENDADO",
+    "date": "2026-03-28",
+    "time": "08:00",
+    "source": "ROBO",
+    "notes": "Agendado automaticamente via IA(ALTA)",
+    "reminderSentAt": null,
+    "createdAt": "2026-03-27T17:34:06.589Z",
+    "updatedAt": "2026-03-27T17:34:06.589Z",
+    "contact": {
+      "id": "cmn96jawf000jkz04qsuxcvit",
+      "clinicId": "clinic-demo-id",
+      "phoneNumber": "5519988549926",
+      "name": null,
+      "isAdmin": false,
+      "isHotLead": false,
+      "notes": null,
+      "createdAt": "2026-03-27T17:32:57.711Z",
+      "updatedAt": "2026-03-27T17:32:57.711Z"
+    }
+  },
+  {
+    "id": "cmn95jv1j000dl404ed2tecvb",
+    "clinicId": "clinic-demo-id",
+    "contactId": "cmn95ji0f0003l404jq6hyzs9",
+    "type": "CONSULTA",
+    "subtype": null,
+    "status": "AGENDADO",
+    "date": "2023-10-03",
+    "time": "08:00",
+    "source": "ROBO",
+    "notes": "Agendado automaticamente via IA (ALTA)",
+    "reminderSentAt": null,
+    "createdAt": "2026-03-27T17:05:24.199Z",
+    "updatedAt": "2026-03-27T17:05:24.199Z",
+    "contact": {
+      "id": "cmn95ji0f0003l404jq6hyzs9",
+      "clinicId": "clinic-demo-id",
+      "phoneNumber": "5519999871103",
+      "name": null,
+      "isAdmin": false,
+      "isHotLead": false,
+      "notes": null,
+      "createdAt": "2026-03-27T17:05:07.311Z",
+      "updatedAt": "2026-03-27T17:05:07.311Z"
+    }
+  },
+  {
+    "id": "cmn8zh9co000hid04sbqpdpao",
+    "clinicId": "clinic-demo-id",
+    "contactId": "cmn8mdwna0003jx04rj5pkncn",
+    "type": "CONSULTA",
+    "subtype": null,
+    "status": "AGENDADO",
+    "date": "2023-10-30",
+    "time": "10:00",
+    "source": "ROBO",
+    "notes": "Agendado automaticamente via IA (ALTA)",
+    "reminderSentAt": null,
+    "createdAt": "2026-03-27T14:15:25.081Z",
+    "updatedAt": "2026-03-27T14:15:25.081Z",
+    "contact": {
+      "id": "cmn8mdwna0003jx04rj5pkncn",
+      "clinicId": "clinic-demo-id",
+      "phoneNumber": "5519998182975",
+      "name": "Juliana da silva",
+      "isAdmin": false,
+      "isHotLead": false,
+      "notes": null,
+      "createdAt": "2026-03-27T08:08:53.638Z",
+      "updatedAt": "2026-03-27T15:02:33.269Z"
+    }
+  },
+  {
+    "id": "cmn7kt692000nl504o3qezzee",
+    "clinicId": "clinic-demo-id",
+    "contactId": "cmn5x0saz0003l80443cmrxue",
+    "type": "CONSULTA",
+    "subtype": null,
+    "status": "AGENDADO",
+    "date": "2023-10-31",
+    "time": "14:00",
+    "source": "ROBO",
+    "notes": "Agendado automaticamente via IA (ALTA)",
+    "reminderSentAt": null,
+    "createdAt": "2026-03-26T14:37:00.519Z",
+    "updatedAt": "2026-03-26T14:37:00.519Z",
+    "contact": {
+      "id": "cmn5x0saz0003l80443cmrxue",
+      "clinicId": "clinic-demo-id",
+      "phoneNumber": "5519971408856",
+      "name": null,
+      "isAdmin": false,
+      "isHotLead": false,
+      "notes": null,
+      "createdAt": "2026-03-25T10:43:18.731Z",
+      "updatedAt": "2026-03-25T10:43:18.731Z"
+    }
+  },
+  {
+    "id": "cmn7k9r0c000bjv04x9pxr0eu",
+    "clinicId": "clinic-demo-id",
+    "contactId": "cmn5x0saz0003l80443cmrxue",
+    "type": "CONSULTA",
+    "subtype": null,
+    "status": "AGENDADO",
+    "date": "2023-10-03",
+    "time": "14:00",
+    "source": "ROBO",
+    "notes": "Agendado automaticamente via IA (ALTA)",
+    "reminderSentAt": null,
+    "createdAt": "2026-03-26T14:21:54.300Z",
+    "updatedAt": "2026-03-26T14:21:54.300Z",
+    "contact": {
+      "id": "cmn5x0saz0003l80443cmrxue",
+      "clinicId": "clinic-demo-id",
+      "phoneNumber": "5519971408856",
+      "name": null,
+      "isAdmin": false,
+      "isHotLead": false,
+      "notes": null,
+      "createdAt": "2026-03-25T10:43:18.731Z",
+      "updatedAt": "2026-03-25T10:43:18.731Z"
+    }
+  }
+]
+
+--- LOGS FOR Dr. Lucas Sena (clinic-demo-id) (LAST 50) ---
+[
+  {
+    "id": "cmn9efgzk000zl204wivrmftf",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "AI_RESPONSE",
+    "details": "{\"conversationId\":\"cmn98svjp0003l104nkrju2pe\",\"note\":\"Scheduling state active: slots injected and persisted\",\"slots\":[\"2026-03-30 09:00\",\"2026-03-30 10:00\"]}",
+    "createdAt": "2026-03-27T21:13:55.904Z"
+  },
+  {
+    "id": "cmn9ef9c8000xl2048kqw19sm",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "DEBOUNCE_TRIGGERED",
+    "details": "{\"conversationId\":\"cmn98svjp0003l104nkrju2pe\",\"contactId\":\"cmn4zfx610003ih04u9u4v6o7\",\"debounceSeconds\":8}",
+    "createdAt": "2026-03-27T21:13:45.992Z"
+  },
+  {
+    "id": "cmn9ef96l000vl204lc47dg61",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "MESSAGE_RECEIVED",
+    "details": "{\"messageId\":\"cmn9ef912000tl204lyyf0ujk\",\"conversationId\":\"cmn98svjp0003l104nkrju2pe\",\"contactId\":\"cmn4zfx610003ih04u9u4v6o7\",\"phone\":\"5519999938883\"}",
+    "createdAt": "2026-03-27T21:13:45.790Z"
+  },
+  {
+    "id": "cmn9ef8ra000rl204adf3s5ws",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "WEBHOOK_RAW_RECEIVED",
+    "details": "{\"payload\":{\"BaseUrl\":\"https://whatsapp-saas.uazapi.com\",\"EventType\":\"messages\",\"chat\":{\"chatbot_agentResetMemoryAt\":0,\"chatbot_disableUntil\":0,\"chatbot_lastTriggerAt\":0,\"chatbot_lastTrigger_id\":\"\",\"id\":\"raa7d29d27d858d\",\"image\":\"\",\"imagePreview\":\"https://pps.whatsapp.net/v/t61.24694-24/534415793_2839715693038158_7853346638378568376_n.jpg?stp=dst-jpg_s96x96_tt6&ccb=11-4&oh=01_Q5Aa4AGGomtwEDb4pkE6BLWP37gb40AX3GNp7dGyn0AlvoCSsg&oe=69CEA9BB&_nc_sid=5e03e0&_nc_cat=103\",\"lead_assignedAttendant_id\":\"\",\"lead_email\":\"\",\"lead_field01\":\"\",\"lead_field02\":\"\",\"lead_field03\":\"\",\"lead_field04\":\"\",\"lead_field05\":\"\",\"lead_field06\":\"\",\"lead_field07\":\"\",\"lead_field08\":\"\",\"lead_field09\":\"\",\"lead_field10\":\"\",\"lead_field11\":\"\",\"lead_field12\":\"\",\"lead_field13\":\"\",\"lead_field14\":\"\",\"lead_field15\":\"\",\"lead_field16\":\"\",\"lead_field17\":\"\",\"lead_field18\":\"\",\"lead_field19\":\"\",\"lead_field20\":\"\",\"lead_fullName\":\"\",\"lead_isTicketOpen\":false,\"lead_kanbanOrder\":0,\"lead_name\":\"\",\"lead_notes\":\"\",\"lead_personalid\":\"\",\"lead_status\":\"\",\"lead_tags\":[],\"name\":\"Lu Se\",\"owner\":\"5519998868883\",\"phone\":\"+55 19 99993-8883\",\"wa_archived\":false,\"wa_chatid\":\"5519999938883@s.whatsapp.net\",\"wa_chatlid\":\"225215586009090@lid\",\"wa_contactName\":\"Lu Se\",\"wa_ephemeralExpiration\":0,\"wa_fastid\":\"5519998868883:5519999938883\",\"wa_isBlocked\":false,\"wa_isGroup\":false,\"wa_isGroup_admin\":false,\"wa_isGroup_announce\":false,\"wa_isGroup_community\":false,\"wa_isGroup_member\":false,\"wa_isPinned\":false,\"wa_label\":[],\"wa_lastMessageSender\":\"225215586009090@lid\",\"wa_lastMessageTextVote\":\"Consegue me d├í um diagn├│stico do que est├í acontecendo, eu sou o administrador, doutor Lucas Sena, se tiver algum erro no prompt me avise\",\"wa_lastMessageType\":\"Conversation\",\"wa_lastMsgTimestamp\":1774646024000,\"wa_muteEndTime\":0,\"wa_name\":\"Lucas Sena\",\"wa_unreadCount\":97},\"chatSource\":\"updated\",\"instanceName\":\"drsena\",\"message\":{\"buttonOrListid\":\"\",\"chatid\":\"5519999938883@s.whatsapp.net\",\"chatlid\":\"225215586009090@lid\",\"content\":\"Consegue me d├í um diagn├│stico do que est├í acontecendo, eu sou o administrador, doutor Lucas Sena, se tiver algum erro no prompt me avise\",\"convertOptions\":\"\",\"edited\":\"\",\"fromMe\":false,\"groupName\":\"\",\"id\":\"5519998868883:3A7A93538B6CAC3F313B\",\"isGroup\":false,\"mediaType\":\"\",\"messageTimestamp\":1774646024000,\"messageType\":\"Conversation\",\"messageid\":\"3A7A93538B6CAC3F313B\",\"owner\":\"5519998868883\",\"quoted\":\"\",\"reaction\":\"\",\"sender\":\"225215586009090@lid\",\"senderName\":\"Lucas Sena\",\"sender_lid\":\"225215586009090@lid\",\"sender_pn\":\"5519999938883@s.whatsapp.net\",\"source\":\"ios\",\"status\":\"\",\"text\":\"Consegue me d├í um diagn├│stico do que est├í acontecendo, eu sou o administrador, doutor Lucas Sena, se tiver algum erro no prompt me avise\",\"track_id\":\"\",\"track_source\":\"\",\"type\":\"text\",\"vote\":\"\",\"wasSentByApi\":false},\"owner\":\"5519998868883\",\"token\":\"7bfb1a1c-060e-4c57-852f-b8380688c2b0\"},\"url\":\"https://whatsapp-saas-five.vercel.app/api/webhook/whatsapp?clinicId=clinic-demo-id\"}",
+    "createdAt": "2026-03-27T21:13:45.227Z"
+  },
+  {
+    "id": "cmn9ee7s7000nl204z57etp9r",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "DEBOUNCE_TRIGGERED",
+    "details": "{\"conversationId\":\"cmn98svjp0003l104nkrju2pe\",\"contactId\":\"cmn4zfx610003ih04u9u4v6o7\",\"debounceSeconds\":8}",
+    "createdAt": "2026-03-27T21:12:57.320Z"
+  },
+  {
+    "id": "cmn9ee7mm000ll2046qo6sb96",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "MESSAGE_RECEIVED",
+    "details": "{\"messageId\":\"cmn9ee7h1000jl204kvgoveea\",\"conversationId\":\"cmn98svjp0003l104nkrju2pe\",\"contactId\":\"cmn4zfx610003ih04u9u4v6o7\",\"phone\":\"5519999938883\"}",
+    "createdAt": "2026-03-27T21:12:57.118Z"
+  },
+  {
+    "id": "cmn9ee772000hl204ofqrtyg3",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "WEBHOOK_RAW_RECEIVED",
+    "details": "{\"payload\":{\"BaseUrl\":\"https://whatsapp-saas.uazapi.com\",\"EventType\":\"messages\",\"chat\":{\"chatbot_agentResetMemoryAt\":0,\"chatbot_disableUntil\":0,\"chatbot_lastTriggerAt\":0,\"chatbot_lastTrigger_id\":\"\",\"id\":\"raa7d29d27d858d\",\"image\":\"\",\"imagePreview\":\"https://pps.whatsapp.net/v/t61.24694-24/534415793_2839715693038158_7853346638378568376_n.jpg?stp=dst-jpg_s96x96_tt6&ccb=11-4&oh=01_Q5Aa4AGGomtwEDb4pkE6BLWP37gb40AX3GNp7dGyn0AlvoCSsg&oe=69CEA9BB&_nc_sid=5e03e0&_nc_cat=103\",\"lead_assignedAttendant_id\":\"\",\"lead_email\":\"\",\"lead_field01\":\"\",\"lead_field02\":\"\",\"lead_field03\":\"\",\"lead_field04\":\"\",\"lead_field05\":\"\",\"lead_field06\":\"\",\"lead_field07\":\"\",\"lead_field08\":\"\",\"lead_field09\":\"\",\"lead_field10\":\"\",\"lead_field11\":\"\",\"lead_field12\":\"\",\"lead_field13\":\"\",\"lead_field14\":\"\",\"lead_field15\":\"\",\"lead_field16\":\"\",\"lead_field17\":\"\",\"lead_field18\":\"\",\"lead_field19\":\"\",\"lead_field20\":\"\",\"lead_fullName\":\"\",\"lead_isTicketOpen\":false,\"lead_kanbanOrder\":0,\"lead_name\":\"\",\"lead_notes\":\"\",\"lead_personalid\":\"\",\"lead_status\":\"\",\"lead_tags\":[],\"name\":\"Lu Se\",\"owner\":\"5519998868883\",\"phone\":\"+55 19 99993-8883\",\"wa_archived\":false,\"wa_chatid\":\"5519999938883@s.whatsapp.net\",\"wa_chatlid\":\"225215586009090@lid\",\"wa_contactName\":\"Lu Se\",\"wa_ephemeralExpiration\":0,\"wa_fastid\":\"5519998868883:5519999938883\",\"wa_isBlocked\":false,\"wa_isGroup\":false,\"wa_isGroup_admin\":false,\"wa_isGroup_announce\":false,\"wa_isGroup_community\":false,\"wa_isGroup_member\":false,\"wa_isPinned\":false,\"wa_label\":[],\"wa_lastMessageSender\":\"225215586009090@lid\",\"wa_lastMessageTextVote\":\"Para de ficar repetindo\",\"wa_lastMessageType\":\"Conversation\",\"wa_lastMsgTimestamp\":1774645976000,\"wa_muteEndTime\":0,\"wa_name\":\"Lucas Sena\",\"wa_unreadCount\":96},\"chatSource\":\"updated\",\"instanceName\":\"drsena\",\"message\":{\"buttonOrListid\":\"\",\"chatid\":\"5519999938883@s.whatsapp.net\",\"chatlid\":\"225215586009090@lid\",\"content\":\"Para de ficar repetindo\",\"convertOptions\":\"\",\"edited\":\"\",\"fromMe\":false,\"groupName\":\"\",\"id\":\"5519998868883:3A419AF084A5AF956D02\",\"isGroup\":false,\"mediaType\":\"\",\"messageTimestamp\":1774645976000,\"messageType\":\"Conversation\",\"messageid\":\"3A419AF084A5AF956D02\",\"owner\":\"5519998868883\",\"quoted\":\"\",\"reaction\":\"\",\"sender\":\"225215586009090@lid\",\"senderName\":\"Lucas Sena\",\"sender_lid\":\"225215586009090@lid\",\"sender_pn\":\"5519999938883@s.whatsapp.net\",\"source\":\"ios\",\"status\":\"\",\"text\":\"Para de ficar repetindo\",\"track_id\":\"\",\"track_source\":\"\",\"type\":\"text\",\"vote\":\"\",\"wasSentByApi\":false},\"owner\":\"5519998868883\",\"token\":\"7bfb1a1c-060e-4c57-852f-b8380688c2b0\"},\"url\":\"https://whatsapp-saas-five.vercel.app/api/webhook/whatsapp?clinicId=clinic-demo-id\"}",
+    "createdAt": "2026-03-27T21:12:56.546Z"
+  },
+  {
+    "id": "cmn9edskz0015f5k46nu1s0te",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "AI_RESPONSE",
+    "details": "{\"conversationId\":\"cmn4zfx8f0005ih04zc11l8dk\",\"rawResponse\":{\"mensagem\":\"Oi, Lucas! ≡ƒÿè As op├º├╡es dispon├¡veis para a consulta com o Dr. Lucas Sena s├úo: \\n1. 30 de mar├ºo ├ás 09:00 \\n2. 30 de mar├ºo ├ás 10:00. \\nQual hor├írio voc├¬ prefere?\",\"modo\":\"AUTO\",\"acao\":\"NENHUMA\",\"tipo\":\"CONSULTA\",\"data\":null,\"hora\":null,\"lead\":null,\"confianca\":\"ALTA\",\"precisa_nome\":false,\"nome_identificado\":\"Lucas Silva\",\"subtipo\":null,\"notificar_admin\":false},\"patientMessage\":\"Ol├í\"}",
+    "createdAt": "2026-03-27T21:12:37.475Z"
+  },
+  {
+    "id": "cmn9ed21w000fl2045imf3oew",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "HUMAN_INTERVENTION",
+    "details": "{\"conversationId\":\"cmn4zzfii000tkz04rxmd5lsk\",\"contactId\":\"cmn4zzfhc000rkz04nwgbzdd6\"}",
+    "createdAt": "2026-03-27T21:12:03.236Z"
+  },
+  {
+    "id": "cmn9ed1mc000bl204646xg5ly",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "WEBHOOK_RAW_RECEIVED",
+    "details": "{\"payload\":{\"BaseUrl\":\"https://whatsapp-saas.uazapi.com\",\"EventType\":\"messages\",\"chat\":{\"chatbot_agentResetMemoryAt\":0,\"chatbot_disableUntil\":0,\"chatbot_lastTriggerAt\":0,\"chatbot_lastTrigger_id\":\"\",\"id\":\"raa7d29d27d858d\",\"image\":\"\",\"imagePreview\":\"https://pps.whatsapp.net/v/t61.24694-24/534415793_2839715693038158_7853346638378568376_n.jpg?stp=dst-jpg_s96x96_tt6&ccb=11-4&oh=01_Q5Aa4AGGomtwEDb4pkE6BLWP37gb40AX3GNp7dGyn0AlvoCSsg&oe=69CEA9BB&_nc_sid=5e03e0&_nc_cat=103\",\"lead_assignedAttendant_id\":\"\",\"lead_email\":\"\",\"lead_field01\":\"\",\"lead_field02\":\"\",\"lead_field03\":\"\",\"lead_field04\":\"\",\"lead_field05\":\"\",\"lead_field06\":\"\",\"lead_field07\":\"\",\"lead_field08\":\"\",\"lead_field09\":\"\",\"lead_field10\":\"\",\"lead_field11\":\"\",\"lead_field12\":\"\",\"lead_field13\":\"\",\"lead_field14\":\"\",\"lead_field15\":\"\",\"lead_field16\":\"\",\"lead_field17\":\"\",\"lead_field18\":\"\",\"lead_field19\":\"\",\"lead_field20\":\"\",\"lead_fullName\":\"\",\"lead_isTicketOpen\":false,\"lead_kanbanOrder\":0,\"lead_name\":\"\",\"lead_notes\":\"\",\"lead_personalid\":\"\",\"lead_status\":\"\",\"lead_tags\":[],\"name\":\"Lu Se\",\"owner\":\"5519998868883\",\"phone\":\"+55 19 99993-8883\",\"wa_archived\":false,\"wa_chatid\":\"5519999938883@s.whatsapp.net\",\"wa_chatlid\":\"225215586009090@lid\",\"wa_contactName\":\"Lu Se\",\"wa_ephemeralExpiration\":0,\"wa_fastid\":\"5519998868883:5519999938883\",\"wa_isBlocked\":false,\"wa_isGroup\":false,\"wa_isGroup_admin\":false,\"wa_isGroup_announce\":false,\"wa_isGroup_community\":false,\"wa_isGroup_member\":false,\"wa_isPinned\":false,\"wa_label\":[],\"wa_lastMessageSender\":\"90633054208036@lid\",\"wa_lastMessageTextVote\":\"Ok\",\"wa_lastMessageType\":\"Conversation\",\"wa_lastMsgTimestamp\":1774645922000,\"wa_muteEndTime\":0,\"wa_name\":\"Lucas Sena\",\"wa_unreadCount\":95},\"chatSource\":\"updated\",\"instanceName\":\"drsena\",\"message\":{\"buttonOrListid\":\"\",\"chatid\":\"5519999938883@s.whatsapp.net\",\"chatlid\":\"225215586009090@lid\",\"content\":\"Ok\",\"convertOptions\":\"\",\"edited\":\"\",\"fromMe\":true,\"groupName\":\"\",\"id\":\"5519998868883:2AFE6E80EBC635615F75\",\"isGroup\":false,\"mediaType\":\"\",\"messageTimestamp\":1774645922000,\"messageType\":\"Conversation\",\"messageid\":\"2AFE6E80EBC635615F75\",\"owner\":\"5519998868883\",\"quoted\":\"\",\"reaction\":\"\",\"sender\":\"90633054208036@lid\",\"senderName\":\"Dr Sena\",\"sender_lid\":\"90633054208036@lid\",\"sender_pn\":\"5519998868883@s.whatsapp.net\",\"source\":\"unknown\",\"status\":\"\",\"text\":\"Ok\",\"track_id\":\"\",\"track_source\":\"\",\"type\":\"text\",\"vote\":\"\",\"wasSentByApi\":false},\"owner\":\"5519998868883\",\"token\":\"7bfb1a1c-060e-4c57-852f-b8380688c2b0\"},\"url\":\"https://whatsapp-saas-five.vercel.app/api/webhook/whatsapp?clinicId=clinic-demo-id\"}",
+    "createdAt": "2026-03-27T21:12:02.665Z"
+  },
+  {
+    "id": "cmn9ectzb0011f5k4ssoqs2y8",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "AI_RESPONSE",
+    "details": "{\"conversationId\":\"cmn4zfx8f0005ih04zc11l8dk\",\"rawResponse\":{\"mensagem\":\"Oi, Lucas! ≡ƒÿè O consult├│rio do Dr. Lucas Sena fica na ClinCare, na Rua Manoel de Paula, 33, Capela, Mogi Gua├ºu - SP. Posso te ajudar a agendar sua consulta? As op├º├╡es dispon├¡veis s├úo: \\n1. 30 de mar├ºo ├ás 09:00 \\n2. 30 de mar├ºo ├ás 10:00. Qual hor├írio voc├¬ prefere?\",\"modo\":\"AUTO\",\"acao\":\"NENHUMA\",\"tipo\":\"CONSULTA\",\"data\":null,\"hora\":null,\"lead\":null,\"confianca\":\"ALTA\",\"precisa_nome\":false,\"nome_identificado\":\"Lucas Silva\",\"subtipo\":null,\"notificar_admin\":false},\"patientMessage\":\"Ol├í\"}",
+    "createdAt": "2026-03-27T21:11:52.775Z"
+  },
+  {
+    "id": "cmn9ecpat0007l2043p1jk9qs",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "DEBOUNCE_TRIGGERED",
+    "details": "{\"conversationId\":\"cmn98svjp0003l104nkrju2pe\",\"contactId\":\"cmn4zfx610003ih04u9u4v6o7\",\"debounceSeconds\":8}",
+    "createdAt": "2026-03-27T21:11:46.710Z"
+  },
+  {
+    "id": "cmn9ecp580005l2047c5kvpc1",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "MESSAGE_RECEIVED",
+    "details": "{\"messageId\":\"cmn9ecozj0003l204ia9kn8pv\",\"conversationId\":\"cmn98svjp0003l104nkrju2pe\",\"contactId\":\"cmn4zfx610003ih04u9u4v6o7\",\"phone\":\"5519999938883\"}",
+    "createdAt": "2026-03-27T21:11:46.509Z"
+  },
+  {
+    "id": "cmn9econe0001l204o2wbi1k4",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "WEBHOOK_RAW_RECEIVED",
+    "details": "{\"payload\":{\"BaseUrl\":\"https://whatsapp-saas.uazapi.com\",\"EventType\":\"messages\",\"chat\":{\"chatbot_agentResetMemoryAt\":0,\"chatbot_disableUntil\":0,\"chatbot_lastTriggerAt\":0,\"chatbot_lastTrigger_id\":\"\",\"id\":\"raa7d29d27d858d\",\"image\":\"\",\"imagePreview\":\"https://pps.whatsapp.net/v/t61.24694-24/534415793_2839715693038158_7853346638378568376_n.jpg?stp=dst-jpg_s96x96_tt6&ccb=11-4&oh=01_Q5Aa4AGGomtwEDb4pkE6BLWP37gb40AX3GNp7dGyn0AlvoCSsg&oe=69CEA9BB&_nc_sid=5e03e0&_nc_cat=103\",\"lead_assignedAttendant_id\":\"\",\"lead_email\":\"\",\"lead_field01\":\"\",\"lead_field02\":\"\",\"lead_field03\":\"\",\"lead_field04\":\"\",\"lead_field05\":\"\",\"lead_field06\":\"\",\"lead_field07\":\"\",\"lead_field08\":\"\",\"lead_field09\":\"\",\"lead_field10\":\"\",\"lead_field11\":\"\",\"lead_field12\":\"\",\"lead_field13\":\"\",\"lead_field14\":\"\",\"lead_field15\":\"\",\"lead_field16\":\"\",\"lead_field17\":\"\",\"lead_field18\":\"\",\"lead_field19\":\"\",\"lead_field20\":\"\",\"lead_fullName\":\"\",\"lead_isTicketOpen\":false,\"lead_kanbanOrder\":0,\"lead_name\":\"\",\"lead_notes\":\"\",\"lead_personalid\":\"\",\"lead_status\":\"\",\"lead_tags\":[],\"name\":\"Lu Se\",\"owner\":\"5519998868883\",\"phone\":\"+55 19 99993-8883\",\"wa_archived\":false,\"wa_chatid\":\"5519999938883@s.whatsapp.net\",\"wa_chatlid\":\"225215586009090@lid\",\"wa_contactName\":\"Lu Se\",\"wa_ephemeralExpiration\":0,\"wa_fastid\":\"5519998868883:5519999938883\",\"wa_isBlocked\":false,\"wa_isGroup\":false,\"wa_isGroup_admin\":false,\"wa_isGroup_announce\":false,\"wa_isGroup_community\":false,\"wa_isGroup_member\":false,\"wa_isPinned\":false,\"wa_label\":[],\"wa_lastMessageSender\":\"225215586009090@lid\",\"wa_lastMessageTextVote\":\"Para de ficar repetindo\",\"wa_lastMessageType\":\"Conversation\",\"wa_lastMsgTimestamp\":1774645903000,\"wa_muteEndTime\":0,\"wa_name\":\"Lucas Sena\",\"wa_unreadCount\":95},\"chatSource\":\"updated\",\"instanceName\":\"drsena\",\"message\":{\"buttonOrListid\":\"\",\"chatid\":\"5519999938883@s.whatsapp.net\",\"chatlid\":\"225215586009090@lid\",\"content\":\"Para de ficar repetindo\",\"convertOptions\":\"\",\"edited\":\"\",\"fromMe\":false,\"groupName\":\"\",\"id\":\"5519998868883:3A9CF534CC28036F247D\",\"isGroup\":false,\"mediaType\":\"\",\"messageTimestamp\":1774645903000,\"messageType\":\"Conversation\",\"messageid\":\"3A9CF534CC28036F247D\",\"owner\":\"5519998868883\",\"quoted\":\"\",\"reaction\":\"\",\"sender\":\"225215586009090@lid\",\"senderName\":\"Lucas Sena\",\"sender_lid\":\"225215586009090@lid\",\"sender_pn\":\"5519999938883@s.whatsapp.net\",\"source\":\"ios\",\"status\":\"\",\"text\":\"Para de ficar repetindo\",\"track_id\":\"\",\"track_source\":\"\",\"type\":\"text\",\"vote\":\"\",\"wasSentByApi\":false},\"owner\":\"5519998868883\",\"token\":\"7bfb1a1c-060e-4c57-852f-b8380688c2b0\"},\"url\":\"https://whatsapp-saas-five.vercel.app/api/webhook/whatsapp?clinicId=clinic-demo-id\"}",
+    "createdAt": "2026-03-27T21:11:45.857Z"
+  },
+  {
+    "id": "cmn9ebri2000xf5k4t6uhgc4v",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "AI_RESPONSE",
+    "details": "{\"conversationId\":\"cmn4zfx8f0005ih04zc11l8dk\",\"rawResponse\":{\"mensagem\":\"Oi, Lucas! ≡ƒÿè Entendo que voc├¬ gostaria de um hor├írio mais tarde. Vou verificar novas op├º├╡es para voc├¬. Um momento, por favor.\",\"modo\":\"AUTO\",\"acao\":\"VER_AGENDA\",\"tipo\":\"CONSULTA\",\"data\":null,\"hora\":null,\"lead\":null,\"confianca\":\"ALTA\",\"precisa_nome\":false,\"nome_identificado\":\"Lucas Silva\",\"subtipo\":null,\"notificar_admin\":false},\"patientMessage\":\"Ol├í\"}",
+    "createdAt": "2026-03-27T21:11:02.756Z"
+  },
+  {
+    "id": "cmn9eac38000tf5k4725y2fnw",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "AI_RESPONSE",
+    "details": "{\"conversationId\":\"cmn4zfx8f0005ih04zc11l8dk\",\"rawResponse\":{\"mensagem\":\"Oi, Lucas! ≡ƒÿè Agora que tenho seu nome, posso confirmar o agendamento. Voc├¬ prefere marcar a consulta com o Dr. Lucas Sena para:\\n1. 30 de mar├ºo ├ás 09:00\\n2. 30 de mar├ºo ├ás 10:00?\\nQual hor├írio voc├¬ escolhe?\",\"modo\":\"AUTO\",\"acao\":\"NENHUMA\",\"tipo\":\"CONSULTA\",\"data\":null,\"hora\":null,\"lead\":null,\"confianca\":\"ALTA\",\"precisa_nome\":false,\"nome_identificado\":\"Lucas Silva\",\"subtipo\":null,\"notificar_admin\":false},\"patientMessage\":\"Ol├í\"}",
+    "createdAt": "2026-03-27T21:09:56.129Z"
+  },
+  {
+    "id": "cmn9e98ct000pf5k4m7nle6mp",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "AI_RESPONSE",
+    "details": "{\"conversationId\":\"cmn4zfx8f0005ih04zc11l8dk\",\"rawResponse\":{\"mensagem\":\"Oi, Lucas! ≡ƒÿè Para agendar sua consulta com o Dr. Lucas Sena, posso oferecer os seguintes hor├írios: \\n1. 30 de mar├ºo ├ás 09:00 \\n2. 30 de mar├ºo ├ás 10:00. \\nQual hor├írio voc├¬ prefere?\",\"modo\":\"AUTO\",\"acao\":\"NENHUMA\",\"tipo\":\"CONSULTA\",\"data\":null,\"hora\":null,\"lead\":null,\"confianca\":\"ALTA\",\"precisa_nome\":false,\"nome_identificado\":\"Lucas silva\",\"subtipo\":null,\"notificar_admin\":false},\"patientMessage\":\"Ol├í\"}",
+    "createdAt": "2026-03-27T21:09:04.781Z"
+  },
+  {
+    "id": "cmn9e7wrw000lf5k4cpn5hemh",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "AI_RESPONSE",
+    "details": "{\"conversationId\":\"cmn4zfx8f0005ih04zc11l8dk\",\"rawResponse\":{\"mensagem\":\"Oi, Lucas! ≡ƒÿè Vamos agendar sua consulta com o Dr. Lucas Sena. Voc├¬ gostaria de saber os hor├írios dispon├¡veis?\",\"modo\":\"AUTO\",\"acao\":\"VER_AGENDA\",\"tipo\":\"CONSULTA\",\"data\":null,\"hora\":null,\"lead\":null,\"confianca\":\"ALTA\",\"precisa_nome\":false,\"nome_identificado\":\"Lucas silva\",\"subtipo\":null,\"notificar_admin\":false},\"patientMessage\":\"Ol├í\"}",
+    "createdAt": "2026-03-27T21:08:03.116Z"
+  },
+  {
+    "id": "cmn9dyexk000bl104a6sremlw",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "ACTION_EXECUTED",
+    "details": "{\"conversationId\":\"cmn98svjp0003l104nkrju2pe\",\"action\":\"AGENDAR\",\"data\":\"2026-03-31\",\"hora\":\"13:00\"}",
+    "createdAt": "2026-03-27T21:00:40.088Z"
+  },
+  {
+    "id": "cmn9dy3l30007l104nd32ruyu",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "DEBOUNCE_TRIGGERED",
+    "details": "{\"conversationId\":\"cmn98svjp0003l104nkrju2pe\",\"contactId\":\"cmn4zfx610003ih04u9u4v6o7\",\"debounceSeconds\":8}",
+    "createdAt": "2026-03-27T21:00:25.383Z"
+  },
+  {
+    "id": "cmn9dy3eg0005l104iqy0dwh5",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "MESSAGE_RECEIVED",
+    "details": "{\"messageId\":\"cmn9dy37b0003l104bpq7lhz3\",\"conversationId\":\"cmn98svjp0003l104nkrju2pe\",\"contactId\":\"cmn4zfx610003ih04u9u4v6o7\",\"phone\":\"5519999938883\"}",
+    "createdAt": "2026-03-27T21:00:25.144Z"
+  },
+  {
+    "id": "cmn9dy2ql0001l104e4eecu5l",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "WEBHOOK_RAW_RECEIVED",
+    "details": "{\"payload\":{\"BaseUrl\":\"https://whatsapp-saas.uazapi.com\",\"EventType\":\"messages\",\"chat\":{\"chatbot_agentResetMemoryAt\":0,\"chatbot_disableUntil\":0,\"chatbot_lastTriggerAt\":0,\"chatbot_lastTrigger_id\":\"\",\"id\":\"raa7d29d27d858d\",\"image\":\"\",\"imagePreview\":\"https://pps.whatsapp.net/v/t61.24694-24/534415793_2839715693038158_7853346638378568376_n.jpg?stp=dst-jpg_s96x96_tt6&ccb=11-4&oh=01_Q5Aa4AGGomtwEDb4pkE6BLWP37gb40AX3GNp7dGyn0AlvoCSsg&oe=69CEA9BB&_nc_sid=5e03e0&_nc_cat=103\",\"lead_assignedAttendant_id\":\"\",\"lead_email\":\"\",\"lead_field01\":\"\",\"lead_field02\":\"\",\"lead_field03\":\"\",\"lead_field04\":\"\",\"lead_field05\":\"\",\"lead_field06\":\"\",\"lead_field07\":\"\",\"lead_field08\":\"\",\"lead_field09\":\"\",\"lead_field10\":\"\",\"lead_field11\":\"\",\"lead_field12\":\"\",\"lead_field13\":\"\",\"lead_field14\":\"\",\"lead_field15\":\"\",\"lead_field16\":\"\",\"lead_field17\":\"\",\"lead_field18\":\"\",\"lead_field19\":\"\",\"lead_field20\":\"\",\"lead_fullName\":\"\",\"lead_isTicketOpen\":false,\"lead_kanbanOrder\":0,\"lead_name\":\"\",\"lead_notes\":\"\",\"lead_personalid\":\"\",\"lead_status\":\"\",\"lead_tags\":[],\"name\":\"Lu Se\",\"owner\":\"5519998868883\",\"phone\":\"+55 19 99993-8883\",\"wa_archived\":false,\"wa_chatid\":\"5519999938883@s.whatsapp.net\",\"wa_chatlid\":\"225215586009090@lid\",\"wa_contactName\":\"Lu Se\",\"wa_ephemeralExpiration\":0,\"wa_fastid\":\"5519998868883:5519999938883\",\"wa_isBlocked\":false,\"wa_isGroup\":false,\"wa_isGroup_admin\":false,\"wa_isGroup_announce\":false,\"wa_isGroup_community\":false,\"wa_isGroup_member\":false,\"wa_isPinned\":false,\"wa_label\":[],\"wa_lastMessageSender\":\"225215586009090@lid\",\"wa_lastMessageTextVote\":\"Lucas silva\",\"wa_lastMessageType\":\"Conversation\",\"wa_lastMsgTimestamp\":1774645221000,\"wa_muteEndTime\":0,\"wa_name\":\"Lucas Sena\",\"wa_unreadCount\":94},\"chatSource\":\"updated\",\"instanceName\":\"drsena\",\"message\":{\"buttonOrListid\":\"\",\"chatid\":\"5519999938883@s.whatsapp.net\",\"chatlid\":\"225215586009090@lid\",\"content\":\"Lucas silva\",\"convertOptions\":\"\",\"edited\":\"\",\"fromMe\":false,\"groupName\":\"\",\"id\":\"5519998868883:3EB08043279CF20F011995\",\"isGroup\":false,\"mediaType\":\"\",\"messageTimestamp\":1774645221000,\"messageType\":\"Conversation\",\"messageid\":\"3EB08043279CF20F011995\",\"owner\":\"5519998868883\",\"quoted\":\"\",\"reaction\":\"\",\"sender\":\"225215586009090@lid\",\"senderName\":\"Lucas Sena\",\"sender_lid\":\"225215586009090@lid\",\"sender_pn\":\"5519999938883@s.whatsapp.net\",\"source\":\"web\",\"status\":\"\",\"text\":\"Lucas silva\",\"track_id\":\"\",\"track_source\":\"\",\"type\":\"text\",\"vote\":\"\",\"wasSentByApi\":false},\"owner\":\"5519998868883\",\"token\":\"7bfb1a1c-060e-4c57-852f-b8380688c2b0\"},\"url\":\"https://whatsapp-saas-five.vercel.app/api/webhook/whatsapp?clinicId=clinic-demo-id\"}",
+    "createdAt": "2026-03-27T21:00:24.281Z"
+  },
+  {
+    "id": "cmn9ditfp000hf5k4cugjhwoc",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "AI_RESPONSE",
+    "details": "{\"conversationId\":\"cmn4zfx8f0005ih04zc11l8dk\",\"rawResponse\":{\"mensagem\":\"Oi, tudo bem? ≡ƒÿè Sou a Rafaela, cuido da agenda do Dr. Lucas Sena. Para agendar sua consulta, preciso do seu nome. Pode me informar, por favor?\",\"modo\":\"AUTO\",\"acao\":\"NENHUMA\",\"tipo\":\"CONSULTA\",\"data\":null,\"hora\":null,\"lead\":null,\"confianca\":\"ALTA\",\"precisa_nome\":true,\"nome_identificado\":null,\"subtipo\":null,\"notificar_admin\":false},\"patientMessage\":\"Ol├í\"}",
+    "createdAt": "2026-03-27T20:48:32.390Z"
+  },
+  {
+    "id": "cmn9dhvzc000df5k4vogf3r3z",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "AI_RESPONSE",
+    "details": "{\"conversationId\":\"cmn4zfx8f0005ih04zc11l8dk\",\"rawResponse\":{\"mensagem\":\"Oi, tudo bem? ≡ƒÿè Sou a Rafaela, cuido da agenda do Dr. Lucas Sena. Para agendar sua consulta, preciso do seu nome. Pode me informar, por favor?\",\"modo\":\"AUTO\",\"acao\":\"NENHUMA\",\"tipo\":\"CONSULTA\",\"data\":null,\"hora\":null,\"lead\":null,\"confianca\":\"ALTA\",\"precisa_nome\":true,\"nome_identificado\":null,\"subtipo\":null,\"notificar_admin\":false},\"patientMessage\":\"Ol├í\"}",
+    "createdAt": "2026-03-27T20:47:49.031Z"
+  },
+  {
+    "id": "cmn9dgzsi0009f5k4j92o3iac",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "AI_RESPONSE",
+    "details": "{\"conversationId\":\"cmn4zfx8f0005ih04zc11l8dk\",\"rawResponse\":{\"mensagem\":\"Oi! ≡ƒÿè Voc├¬ gostaria de agendar uma consulta com o Dr. Lucas Sena? Para isso, preciso do seu nome. Pode me informar, por favor?\",\"modo\":\"AUTO\",\"acao\":\"NENHUMA\",\"tipo\":\"CONSULTA\",\"data\":null,\"hora\":null,\"lead\":null,\"confianca\":\"ALTA\",\"precisa_nome\":true,\"nome_identificado\":null,\"subtipo\":null,\"notificar_admin\":false},\"patientMessage\":\"Ol├í\"}",
+    "createdAt": "2026-03-27T20:47:07.314Z"
+  },
+  {
+    "id": "cmn9dg35c0005f5k4joqy96ms",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "AI_RESPONSE",
+    "details": "{\"conversationId\":\"cmn4zfx8f0005ih04zc11l8dk\",\"rawResponse\":{\"mensagem\":\"Oi! ≡ƒÿè Voc├¬ gostaria de agendar uma consulta com o Dr. Lucas Sena? Para isso, preciso do seu nome. Pode me informar, por favor?\",\"modo\":\"AUTO\",\"acao\":\"NENHUMA\",\"tipo\":\"CONSULTA\",\"data\":null,\"hora\":null,\"lead\":null,\"confianca\":\"ALTA\",\"precisa_nome\":true,\"nome_identificado\":null,\"subtipo\":null,\"notificar_admin\":false},\"patientMessage\":\"Ol├í\"}",
+    "createdAt": "2026-03-27T20:46:25.008Z"
+  },
+  {
+    "id": "cmn9c6vpq0001f5k4kcc7exbh",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "AI_RESPONSE",
+    "details": "{\"conversationId\":\"cmn4zfx8f0005ih04zc11l8dk\",\"rawResponse\":{\"mensagem\":\"Oi, tudo bem? ≡ƒÿè\\nSou a Rafaela, cuido da agenda do Dr. Lucas Sena. Vou te ajudar por aqui. Para agendar a consulta, preciso do seu nome. Pode me informar, por favor?\",\"modo\":\"AUTO\",\"acao\":\"NENHUMA\",\"tipo\":\"CONSULTA\",\"data\":null,\"hora\":null,\"lead\":null,\"confianca\":\"ALTA\",\"precisa_nome\":true,\"nome_identificado\":null,\"subtipo\":null,\"notificar_admin\":false},\"patientMessage\":\"Ol├í\"}",
+    "createdAt": "2026-03-27T20:11:15.590Z"
+  },
+  {
+    "id": "cmn9b41w50049jv04y2y25dut",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "HUMAN_INTERVENTION",
+    "details": "{\"conversationId\":\"cmn4zzfii000tkz04rxmd5lsk\",\"contactId\":\"cmn4zzfhc000rkz04nwgbzdd6\"}",
+    "createdAt": "2026-03-27T19:41:04.278Z"
+  },
+  {
+    "id": "cmn9b41dq0045jv04mm4o0wkp",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "WEBHOOK_RAW_RECEIVED",
+    "details": "{\"payload\":{\"BaseUrl\":\"https://whatsapp-saas.uazapi.com\",\"EventType\":\"messages\",\"chat\":{\"chatbot_agentResetMemoryAt\":0,\"chatbot_disableUntil\":0,\"chatbot_lastTriggerAt\":0,\"chatbot_lastTrigger_id\":\"\",\"id\":\"r21dc826ff74584\",\"image\":\"\",\"imagePreview\":\"\",\"lead_assignedAttendant_id\":\"\",\"lead_email\":\"\",\"lead_field01\":\"\",\"lead_field02\":\"\",\"lead_field03\":\"\",\"lead_field04\":\"\",\"lead_field05\":\"\",\"lead_field06\":\"\",\"lead_field07\":\"\",\"lead_field08\":\"\",\"lead_field09\":\"\",\"lead_field10\":\"\",\"lead_field11\":\"\",\"lead_field12\":\"\",\"lead_field13\":\"\",\"lead_field14\":\"\",\"lead_field15\":\"\",\"lead_field16\":\"\",\"lead_field17\":\"\",\"lead_field18\":\"\",\"lead_field19\":\"\",\"lead_field20\":\"\",\"lead_fullName\":\"\",\"lead_isTicketOpen\":false,\"lead_kanbanOrder\":0,\"lead_name\":\"\",\"lead_notes\":\"\",\"lead_personalid\":\"\",\"lead_status\":\"\",\"lead_tags\":[],\"name\":\"Maria Pleul\",\"owner\":\"5519998868883\",\"phone\":\"+55 19 97403-1213\",\"wa_archived\":false,\"wa_chatid\":\"5519974031213@s.whatsapp.net\",\"wa_chatlid\":\"227680763023449@lid\",\"wa_contactName\":\"Maria Pleul\",\"wa_ephemeralExpiration\":0,\"wa_fastid\":\"5519998868883:5519974031213\",\"wa_isBlocked\":false,\"wa_isGroup\":false,\"wa_isGroup_admin\":false,\"wa_isGroup_announce\":false,\"wa_isGroup_community\":false,\"wa_isGroup_member\":false,\"wa_isPinned\":false,\"wa_label\":[\"5519998868883:12\"],\"wa_lastMessageSender\":\"90633054208036@lid\",\"wa_lastMessageTextVote\":\"Ok\",\"wa_lastMessageType\":\"Conversation\",\"wa_lastMsgTimestamp\":1774640462000,\"wa_muteEndTime\":0,\"wa_name\":\"Maria Pleul\",\"wa_unreadCount\":7},\"chatSource\":\"updated\",\"instanceName\":\"drsena\",\"message\":{\"buttonOrListid\":\"\",\"chatid\":\"5519974031213@s.whatsapp.net\",\"chatlid\":\"227680763023449@lid\",\"content\":\"Ok\",\"convertOptions\":\"\",\"edited\":\"\",\"fromMe\":true,\"groupName\":\"\",\"id\":\"5519998868883:2AA3BE7B3894E6A41531\",\"isGroup\":false,\"mediaType\":\"\",\"messageTimestamp\":1774640462000,\"messageType\":\"Conversation\",\"messageid\":\"2AA3BE7B3894E6A41531\",\"owner\":\"5519998868883\",\"quoted\":\"\",\"reaction\":\"\",\"sender\":\"90633054208036@lid\",\"senderName\":\"Dr Sena\",\"sender_lid\":\"90633054208036@lid\",\"sender_pn\":\"5519998868883@s.whatsapp.net\",\"source\":\"unknown\",\"status\":\"\",\"text\":\"Ok\",\"track_id\":\"\",\"track_source\":\"\",\"type\":\"text\",\"vote\":\"\",\"wasSentByApi\":false},\"owner\":\"5519998868883\",\"token\":\"7bfb1a1c-060e-4c57-852f-b8380688c2b0\"},\"url\":\"https://whatsapp-saas-five.vercel.app/api/webhook/whatsapp?clinicId=clinic-demo-id\"}",
+    "createdAt": "2026-03-27T19:41:03.601Z"
+  },
+  {
+    "id": "cmn9b3j9p003zjv04qu4c53xt",
+    "clinicId": "clinic-demo-id",
+    "level": "WARN",
+    "event": "ERROR",
+    "details": "{\"conversationId\":\"cmn9auv310005jv04lqe7mf1l\",\"note\":\"A├º├úo AGENDAR falhou: Slot 2026-03-31 14:00 already booked in clinic clinic-demo-id \"}",
+    "createdAt": "2026-03-27T19:40:40.142Z"
+  },
+  {
+    "id": "cmn9b39ca003vjv04clxn5xd0",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "DEBOUNCE_TRIGGERED",
+    "details": "{\"conversationId\":\"cmn9auv310005jv04lqe7mf1l\",\"contactId\":\"cmn9auuys0003jv04fgswdx3a\",\"debounceSeconds\":8}",
+    "createdAt": "2026-03-27T19:40:27.274Z"
+  },
+  {
+    "id": "cmn9b395m003tjv04inhclr44",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "MESSAGE_RECEIVED",
+    "details": "{\"messageId\":\"cmn9b38yz003rjv04qta8roht\",\"conversationId\":\"cmn9auv310005jv04lqe7mf1l\",\"contactId\":\"cmn9auuys0003jv04fgswdx3a\",\"phone\":\"5519974031213\"}",
+    "createdAt": "2026-03-27T19:40:27.035Z"
+  },
+  {
+    "id": "cmn9b38n6003pjv04gh4c0s24",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "WEBHOOK_RAW_RECEIVED",
+    "details": "{\"payload\":{\"BaseUrl\":\"https://whatsapp-saas.uazapi.com\",\"EventType\":\"messages\",\"chat\":{\"chatbot_agentResetMemoryAt\":0,\"chatbot_disableUntil\":0,\"chatbot_lastTriggerAt\":0,\"chatbot_lastTrigger_id\":\"\",\"id\":\"r21dc826ff74584\",\"image\":\"\",\"imagePreview\":\"\",\"lead_assignedAttendant_id\":\"\",\"lead_email\":\"\",\"lead_field01\":\"\",\"lead_field02\":\"\",\"lead_field03\":\"\",\"lead_field04\":\"\",\"lead_field05\":\"\",\"lead_field06\":\"\",\"lead_field07\":\"\",\"lead_field08\":\"\",\"lead_field09\":\"\",\"lead_field10\":\"\",\"lead_field11\":\"\",\"lead_field12\":\"\",\"lead_field13\":\"\",\"lead_field14\":\"\",\"lead_field15\":\"\",\"lead_field16\":\"\",\"lead_field17\":\"\",\"lead_field18\":\"\",\"lead_field19\":\"\",\"lead_field20\":\"\",\"lead_fullName\":\"\",\"lead_isTicketOpen\":false,\"lead_kanbanOrder\":0,\"lead_name\":\"\",\"lead_notes\":\"\",\"lead_personalid\":\"\",\"lead_status\":\"\",\"lead_tags\":[],\"name\":\"Maria Pleul\",\"owner\":\"5519998868883\",\"phone\":\"+55 19 97403-1213\",\"wa_archived\":false,\"wa_chatid\":\"5519974031213@s.whatsapp.net\",\"wa_chatlid\":\"227680763023449@lid\",\"wa_contactName\":\"Maria Pleul\",\"wa_ephemeralExpiration\":0,\"wa_fastid\":\"5519998868883:5519974031213\",\"wa_isBlocked\":false,\"wa_isGroup\":false,\"wa_isGroup_admin\":false,\"wa_isGroup_announce\":false,\"wa_isGroup_community\":false,\"wa_isGroup_member\":false,\"wa_isPinned\":false,\"wa_label\":[\"5519998868883:12\"],\"wa_lastMessageSender\":\"227680763023449@lid\",\"wa_lastMessageTextVote\":\"Daqui 30 minutos, mais ou menos, consigo.\",\"wa_lastMessageType\":\"Conversation\",\"wa_lastMsgTimestamp\":1774640425000,\"wa_muteEndTime\":0,\"wa_name\":\"Maria Pleul\",\"wa_unreadCount\":7},\"chatSource\":\"updated\",\"instanceName\":\"drsena\",\"message\":{\"buttonOrListid\":\"\",\"chatid\":\"5519974031213@s.whatsapp.net\",\"chatlid\":\"227680763023449@lid\",\"content\":\"Daqui 30 minutos, mais ou menos, consigo.\",\"convertOptions\":\"\",\"edited\":\"\",\"fromMe\":false,\"groupName\":\"\",\"id\":\"5519998868883:3AE6A8E43A4DF891B8F3\",\"isGroup\":false,\"mediaType\":\"\",\"messageTimestamp\":1774640425000,\"messageType\":\"Conversation\",\"messageid\":\"3AE6A8E43A4DF891B8F3\",\"owner\":\"5519998868883\",\"quoted\":\"\",\"reaction\":\"\",\"sender\":\"227680763023449@lid\",\"senderName\":\"Maria Pleul\",\"sender_lid\":\"227680763023449@lid\",\"sender_pn\":\"5519974031213@s.whatsapp.net\",\"source\":\"ios\",\"status\":\"\",\"text\":\"Daqui 30 minutos, mais ou menos, consigo.\",\"track_id\":\"\",\"track_source\":\"\",\"type\":\"text\",\"vote\":\"\",\"wasSentByApi\":false},\"owner\":\"5519998868883\",\"token\":\"7bfb1a1c-060e-4c57-852f-b8380688c2b0\"},\"url\":\"https://whatsapp-saas-five.vercel.app/api/webhook/whatsapp?clinicId=clinic-demo-id\"}",
+    "createdAt": "2026-03-27T19:40:26.371Z"
+  },
+  {
+    "id": "cmn9b36k4003njv04oxkd4u4j",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "HUMAN_INTERVENTION",
+    "details": "{\"conversationId\":\"cmn4zzfii000tkz04rxmd5lsk\",\"contactId\":\"cmn4zzfhc000rkz04nwgbzdd6\"}",
+    "createdAt": "2026-03-27T19:40:23.668Z"
+  },
+  {
+    "id": "cmn9b361o003jjv042dom013z",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "WEBHOOK_RAW_RECEIVED",
+    "details": "{\"payload\":{\"BaseUrl\":\"https://whatsapp-saas.uazapi.com\",\"EventType\":\"messages\",\"chat\":{\"chatbot_agentResetMemoryAt\":0,\"chatbot_disableUntil\":0,\"chatbot_lastTriggerAt\":0,\"chatbot_lastTrigger_id\":\"\",\"id\":\"r21dc826ff74584\",\"image\":\"\",\"imagePreview\":\"\",\"lead_assignedAttendant_id\":\"\",\"lead_email\":\"\",\"lead_field01\":\"\",\"lead_field02\":\"\",\"lead_field03\":\"\",\"lead_field04\":\"\",\"lead_field05\":\"\",\"lead_field06\":\"\",\"lead_field07\":\"\",\"lead_field08\":\"\",\"lead_field09\":\"\",\"lead_field10\":\"\",\"lead_field11\":\"\",\"lead_field12\":\"\",\"lead_field13\":\"\",\"lead_field14\":\"\",\"lead_field15\":\"\",\"lead_field16\":\"\",\"lead_field17\":\"\",\"lead_field18\":\"\",\"lead_field19\":\"\",\"lead_field20\":\"\",\"lead_fullName\":\"\",\"lead_isTicketOpen\":false,\"lead_kanbanOrder\":0,\"lead_name\":\"\",\"lead_notes\":\"\",\"lead_personalid\":\"\",\"lead_status\":\"\",\"lead_tags\":[],\"name\":\"Maria Pleul\",\"owner\":\"5519998868883\",\"phone\":\"+55 19 97403-1213\",\"wa_archived\":false,\"wa_chatid\":\"5519974031213@s.whatsapp.net\",\"wa_chatlid\":\"227680763023449@lid\",\"wa_contactName\":\"Maria Pleul\",\"wa_ephemeralExpiration\":0,\"wa_fastid\":\"5519998868883:5519974031213\",\"wa_isBlocked\":false,\"wa_isGroup\":false,\"wa_isGroup_admin\":false,\"wa_isGroup_announce\":false,\"wa_isGroup_community\":false,\"wa_isGroup_member\":false,\"wa_isPinned\":false,\"wa_label\":[\"5519998868883:12\"],\"wa_lastMessageSender\":\"90633054208036@lid\",\"wa_lastMessageTextVote\":\"Hoje eu to aqui , ou segunda feira\",\"wa_lastMessageType\":\"Conversation\",\"wa_lastMsgTimestamp\":1774640422000,\"wa_muteEndTime\":0,\"wa_name\":\"Maria Pleul\",\"wa_unreadCount\":6},\"chatSource\":\"updated\",\"instanceName\":\"drsena\",\"message\":{\"buttonOrListid\":\"\",\"chatid\":\"5519974031213@s.whatsapp.net\",\"chatlid\":\"227680763023449@lid\",\"content\":\"Hoje eu to aqui , ou segunda feira\",\"convertOptions\":\"\",\"edited\":\"\",\"fromMe\":true,\"groupName\":\"\",\"id\":\"5519998868883:2AE6AE368AA25E9BD36C\",\"isGroup\":false,\"mediaType\":\"\",\"messageTimestamp\":1774640422000,\"messageType\":\"Conversation\",\"messageid\":\"2AE6AE368AA25E9BD36C\",\"owner\":\"5519998868883\",\"quoted\":\"\",\"reaction\":\"\",\"sender\":\"90633054208036@lid\",\"senderName\":\"Dr Sena\",\"sender_lid\":\"90633054208036@lid\",\"sender_pn\":\"5519998868883@s.whatsapp.net\",\"source\":\"unknown\",\"status\":\"\",\"text\":\"Hoje eu to aqui , ou segunda feira\",\"track_id\":\"\",\"track_source\":\"\",\"type\":\"text\",\"vote\":\"\",\"wasSentByApi\":false},\"owner\":\"5519998868883\",\"token\":\"7bfb1a1c-060e-4c57-852f-b8380688c2b0\"},\"url\":\"https://whatsapp-saas-five.vercel.app/api/webhook/whatsapp?clinicId=clinic-demo-id\"}",
+    "createdAt": "2026-03-27T19:40:22.990Z"
+  },
+  {
+    "id": "cmn9b30ec003djv04evykzgcy",
+    "clinicId": "clinic-demo-id",
+    "level": "WARN",
+    "event": "ERROR",
+    "details": "{\"conversationId\":\"cmn9auv310005jv04lqe7mf1l\",\"note\":\"A├º├úo AGENDAR falhou: Slot 2026-03-31 14:00 already booked in clinic clinic-demo-id \"}",
+    "createdAt": "2026-03-27T19:40:15.684Z"
+  },
+  {
+    "id": "cmn9b2qms0039jv04qcz1obwo",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "DEBOUNCE_TRIGGERED",
+    "details": "{\"conversationId\":\"cmn9auv310005jv04lqe7mf1l\",\"contactId\":\"cmn9auuys0003jv04fgswdx3a\",\"debounceSeconds\":8}",
+    "createdAt": "2026-03-27T19:40:03.028Z"
+  },
+  {
+    "id": "cmn9b2qg40037jv04k89q7wl5",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "MESSAGE_RECEIVED",
+    "details": "{\"messageId\":\"cmn9b2q9h0035jv04z6t9zc45\",\"conversationId\":\"cmn9auv310005jv04lqe7mf1l\",\"contactId\":\"cmn9auuys0003jv04fgswdx3a\",\"phone\":\"5519974031213\"}",
+    "createdAt": "2026-03-27T19:40:02.788Z"
+  },
+  {
+    "id": "cmn9b2pxd0033jv04f8jhys8e",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "WEBHOOK_RAW_RECEIVED",
+    "details": "{\"payload\":{\"BaseUrl\":\"https://whatsapp-saas.uazapi.com\",\"EventType\":\"messages\",\"chat\":{\"chatbot_agentResetMemoryAt\":0,\"chatbot_disableUntil\":0,\"chatbot_lastTriggerAt\":0,\"chatbot_lastTrigger_id\":\"\",\"id\":\"r21dc826ff74584\",\"image\":\"\",\"imagePreview\":\"\",\"lead_assignedAttendant_id\":\"\",\"lead_email\":\"\",\"lead_field01\":\"\",\"lead_field02\":\"\",\"lead_field03\":\"\",\"lead_field04\":\"\",\"lead_field05\":\"\",\"lead_field06\":\"\",\"lead_field07\":\"\",\"lead_field08\":\"\",\"lead_field09\":\"\",\"lead_field10\":\"\",\"lead_field11\":\"\",\"lead_field12\":\"\",\"lead_field13\":\"\",\"lead_field14\":\"\",\"lead_field15\":\"\",\"lead_field16\":\"\",\"lead_field17\":\"\",\"lead_field18\":\"\",\"lead_field19\":\"\",\"lead_field20\":\"\",\"lead_fullName\":\"\",\"lead_isTicketOpen\":false,\"lead_kanbanOrder\":0,\"lead_name\":\"\",\"lead_notes\":\"\",\"lead_personalid\":\"\",\"lead_status\":\"\",\"lead_tags\":[],\"name\":\"Maria Pleul\",\"owner\":\"5519998868883\",\"phone\":\"+55 19 97403-1213\",\"wa_archived\":false,\"wa_chatid\":\"5519974031213@s.whatsapp.net\",\"wa_chatlid\":\"227680763023449@lid\",\"wa_contactName\":\"Maria Pleul\",\"wa_ephemeralExpiration\":0,\"wa_fastid\":\"5519998868883:5519974031213\",\"wa_isBlocked\":false,\"wa_isGroup\":false,\"wa_isGroup_admin\":false,\"wa_isGroup_announce\":false,\"wa_isGroup_community\":false,\"wa_isGroup_member\":false,\"wa_isPinned\":false,\"wa_label\":[\"5519998868883:12\"],\"wa_lastMessageSender\":\"227680763023449@lid\",\"wa_lastMessageTextVote\":\"Hoje?\",\"wa_lastMessageType\":\"ExtendedTextMessage\",\"wa_lastMsgTimestamp\":1774640401000,\"wa_muteEndTime\":0,\"wa_name\":\"Maria Pleul\",\"wa_unreadCount\":6},\"chatSource\":\"updated\",\"instanceName\":\"drsena\",\"message\":{\"buttonOrListid\":\"\",\"chatid\":\"5519974031213@s.whatsapp.net\",\"chatlid\":\"227680763023449@lid\",\"content\":{\"text\":\"Hoje?\",\"contextInfo\":{\"stanzaID\":\"2AF6160273C1F39F27EE\",\"participant\":\"90633054208036@lid\",\"quotedMessage\":{\"conversation\":\"Pode vir aqui no consult├│rio ?\"},\"quotedType\":0}},\"convertOptions\":\"\",\"edited\":\"\",\"fromMe\":false,\"groupName\":\"\",\"id\":\"5519998868883:3AEF63DE3C3E1AAFB628\",\"isGroup\":false,\"mediaType\":\"\",\"messageTimestamp\":1774640401000,\"messageType\":\"ExtendedTextMessage\",\"messageid\":\"3AEF63DE3C3E1AAFB628\",\"owner\":\"5519998868883\",\"quoted\":\"2AF6160273C1F39F27EE\",\"reaction\":\"\",\"sender\":\"227680763023449@lid\",\"senderName\":\"Maria Pleul\",\"sender_lid\":\"227680763023449@lid\",\"sender_pn\":\"5519974031213@s.whatsapp.net\",\"source\":\"ios\",\"status\":\"\",\"text\":\"Hoje?\",\"track_id\":\"\",\"track_source\":\"\",\"type\":\"text\",\"vote\":\"\",\"wasSentByApi\":false},\"owner\":\"5519998868883\",\"token\":\"7bfb1a1c-060e-4c57-852f-b8380688c2b0\"},\"url\":\"https://whatsapp-saas-five.vercel.app/api/webhook/whatsapp?clinicId=clinic-demo-id\"}",
+    "createdAt": "2026-03-27T19:40:02.114Z"
+  },
+  {
+    "id": "cmn9b2pc4002xjv04zhhs5isa",
+    "clinicId": "clinic-demo-id",
+    "level": "WARN",
+    "event": "ERROR",
+    "details": "{\"conversationId\":\"cmn9auv310005jv04lqe7mf1l\",\"note\":\"A├º├úo AGENDAR falhou: Slot 2026-03-31 14:00 already booked in clinic clinic-demo-id \"}",
+    "createdAt": "2026-03-27T19:40:01.349Z"
+  },
+  {
+    "id": "cmn9b2hch002tjv04lqyylly8",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "HUMAN_INTERVENTION",
+    "details": "{\"conversationId\":\"cmn4zzfii000tkz04rxmd5lsk\",\"contactId\":\"cmn4zzfhc000rkz04nwgbzdd6\"}",
+    "createdAt": "2026-03-27T19:39:50.993Z"
+  },
+  {
+    "id": "cmn9b2gty002pjv04qgfr0ink",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "WEBHOOK_RAW_RECEIVED",
+    "details": "{\"payload\":{\"BaseUrl\":\"https://whatsapp-saas.uazapi.com\",\"EventType\":\"messages\",\"chat\":{\"chatbot_agentResetMemoryAt\":0,\"chatbot_disableUntil\":0,\"chatbot_lastTriggerAt\":0,\"chatbot_lastTrigger_id\":\"\",\"id\":\"r21dc826ff74584\",\"image\":\"\",\"imagePreview\":\"\",\"lead_assignedAttendant_id\":\"\",\"lead_email\":\"\",\"lead_field01\":\"\",\"lead_field02\":\"\",\"lead_field03\":\"\",\"lead_field04\":\"\",\"lead_field05\":\"\",\"lead_field06\":\"\",\"lead_field07\":\"\",\"lead_field08\":\"\",\"lead_field09\":\"\",\"lead_field10\":\"\",\"lead_field11\":\"\",\"lead_field12\":\"\",\"lead_field13\":\"\",\"lead_field14\":\"\",\"lead_field15\":\"\",\"lead_field16\":\"\",\"lead_field17\":\"\",\"lead_field18\":\"\",\"lead_field19\":\"\",\"lead_field20\":\"\",\"lead_fullName\":\"\",\"lead_isTicketOpen\":false,\"lead_kanbanOrder\":0,\"lead_name\":\"\",\"lead_notes\":\"\",\"lead_personalid\":\"\",\"lead_status\":\"\",\"lead_tags\":[],\"name\":\"Maria Pleul\",\"owner\":\"5519998868883\",\"phone\":\"+55 19 97403-1213\",\"wa_archived\":false,\"wa_chatid\":\"5519974031213@s.whatsapp.net\",\"wa_chatlid\":\"227680763023449@lid\",\"wa_contactName\":\"Maria Pleul\",\"wa_ephemeralExpiration\":0,\"wa_fastid\":\"5519998868883:5519974031213\",\"wa_isBlocked\":false,\"wa_isGroup\":false,\"wa_isGroup_admin\":false,\"wa_isGroup_announce\":false,\"wa_isGroup_community\":false,\"wa_isGroup_member\":false,\"wa_isPinned\":false,\"wa_label\":[\"5519998868883:12\"],\"wa_lastMessageSender\":\"90633054208036@lid\",\"wa_lastMessageTextVote\":\"Pode vir aqui no consult├│rio ?\",\"wa_lastMessageType\":\"Conversation\",\"wa_lastMsgTimestamp\":1774640388000,\"wa_muteEndTime\":0,\"wa_name\":\"Maria Pleul\",\"wa_unreadCount\":5},\"chatSource\":\"updated\",\"instanceName\":\"drsena\",\"message\":{\"buttonOrListid\":\"\",\"chatid\":\"5519974031213@s.whatsapp.net\",\"chatlid\":\"227680763023449@lid\",\"content\":\"Pode vir aqui no consult├│rio ?\",\"convertOptions\":\"\",\"edited\":\"\",\"fromMe\":true,\"groupName\":\"\",\"id\":\"5519998868883:2AF6160273C1F39F27EE\",\"isGroup\":false,\"mediaType\":\"\",\"messageTimestamp\":1774640388000,\"messageType\":\"Conversation\",\"messageid\":\"2AF6160273C1F39F27EE\",\"owner\":\"5519998868883\",\"quoted\":\"\",\"reaction\":\"\",\"sender\":\"90633054208036@lid\",\"senderName\":\"Dr Sena\",\"sender_lid\":\"90633054208036@lid\",\"sender_pn\":\"5519998868883@s.whatsapp.net\",\"source\":\"unknown\",\"status\":\"\",\"text\":\"Pode vir aqui no consult├│rio ?\",\"track_id\":\"\",\"track_source\":\"\",\"type\":\"text\",\"vote\":\"\",\"wasSentByApi\":false},\"owner\":\"5519998868883\",\"token\":\"7bfb1a1c-060e-4c57-852f-b8380688c2b0\"},\"url\":\"https://whatsapp-saas-five.vercel.app/api/webhook/whatsapp?clinicId=clinic-demo-id\"}",
+    "createdAt": "2026-03-27T19:39:50.327Z"
+  },
+  {
+    "id": "cmn9b2fax002njv04b3v40avi",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "DEBOUNCE_TRIGGERED",
+    "details": "{\"conversationId\":\"cmn9auv310005jv04lqe7mf1l\",\"contactId\":\"cmn9auuys0003jv04fgswdx3a\",\"debounceSeconds\":8}",
+    "createdAt": "2026-03-27T19:39:48.345Z"
+  },
+  {
+    "id": "cmn9b2f48002ljv0495qgxazf",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "MESSAGE_RECEIVED",
+    "details": "{\"messageId\":\"cmn9b2exl002jjv04um5syupi\",\"conversationId\":\"cmn9auv310005jv04lqe7mf1l\",\"contactId\":\"cmn9auuys0003jv04fgswdx3a\",\"phone\":\"5519974031213\"}",
+    "createdAt": "2026-03-27T19:39:48.105Z"
+  },
+  {
+    "id": "cmn9b2els002hjv04971mi12s",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "WEBHOOK_RAW_RECEIVED",
+    "details": "{\"payload\":{\"BaseUrl\":\"https://whatsapp-saas.uazapi.com\",\"EventType\":\"messages\",\"chat\":{\"chatbot_agentResetMemoryAt\":0,\"chatbot_disableUntil\":0,\"chatbot_lastTriggerAt\":0,\"chatbot_lastTrigger_id\":\"\",\"id\":\"r21dc826ff74584\",\"image\":\"\",\"imagePreview\":\"\",\"lead_assignedAttendant_id\":\"\",\"lead_email\":\"\",\"lead_field01\":\"\",\"lead_field02\":\"\",\"lead_field03\":\"\",\"lead_field04\":\"\",\"lead_field05\":\"\",\"lead_field06\":\"\",\"lead_field07\":\"\",\"lead_field08\":\"\",\"lead_field09\":\"\",\"lead_field10\":\"\",\"lead_field11\":\"\",\"lead_field12\":\"\",\"lead_field13\":\"\",\"lead_field14\":\"\",\"lead_field15\":\"\",\"lead_field16\":\"\",\"lead_field17\":\"\",\"lead_field18\":\"\",\"lead_field19\":\"\",\"lead_field20\":\"\",\"lead_fullName\":\"\",\"lead_isTicketOpen\":false,\"lead_kanbanOrder\":0,\"lead_name\":\"\",\"lead_notes\":\"\",\"lead_personalid\":\"\",\"lead_status\":\"\",\"lead_tags\":[],\"name\":\"Maria Pleul\",\"owner\":\"5519998868883\",\"phone\":\"+55 19 97403-1213\",\"wa_archived\":false,\"wa_chatid\":\"5519974031213@s.whatsapp.net\",\"wa_chatlid\":\"227680763023449@lid\",\"wa_contactName\":\"Maria Pleul\",\"wa_ephemeralExpiration\":0,\"wa_fastid\":\"5519998868883:5519974031213\",\"wa_isBlocked\":false,\"wa_isGroup\":false,\"wa_isGroup_admin\":false,\"wa_isGroup_announce\":false,\"wa_isGroup_community\":false,\"wa_isGroup_member\":false,\"wa_isPinned\":false,\"wa_label\":[\"5519998868883:12\"],\"wa_lastMessageSender\":\"227680763023449@lid\",\"wa_lastMessageTextVote\":\"\",\"wa_lastMessageType\":\"AudioMessage\",\"wa_lastMsgTimestamp\":1774640387000,\"wa_muteEndTime\":0,\"wa_name\":\"Maria Pleul\",\"wa_unreadCount\":5},\"chatSource\":\"updated\",\"instanceName\":\"drsena\",\"message\":{\"buttonOrListid\":\"\",\"chatid\":\"5519974031213@s.whatsapp.net\",\"chatlid\":\"227680763023449@lid\",\"content\":{\"URL\":\"https://mmg.whatsapp.net/v/t62.7117-24/550056225_919816930949150_6112914313649472549_n.enc?ccb=11-4&oh=01_Q5Aa4AGoUd-FvM-9_PdovyxXqJRH8V9BSG0ZXUB8-ZyLomrang&oe=69EE3D4D&_nc_sid=5e03e0&mms3=true\",\"mimetype\":\"audio/ogg; codecs=opus\",\"fileSHA256\":\"ewBt3ESqi7CAFqoS8RHKVuhXhY+VBdMH8Lam5YABOSk=\",\"fileLength\":14035,\"seconds\":5,\"PTT\":true,\"mediaKey\":\"YrXMIdv/THyt3pZ1H9LD0wc3SylTdohQ3b+LRTLXDsc=\",\"fileEncSHA256\":\"2PodEChLZZLdplxLPwkWZvmCBf8ptBFrji+Er3K/Ofo=\",\"directPath\":\"/v/t62.7117-24/550056225_919816930949150_6112914313649472549_n.enc?ccb=11-4&oh=01_Q5Aa4AGoUd-FvM-9_PdovyxXqJRH8V9BSG0ZXUB8-ZyLomrang&oe=69EE3D4D&_nc_sid=5e03e0\",\"mediaKeyTimestamp\":1774640379,\"streamingSidecar\":\"l1wxwWDN2P+rAQ==\",\"waveform\":\"ABYpMzQxUGRkZGRkZGRkY1xbYmRkZFxKVGFOTWBkY2NZRTczVGRkV09dXVJFOTNCYVJCNzAtTGRkZGRWTExJRg==\"},\"convertOptions\":\"\",\"edited\":\"\",\"fromMe\":false,\"groupName\":\"\",\"id\":\"5519998868883:3A7FC1200B1EC404B97F\",\"isGroup\":false,\"mediaType\":\"ptt\",\"messageTimestamp\":1774640387000,\"messageType\":\"AudioMessage\",\"messageid\":\"3A7FC1200B1EC404B97F\",\"owner\":\"5519998868883\",\"quoted\":\"\",\"reaction\":\"\",\"sender\":\"227680763023449@lid\",\"senderName\":\"Maria Pleul\",\"sender_lid\":\"227680763023449@lid\",\"sender_pn\":\"5519974031213@s.whatsapp.net\",\"source\":\"ios\",\"status\":\"\",\"text\":\"\",\"track_id\":\"\",\"track_source\":\"\",\"type\":\"media\",\"vote\":\"\",\"wasSentByApi\":false},\"owner\":\"5519998868883\",\"token\":\"7bfb1a1c-060e-4c57-852f-b8380688c2b0\"},\"url\":\"https://whatsapp-saas-five.vercel.app/api/webhook/whatsapp?clinicId=clinic-demo-id\"}",
+    "createdAt": "2026-03-27T19:39:47.426Z"
+  },
+  {
+    "id": "cmn9b2579002fjv042772it38",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "HUMAN_INTERVENTION",
+    "details": "{\"conversationId\":\"cmn4zzfii000tkz04rxmd5lsk\",\"contactId\":\"cmn4zzfhc000rkz04nwgbzdd6\"}",
+    "createdAt": "2026-03-27T19:39:35.253Z"
+  },
+  {
+    "id": "cmn9b24ow002bjv04hnfcu82s",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "WEBHOOK_RAW_RECEIVED",
+    "details": "{\"payload\":{\"BaseUrl\":\"https://whatsapp-saas.uazapi.com\",\"EventType\":\"messages\",\"chat\":{\"chatbot_agentResetMemoryAt\":0,\"chatbot_disableUntil\":0,\"chatbot_lastTriggerAt\":0,\"chatbot_lastTrigger_id\":\"\",\"id\":\"r21dc826ff74584\",\"image\":\"\",\"imagePreview\":\"\",\"lead_assignedAttendant_id\":\"\",\"lead_email\":\"\",\"lead_field01\":\"\",\"lead_field02\":\"\",\"lead_field03\":\"\",\"lead_field04\":\"\",\"lead_field05\":\"\",\"lead_field06\":\"\",\"lead_field07\":\"\",\"lead_field08\":\"\",\"lead_field09\":\"\",\"lead_field10\":\"\",\"lead_field11\":\"\",\"lead_field12\":\"\",\"lead_field13\":\"\",\"lead_field14\":\"\",\"lead_field15\":\"\",\"lead_field16\":\"\",\"lead_field17\":\"\",\"lead_field18\":\"\",\"lead_field19\":\"\",\"lead_field20\":\"\",\"lead_fullName\":\"\",\"lead_isTicketOpen\":false,\"lead_kanbanOrder\":0,\"lead_name\":\"\",\"lead_notes\":\"\",\"lead_personalid\":\"\",\"lead_status\":\"\",\"lead_tags\":[],\"name\":\"Maria Pleul\",\"owner\":\"5519998868883\",\"phone\":\"+55 19 97403-1213\",\"wa_archived\":false,\"wa_chatid\":\"5519974031213@s.whatsapp.net\",\"wa_chatlid\":\"227680763023449@lid\",\"wa_contactName\":\"Maria Pleul\",\"wa_ephemeralExpiration\":0,\"wa_fastid\":\"5519998868883:5519974031213\",\"wa_isBlocked\":false,\"wa_isGroup\":false,\"wa_isGroup_admin\":false,\"wa_isGroup_announce\":false,\"wa_isGroup_community\":false,\"wa_isGroup_member\":false,\"wa_isPinned\":false,\"wa_label\":[\"5519998868883:12\"],\"wa_lastMessageSender\":\"90633054208036@lid\",\"wa_lastMessageTextVote\":\"≡ƒÿà\",\"wa_lastMessageType\":\"Conversation\",\"wa_lastMsgTimestamp\":1774640374000,\"wa_muteEndTime\":0,\"wa_name\":\"Maria Pleul\",\"wa_unreadCount\":4},\"chatSource\":\"updated\",\"instanceName\":\"drsena\",\"message\":{\"buttonOrListid\":\"\",\"chatid\":\"5519974031213@s.whatsapp.net\",\"chatlid\":\"227680763023449@lid\",\"content\":\"≡ƒÿà\",\"convertOptions\":\"\",\"edited\":\"\",\"fromMe\":true,\"groupName\":\"\",\"id\":\"5519998868883:2ABE5867E960939168A0\",\"isGroup\":false,\"mediaType\":\"\",\"messageTimestamp\":1774640374000,\"messageType\":\"Conversation\",\"messageid\":\"2ABE5867E960939168A0\",\"owner\":\"5519998868883\",\"quoted\":\"\",\"reaction\":\"\",\"sender\":\"90633054208036@lid\",\"senderName\":\"Dr Sena\",\"sender_lid\":\"90633054208036@lid\",\"sender_pn\":\"5519998868883@s.whatsapp.net\",\"source\":\"unknown\",\"status\":\"\",\"text\":\"≡ƒÿà\",\"track_id\":\"\",\"track_source\":\"\",\"type\":\"text\",\"vote\":\"\",\"wasSentByApi\":false},\"owner\":\"5519998868883\",\"token\":\"7bfb1a1c-060e-4c57-852f-b8380688c2b0\"},\"url\":\"https://whatsapp-saas-five.vercel.app/api/webhook/whatsapp?clinicId=clinic-demo-id\"}",
+    "createdAt": "2026-03-27T19:39:34.593Z"
+  },
+  {
+    "id": "cmn9b1z3m0029jv04vrqqufl7",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "HUMAN_INTERVENTION",
+    "details": "{\"conversationId\":\"cmn4zzfii000tkz04rxmd5lsk\",\"contactId\":\"cmn4zzfhc000rkz04nwgbzdd6\"}",
+    "createdAt": "2026-03-27T19:39:27.347Z"
+  },
+  {
+    "id": "cmn9b1yky0025jv040syph69z",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "WEBHOOK_RAW_RECEIVED",
+    "details": "{\"payload\":{\"BaseUrl\":\"https://whatsapp-saas.uazapi.com\",\"EventType\":\"messages\",\"chat\":{\"chatbot_agentResetMemoryAt\":0,\"chatbot_disableUntil\":0,\"chatbot_lastTriggerAt\":0,\"chatbot_lastTrigger_id\":\"\",\"id\":\"r21dc826ff74584\",\"image\":\"\",\"imagePreview\":\"\",\"lead_assignedAttendant_id\":\"\",\"lead_email\":\"\",\"lead_field01\":\"\",\"lead_field02\":\"\",\"lead_field03\":\"\",\"lead_field04\":\"\",\"lead_field05\":\"\",\"lead_field06\":\"\",\"lead_field07\":\"\",\"lead_field08\":\"\",\"lead_field09\":\"\",\"lead_field10\":\"\",\"lead_field11\":\"\",\"lead_field12\":\"\",\"lead_field13\":\"\",\"lead_field14\":\"\",\"lead_field15\":\"\",\"lead_field16\":\"\",\"lead_field17\":\"\",\"lead_field18\":\"\",\"lead_field19\":\"\",\"lead_field20\":\"\",\"lead_fullName\":\"\",\"lead_isTicketOpen\":false,\"lead_kanbanOrder\":0,\"lead_name\":\"\",\"lead_notes\":\"\",\"lead_personalid\":\"\",\"lead_status\":\"\",\"lead_tags\":[],\"name\":\"Maria Pleul\",\"owner\":\"5519998868883\",\"phone\":\"+55 19 97403-1213\",\"wa_archived\":false,\"wa_chatid\":\"5519974031213@s.whatsapp.net\",\"wa_chatlid\":\"227680763023449@lid\",\"wa_contactName\":\"Maria Pleul\",\"wa_ephemeralExpiration\":0,\"wa_fastid\":\"5519998868883:5519974031213\",\"wa_isBlocked\":false,\"wa_isGroup\":false,\"wa_isGroup_admin\":false,\"wa_isGroup_announce\":false,\"wa_isGroup_community\":false,\"wa_isGroup_member\":false,\"wa_isPinned\":false,\"wa_label\":[\"5519998868883:12\"],\"wa_lastMessageSender\":\"90633054208036@lid\",\"wa_lastMessageTextVote\":\"Vai desculpar Maria\",\"wa_lastMessageType\":\"Conversation\",\"wa_lastMsgTimestamp\":1774640366000,\"wa_muteEndTime\":0,\"wa_name\":\"Maria Pleul\",\"wa_unreadCount\":4},\"chatSource\":\"updated\",\"instanceName\":\"drsena\",\"message\":{\"buttonOrListid\":\"\",\"chatid\":\"5519974031213@s.whatsapp.net\",\"chatlid\":\"227680763023449@lid\",\"content\":\"Vai desculpar Maria\",\"convertOptions\":\"\",\"edited\":\"\",\"fromMe\":true,\"groupName\":\"\",\"id\":\"5519998868883:2A581B884B467EE10F6A\",\"isGroup\":false,\"mediaType\":\"\",\"messageTimestamp\":1774640366000,\"messageType\":\"Conversation\",\"messageid\":\"2A581B884B467EE10F6A\",\"owner\":\"5519998868883\",\"quoted\":\"\",\"reaction\":\"\",\"sender\":\"90633054208036@lid\",\"senderName\":\"Dr Sena\",\"sender_lid\":\"90633054208036@lid\",\"sender_pn\":\"5519998868883@s.whatsapp.net\",\"source\":\"unknown\",\"status\":\"\",\"text\":\"Vai desculpar Maria\",\"track_id\":\"\",\"track_source\":\"\",\"type\":\"text\",\"vote\":\"\",\"wasSentByApi\":false},\"owner\":\"5519998868883\",\"token\":\"7bfb1a1c-060e-4c57-852f-b8380688c2b0\"},\"url\":\"https://whatsapp-saas-five.vercel.app/api/webhook/whatsapp?clinicId=clinic-demo-id\"}",
+    "createdAt": "2026-03-27T19:39:26.674Z"
+  },
+  {
+    "id": "cmn9b1vu60023jv046ip3x86h",
+    "clinicId": "clinic-demo-id",
+    "level": "INFO",
+    "event": "HUMAN_INTERVENTION",
+    "details": "{\"conversationId\":\"cmn4zzfii000tkz04rxmd5lsk\",\"contactId\":\"cmn4zzfhc000rkz04nwgbzdd6\"}",
+    "createdAt": "2026-03-27T19:39:23.118Z"
+  }
+]
+
+--- MESSAGES FOR Dr. Lucas Sena (clinic-demo-id) (LAST 20) ---
+[
+  {
+    "id": "cmn9ef912000tl204lyyf0ujk",
+    "clinicId": "clinic-demo-id",
+    "conversationId": "cmn98svjp0003l104nkrju2pe",
+    "externalMessageId": "5519998868883:3A7A93538B6CAC3F313B",
+    "author": "CLIENTE",
+    "messageType": "text",
+    "content": "Consegue me d├í um diagn├│stico do que est├í acontecendo, eu sou o administrador, doutor Lucas Sena, se tiver algum erro no prompt me avise",
+    "sentAt": "2026-03-27T21:13:44.000Z",
+    "processed": false,
+    "createdAt": "2026-03-27T21:13:45.590Z"
+  },
+  {
+    "id": "cmn9eekki000pl204ekj1fpxg",
+    "clinicId": "clinic-demo-id",
+    "conversationId": "cmn98svjp0003l104nkrju2pe",
+    "externalMessageId": null,
+    "author": "ROBO",
+    "messageType": "TEXT",
+    "content": "Desculpe pela repeti├º├úo, Lucas! Estou aqui para ajudar. ≡ƒÿè Seu agendamento para o dia 31 de mar├ºo de 2026, ├ás 13:00, j├í est├í confirmado. Se precisar de mais alguma informa├º├úo ou ajuda, ├⌐ s├│ avisar! At├⌐ l├í!",
+    "sentAt": null,
+    "processed": true,
+    "createdAt": "2026-03-27T21:13:13.891Z"
+  },
+  {
+    "id": "cmn9ee7h1000jl204kvgoveea",
+    "clinicId": "clinic-demo-id",
+    "conversationId": "cmn98svjp0003l104nkrju2pe",
+    "externalMessageId": "5519998868883:3A419AF084A5AF956D02",
+    "author": "CLIENTE",
+    "messageType": "text",
+    "content": "Para de ficar repetindo",
+    "sentAt": "2026-03-27T21:12:56.000Z",
+    "processed": false,
+    "createdAt": "2026-03-27T21:12:56.917Z"
+  },
+  {
+    "id": "cmn9eduab0017f5k4lunl41pu",
+    "clinicId": "clinic-demo-id",
+    "conversationId": "cmn4zfx8f0005ih04zc11l8dk",
+    "externalMessageId": null,
+    "author": "ROBO",
+    "messageType": "TEXT",
+    "content": "Oi, Lucas! ≡ƒÿè As op├º├╡es dispon├¡veis para a consulta com o Dr. Lucas Sena s├úo: \n1. 30 de mar├ºo ├ás 09:00 \n2. 30 de mar├ºo ├ás 10:00. \nQual hor├írio voc├¬ prefere?",
+    "sentAt": null,
+    "processed": true,
+    "createdAt": "2026-03-27T21:12:39.827Z"
+  },
+  {
+    "id": "cmn9ed809000bf51wqo81q10o",
+    "clinicId": "clinic-demo-id",
+    "conversationId": "cmn4zfx8f0005ih04zc11l8dk",
+    "externalMessageId": "sim_1774645930789",
+    "author": "CLIENTE",
+    "messageType": "TEXT",
+    "content": "Sim, pode marcar para as 15h ent├úo.",
+    "sentAt": null,
+    "processed": false,
+    "createdAt": "2026-03-27T21:12:10.794Z"
+  },
+  {
+    "id": "cmn9ed1w8000dl204u09g7jnj",
+    "clinicId": "clinic-demo-id",
+    "conversationId": "cmn4zzfii000tkz04rxmd5lsk",
+    "externalMessageId": "5519998868883:2AFE6E80EBC635615F75",
+    "author": "USUARIO",
+    "messageType": "text",
+    "content": "Ok",
+    "sentAt": "2026-03-27T21:12:02.000Z",
+    "processed": false,
+    "createdAt": "2026-03-27T21:12:03.033Z"
+  },
+  {
+    "id": "cmn9ecz650009l204vf2yeas3",
+    "clinicId": "clinic-demo-id",
+    "conversationId": "cmn98svjp0003l104nkrju2pe",
+    "externalMessageId": null,
+    "author": "ROBO",
+    "messageType": "TEXT",
+    "content": "Desculpe pela repeti├º├úo, Lucas! ≡ƒÿè Estou aqui para ajudar. Seu agendamento para o dia 31 de mar├ºo de 2026, ├ás 13:00, j├í est├í confirmado. Se precisar de mais alguma informa├º├úo ou ajuda, ├⌐ s├│ avisar! At├⌐ l├í!",
+    "sentAt": null,
+    "processed": true,
+    "createdAt": "2026-03-27T21:11:59.501Z"
+  },
+  {
+    "id": "cmn9ecvpl0013f5k4c3ay9dyn",
+    "clinicId": "clinic-demo-id",
+    "conversationId": "cmn4zfx8f0005ih04zc11l8dk",
+    "externalMessageId": null,
+    "author": "ROBO",
+    "messageType": "TEXT",
+    "content": "Oi, Lucas! ≡ƒÿè O consult├│rio do Dr. Lucas Sena fica na ClinCare, na Rua Manoel de Paula, 33, Capela, Mogi Gua├ºu - SP. Posso te ajudar a agendar sua consulta? As op├º├╡es dispon├¡veis s├úo: \n1. 30 de mar├ºo ├ás 09:00 \n2. 30 de mar├ºo ├ás 10:00. Qual hor├írio voc├¬ prefere?",
+    "sentAt": null,
+    "processed": true,
+    "createdAt": "2026-03-27T21:11:54.872Z"
+  },
+  {
+    "id": "cmn9ecozj0003l204ia9kn8pv",
+    "clinicId": "clinic-demo-id",
+    "conversationId": "cmn98svjp0003l104nkrju2pe",
+    "externalMessageId": "5519998868883:3A9CF534CC28036F247D",
+    "author": "CLIENTE",
+    "messageType": "text",
+    "content": "Para de ficar repetindo",
+    "sentAt": "2026-03-27T21:11:43.000Z",
+    "processed": false,
+    "createdAt": "2026-03-27T21:11:46.304Z"
+  },
+  {
+    "id": "cmn9ecb9n0009f51w3macsk1c",
+    "clinicId": "clinic-demo-id",
+    "conversationId": "cmn4zfx8f0005ih04zc11l8dk",
+    "externalMessageId": "sim_1774645888380",
+    "author": "CLIENTE",
+    "messageType": "TEXT",
+    "content": "Onde fica o consult├│rio?",
+    "sentAt": null,
+    "processed": false,
+    "createdAt": "2026-03-27T21:11:28.381Z"
+  },
+  {
+    "id": "cmn9ebyn1000zf5k49cidixwy",
+    "clinicId": "clinic-demo-id",
+    "conversationId": "cmn4zfx8f0005ih04zc11l8dk",
+    "externalMessageId": null,
+    "author": "ROBO",
+    "messageType": "TEXT",
+    "content": "Oi, Lucas! ≡ƒÿè As op├º├╡es dispon├¡veis para a consulta com o Dr. Lucas Sena s├úo: \n1. 30 de mar├ºo ├ás 09:00 \n2. 30 de mar├ºo ├ás 10:00. \nQual hor├írio voc├¬ prefere?",
+    "sentAt": null,
+    "processed": true,
+    "createdAt": "2026-03-27T21:11:12.157Z"
+  },
+  {
+    "id": "cmn9eaqad0007f51wrmzic46z",
+    "clinicId": "clinic-demo-id",
+    "conversationId": "cmn4zfx8f0005ih04zc11l8dk",
+    "externalMessageId": "sim_1774645814111",
+    "author": "CLIENTE",
+    "messageType": "TEXT",
+    "content": "Tem outro hor├írio mais tarde?",
+    "sentAt": null,
+    "processed": false,
+    "createdAt": "2026-03-27T21:10:14.113Z"
+  },
+  {
+    "id": "cmn9eaddm000vf5k4fmyl046g",
+    "clinicId": "clinic-demo-id",
+    "conversationId": "cmn4zfx8f0005ih04zc11l8dk",
+    "externalMessageId": null,
+    "author": "ROBO",
+    "messageType": "TEXT",
+    "content": "Oi, Lucas! ≡ƒÿè Agora que tenho seu nome, posso confirmar o agendamento. Voc├¬ prefere marcar a consulta com o Dr. Lucas Sena para:\n1. 30 de mar├ºo ├ás 09:00\n2. 30 de mar├ºo ├ás 10:00?\nQual hor├írio voc├¬ escolhe?",
+    "sentAt": null,
+    "processed": true,
+    "createdAt": "2026-03-27T21:09:57.946Z"
+  },
+  {
+    "id": "cmn9e9pki0005f51wyia4fqgu",
+    "clinicId": "clinic-demo-id",
+    "conversationId": "cmn4zfx8f0005ih04zc11l8dk",
+    "externalMessageId": "sim_1774645766912",
+    "author": "CLIENTE",
+    "messageType": "TEXT",
+    "content": "Meu nome ├⌐ Lucas Silva",
+    "sentAt": null,
+    "processed": false,
+    "createdAt": "2026-03-27T21:09:26.914Z"
+  },
+  {
+    "id": "cmn9e9amh000rf5k4zioorhf6",
+    "clinicId": "clinic-demo-id",
+    "conversationId": "cmn4zfx8f0005ih04zc11l8dk",
+    "externalMessageId": null,
+    "author": "ROBO",
+    "messageType": "TEXT",
+    "content": "Oi, Lucas! ≡ƒÿè Para agendar sua consulta com o Dr. Lucas Sena, posso oferecer os seguintes hor├írios: \n1. 30 de mar├ºo ├ás 09:00 \n2. 30 de mar├ºo ├ás 10:00. \nQual hor├írio voc├¬ prefere?",
+    "sentAt": null,
+    "processed": true,
+    "createdAt": "2026-03-27T21:09:07.722Z"
+  },
+  {
+    "id": "cmn9e8cnt0003f51wttn028j5",
+    "clinicId": "clinic-demo-id",
+    "conversationId": "cmn4zfx8f0005ih04zc11l8dk",
+    "externalMessageId": "sim_1774645703556",
+    "author": "CLIENTE",
+    "messageType": "TEXT",
+    "content": "Queria saber como agendar",
+    "sentAt": null,
+    "processed": false,
+    "createdAt": "2026-03-27T21:08:23.558Z"
+  },
+  {
+    "id": "cmn9e8607000nf5k4asrar2eq",
+    "clinicId": "clinic-demo-id",
+    "conversationId": "cmn4zfx8f0005ih04zc11l8dk",
+    "externalMessageId": null,
+    "author": "ROBO",
+    "messageType": "TEXT",
+    "content": "Oi, Lucas! ≡ƒÿè Para agendar sua consulta com o Dr. Lucas Sena, posso oferecer os seguintes hor├írios: \n1. 30 de mar├ºo ├ás 09:00 \n2. 30 de mar├ºo ├ás 10:00. \nQual hor├írio voc├¬ prefere?",
+    "sentAt": null,
+    "processed": true,
+    "createdAt": "2026-03-27T21:08:15.080Z"
+  },
+  {
+    "id": "cmn9e7bpq0001f51wfpqu7dx9",
+    "clinicId": "clinic-demo-id",
+    "conversationId": "cmn4zfx8f0005ih04zc11l8dk",
+    "externalMessageId": "sim_1774645654507",
+    "author": "CLIENTE",
+    "messageType": "TEXT",
+    "content": "Queria saber como agendar",
+    "sentAt": null,
+    "processed": false,
+    "createdAt": "2026-03-27T21:07:35.822Z"
+  },
+  {
+    "id": "cmn9dyf4c000dl1048hbvomwk",
+    "clinicId": "clinic-demo-id",
+    "conversationId": "cmn98svjp0003l104nkrju2pe",
+    "externalMessageId": null,
+    "author": "ROBO",
+    "messageType": "TEXT",
+    "content": "Ol├í, Lucas! ≡ƒÿè Seu agendamento para o dia 31 de mar├ºo de 2026, ├ás 13:00, foi confirmado! A ClinCare fica na Rua Manoel de Paula, 33, Capela, Mogi Gua├ºu - SP. Se precisar de mais alguma coisa, estou ├á disposi├º├úo! At├⌐ l├í!",
+    "sentAt": null,
+    "processed": true,
+    "createdAt": "2026-03-27T21:00:40.332Z"
+  },
+  {
+    "id": "cmn9dy37b0003l104bpq7lhz3",
+    "clinicId": "clinic-demo-id",
+    "conversationId": "cmn98svjp0003l104nkrju2pe",
+    "externalMessageId": "5519998868883:3EB08043279CF20F011995",
+    "author": "CLIENTE",
+    "messageType": "text",
+    "content": "Lucas silva",
+    "sentAt": "2026-03-27T21:00:21.000Z",
+    "processed": false,
+    "createdAt": "2026-03-27T21:00:24.887Z"
+  }
+]

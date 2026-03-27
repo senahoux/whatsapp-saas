@@ -158,6 +158,14 @@ export async function POST(req: NextRequest) {
 
         // ── 6. Chamada à IA ────────────────────────────────────────────
         let aiResponse = await AIService.respond(aiCtx);
+
+        // LOG DE AUDITORIA: Salva o retorno bruto da IA para rastreabilidade
+        await LogService.info(clinicId, LogEvent.AI_RESPONSE, {
+            conversationId,
+            rawResponse: aiResponse,
+            patientMessage: lastClientMessage.content
+        });
+
         if (aiResponse) aiResponse.acao = aiResponse.acao ?? "NENHUMA";
 
         // Loop VER_AGENDA (máximo 1 iteração)
@@ -193,16 +201,39 @@ export async function POST(req: NextRequest) {
                         throw new Error("Data ou hora ausentes para AGENDAR");
                     }
 
+                    // --- VALIDAÇÃO CIRÚRGICA DE CONFIRMAÇÃO (REGRA OBRIGATÓRIA) ---
+                    const lastOffered = aiCtx.ultimas_ofertas as string[] || [];
+                    const patientText = lastClientMessage.content.trim();
+                    const isOneOrTwo = (patientText === "1" || patientText === "2") && lastOffered.length === 2;
+
+                    const confirmationTerms = [
+                        "pode marcar", "fechado", "quero esse", "esse horário", "pode ser",
+                        "sim", "confirmo", "pode agendar", "marcar", "agendar", "ok", "beleza", "perfeito"
+                    ];
+                    const patientTextLower = patientText.toLowerCase();
+                    const isExplicitConfirmation = isOneOrTwo || 
+                        confirmationTerms.some(term => patientTextLower.includes(term)) || 
+                        /\d{1,2}:\d{2}/.test(patientTextLower);
+
+                    if (!isExplicitConfirmation) {
+                        await LogService.warn(clinicId, LogEvent.ACTION_EXECUTED, {
+                            conversationId,
+                            note: "BLOQUEIO: IA solicitou AGENDAR mas o texto do paciente não indica confirmação explícita.",
+                            patientMessage: lastClientMessage.content,
+                            actionIgnored: "AGENDAR"
+                        });
+                        aiResponse.acao = "NENHUMA"; // Aborta a ação mas mantém o texto
+                        throw new Error("Confirmação explícita do paciente não detectada pelo backend.");
+                    }
+
                     // Validação DETERMINÍSTICA: deve bater com um dos slots ofertados
-                    const lastOffered = (conversation as any).lastOfferedSlots as string[] || [];
                     const selectedSlot = `${aiResponse.data} ${aiResponse.hora}`;
 
                     if (lastOffered.length > 0 && !lastOffered.includes(selectedSlot)) {
                         await LogService.warn(clinicId, LogEvent.AI_RESPONSE, {
                             conversationId,
-                            note: `Slot ${selectedSlot} não estava entre as opções ofertadas: ${lastOffered.join(", ")}. Prosseguindo mesmo assim.`,
+                            note: `Slot ${selectedSlot} não estava entre as opções ofertadas: ${lastOffered.join(", ")}.`,
                         });
-                        // Decidimos não lançar Erro para não matar a conversa
                     }
 
                     await AppointmentService.create(clinicId, {
@@ -212,10 +243,12 @@ export async function POST(req: NextRequest) {
                         type: aiResponse.tipo ?? "CONSULTA",
                         subtype: aiResponse.subtipo ?? null,
                         source: AppointmentSource.ROBO,
-                        notes: `Agendado automaticamente via IA(${aiResponse.confianca})`
+                        notes: `Agendado automaticamente via IA após confirmação explícita.`
                     });
-                    // Reset para IDLE após sucesso
+
+                    // LIMPEZA COMPLETA DE CONTEXTO APÓS SUCESSO
                     await ConversationService.setState(clinicId, conversationId, ConversationState.IDLE);
+                    await ConversationService.setLastOfferedSlots(clinicId, conversationId, []);
                 } else {
                     const targetAppt = await AppointmentService.findActiveAppointment(clinicId, contact.id);
                     if (!targetAppt) throw new Error(`Nenhum agendamento ativo encontrado para ${aiResponse.acao} `);
@@ -232,6 +265,7 @@ export async function POST(req: NextRequest) {
                     }
                     // Reset para IDLE após sucesso
                     await ConversationService.setState(clinicId, conversationId, ConversationState.IDLE);
+                    await ConversationService.setLastOfferedSlots(clinicId, conversationId, []);
                 }
 
                 await LogService.info(clinicId, LogEvent.ACTION_EXECUTED, {

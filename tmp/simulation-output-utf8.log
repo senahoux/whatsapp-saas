@@ -1,0 +1,34 @@
+﻿
+--- SIMULATING MESSAGE: "Queria saber como agendar" ---
+Response: {
+  ok: true,
+  skipped: 'debounced_by_later_message',
+  diff_ms: 5617,
+  threshold: 8000
+}
+
+--- SIMULATING MESSAGE: "Tem outro hor├írio mais tarde?" ---
+Response: {
+  ok: true,
+  skipped: 'debounced_by_later_message',
+  diff_ms: 4730,
+  threshold: 8000
+}
+
+--- SIMULATING MESSAGE: "Onde fica o consult├│rio?" ---
+Response: {
+  ok: true,
+  skipped: 'debounced_by_later_message',
+  diff_ms: 4144,
+  threshold: 8000
+}
+
+--- SIMULATING MESSAGE: "Sim, pode marcar para as 15h ent├úo." ---
+Response: {
+  ok: true,
+  skipped: 'debounced_by_later_message',
+  diff_ms: 3800,
+  threshold: 8000
+}
+
+--- SIMULATION FINISHED ---

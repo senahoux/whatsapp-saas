@@ -1,0 +1,18 @@
+﻿
+--- SIMULATING MESSAGE: "Queria saber como agendar" ---
+Waiting 9s for debounce...
+Response: { ok: true, action: 'AUTO', messageId: 'cmn9dg41q0007f5k4avykzcz5' }
+
+--- SIMULATING MESSAGE: "Tem outro hor├írio mais tarde?" ---
+Waiting 9s for debounce...
+Response: { ok: true, action: 'AUTO', messageId: 'cmn9dh0ka000bf5k4xdxthscj' }
+
+--- SIMULATING MESSAGE: "Onde fica o consult├│rio?" ---
+Waiting 9s for debounce...
+Response: { ok: true, action: 'AUTO', messageId: 'cmn9dhwom000ff5k4peapqrld' }
+
+--- SIMULATING MESSAGE: "Sim, pode marcar para as 15h ent├úo." ---
+Waiting 9s for debounce...
+Response: { ok: true, action: 'AUTO', messageId: 'cmn9diu6x000jf5k46fgbxlcb' }
+
+--- SIMULATION FINISHED ---
