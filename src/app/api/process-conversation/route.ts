@@ -101,15 +101,10 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ ok: true, skipped: "no_client_message" });
         }
 
-        // --- DETECTOR DE INTENÇÃO EXPANDIDO ---
-        const userIntentKeywords = [
-            "disponível", "horário", "vaga", "agendar", "marcar", "consulta",
-            "outro dia", "pode ser outro", "quinta", "outro horário",
-            "não posso nesse", "de manhã", "à tarde", "a noite"
-        ];
-        const looksLikeScheduleIntent = userIntentKeywords.some(kw =>
-            lastClientMessage.content.toLowerCase().includes(kw)
-        );
+        // --- DETECTOR DE INTENÇÃO EXPANDIDO (PRECISÃO CIRÚRGICA) ---
+        const userIntentRegex = /agendar|marcar|consulta|horário|vaga|disponível|atende|passar|marcará|marcação|médico|dr|doutor|agenda|outro dia|pode ser outro|quinta|sexta|segunda|terça|quarta|sábado|domingo|de manhã|à tarde|a noite/i;
+
+        const looksLikeScheduleIntent = userIntentRegex.test(lastClientMessage.content);
 
         // --- LÓGICA DE ESTADO PERSISTENTE ---
         const isScheduling = (conversation as any).state === ConversationState.SCHEDULING || looksLikeScheduleIntent;
