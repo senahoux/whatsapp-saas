@@ -204,11 +204,8 @@ export async function POST(req: NextRequest) {
             } catch (error: any) {
                 const isMissingData = error.message?.includes("Data ou hora ausentes");
 
-                // --- TRATAMENTO CIRÚRGICO PARA FALTA DE DADOS ---
-                if (isMissingData && aiResponse.acao === "AGENDAR") {
-                    aiResponse.mensagem = "Qual dia e horário você prefere? 😊";
-                    aiResponse.modo = ConversationMode.AUTO;
-                } else if (!isMissingData) {
+                // --- REGRA: O backend NÃO interfere no texto da conversa ---
+                if (!isMissingData) {
                     aiResponse.modo = ConversationMode.ASSISTENTE;
                     await NotificationService.notifyAlert(clinicId, `Erro ao ${aiResponse.acao}: ${error.message}`, contact.id);
                 }
