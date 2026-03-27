@@ -431,6 +431,9 @@ export const AIService = {
      * Em null, o orquestrador (process-conversation) cai em modo ASSISTENTE.
      */
     async respond(ctx: AIRequestContext): Promise<AIResponse | null> {
+        console.log(">>> [AIService] Chamando OpenAI para:", ctx.nome_paciente);
+        console.log(">>> [AIService] Intenção de Agenda?", !!ctx.contexto_agenda);
+
         const systemPrompt = buildSystemPrompt(ctx.contexto_clinica);
         const userMessage = buildUserMessage(ctx);
 
@@ -442,7 +445,7 @@ export const AIService = {
                 messages: [
                     {
                         role: "system",
-                        content: systemPrompt + "\n\nREGRA ABSOLUTA DE SAÍDA: O modelo deve produzir UMA única string de output contendo SOMENTE um JSON válido com o schema exigido acima e zero marcadores de formatação. Não adicione nada antes nem depois."
+                        content: systemPrompt
                     },
                     { role: "user", content: userMessage },
                 ],

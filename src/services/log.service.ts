@@ -33,6 +33,7 @@ export const LogService = {
         level: string = LogLevel.INFO,
         details?: Record<string, unknown>
     ): Promise<Log> {
+        console.log(`>>> [LogService] Criando evento: ${event} para ${clinicId}`);
         return prisma.log.create({
             data: {
                 clinicId,
