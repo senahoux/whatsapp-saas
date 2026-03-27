@@ -158,6 +158,7 @@ export async function POST(req: NextRequest) {
 
         // ── 6. Chamada à IA ────────────────────────────────────────────
         let aiResponse = await AIService.respond(aiCtx);
+        if (aiResponse) aiResponse.acao = aiResponse.acao ?? "NENHUMA";
 
         // Loop VER_AGENDA (máximo 1 iteração)
         if (aiResponse?.acao === "VER_AGENDA") {
@@ -173,6 +174,7 @@ export async function POST(req: NextRequest) {
 
             console.log(">>> [SLOTS] (Loop VER_AGENDA) Enviando para IA:", JSON.stringify(aiCtx.contexto_agenda));
             aiResponse = await AIService.respond(aiCtx);
+            if (aiResponse) aiResponse.acao = aiResponse.acao ?? "NENHUMA";
             if (aiResponse?.acao === "VER_AGENDA") aiResponse.acao = "NENHUMA";
         }
 
@@ -183,7 +185,8 @@ export async function POST(req: NextRequest) {
         }
 
         // ── 7. Execução de Ações de Agenda ──────────────────────────────
-        if (["AGENDAR", "REMARCAR", "CANCELAR"].includes(aiResponse.acao)) {
+        const currentAcao = aiResponse.acao as string;
+        if (["AGENDAR", "REMARCAR", "CANCELAR"].includes(currentAcao)) {
             try {
                 if (aiResponse.acao === "AGENDAR") {
                     if (!aiResponse.data || !aiResponse.hora) {
