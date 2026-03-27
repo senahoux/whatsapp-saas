@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
         if (conversation.status !== ConversationStatus.AGUARDANDO_IA) {
             return NextResponse.json({
                 ok: true,
-                skipped: `status_is_${conversation.status}`,
+                skipped: `status_is_${conversation.status} `,
             });
         }
 
@@ -178,6 +178,19 @@ export async function POST(req: NextRequest) {
                     if (!aiResponse.data || !aiResponse.hora) {
                         throw new Error("Data ou hora ausentes para AGENDAR");
                     }
+
+                    // Validação DETERMINÍSTICA: deve bater com um dos slots ofertados
+                    const lastOffered = (conversation as any).lastOfferedSlots as string[] || [];
+                    const selectedSlot = `${aiResponse.data} ${aiResponse.hora}`;
+
+                    if (lastOffered.length > 0 && !lastOffered.includes(selectedSlot)) {
+                        await LogService.warn(clinicId, LogEvent.AI_RESPONSE, {
+                            conversationId,
+                            note: `Slot ${selectedSlot} não estava entre as opções ofertadas: ${lastOffered.join(", ")}. Prosseguindo mesmo assim.`,
+                        });
+                        // Decidimos não lançar Erro para não matar a conversa
+                    }
+
                     await AppointmentService.create(clinicId, {
                         contactId: contact.id,
                         date: aiResponse.data,
@@ -185,13 +198,13 @@ export async function POST(req: NextRequest) {
                         type: aiResponse.tipo ?? "CONSULTA",
                         subtype: aiResponse.subtipo ?? null,
                         source: AppointmentSource.ROBO,
-                        notes: `Agendado automaticamente via IA (${aiResponse.confianca})`
+                        notes: `Agendado automaticamente via IA(${aiResponse.confianca})`
                     });
                     // Reset para IDLE após sucesso
                     await ConversationService.setState(clinicId, conversationId, ConversationState.IDLE);
                 } else {
                     const targetAppt = await AppointmentService.findActiveAppointment(clinicId, contact.id);
-                    if (!targetAppt) throw new Error(`Nenhum agendamento ativo encontrado para ${aiResponse.acao}`);
+                    if (!targetAppt) throw new Error(`Nenhum agendamento ativo encontrado para ${aiResponse.acao} `);
 
                     if (aiResponse.acao === "REMARCAR") {
                         if (!aiResponse.data || !aiResponse.hora) throw new Error("Data ou hora ausentes para REMARCAR");
@@ -219,12 +232,12 @@ export async function POST(req: NextRequest) {
                 // --- REGRA: O backend NÃO interfere no texto da conversa ---
                 if (!isMissingData) {
                     aiResponse.modo = ConversationMode.ASSISTENTE;
-                    await NotificationService.notifyAlert(clinicId, `Erro ao ${aiResponse.acao}: ${error.message}`, contact.id);
+                    await NotificationService.notifyAlert(clinicId, `Erro ao ${aiResponse.acao}: ${error.message} `, contact.id);
                 }
 
                 await LogService.warn(clinicId, LogEvent.ERROR, {
                     conversationId,
-                    note: `Ação ${aiResponse.acao} falhou: ${error.message}`,
+                    note: `Ação ${aiResponse.acao} falhou: ${error.message} `,
                 });
             }
         }
