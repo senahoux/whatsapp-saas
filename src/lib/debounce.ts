@@ -60,10 +60,6 @@ export const DebounceManager = {
                 url: endpoint,
                 body: { clinicId, conversationId },
                 delay: Math.max(1, delayMs / 1000),
-                headers: {
-                    // Evita disparos duplicados se os envios entrarem dezenas de vezes na mesma janela
-                    "Upstash-Deduplication-Id": conversationId
-                }
             });
             console.log(`[QStash] Disparo em background engatilhado. Conversation: ${conversationId}`);
         } catch (error) {

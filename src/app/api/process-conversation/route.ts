@@ -58,11 +58,27 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // ── 3. Guarda contra reentrada ─────────────────────────────────
+        // ── 3. Guarda contra reentrada e Debounce Distribuído ──────────
         if (conversation.status !== ConversationStatus.AGUARDANDO_IA) {
             return NextResponse.json({
                 ok: true,
-                skipped: `status_is_${conversation.status} `,
+                skipped: `status_is_${conversation.status}`,
+            });
+        }
+
+        // SEMANTIC DEBOUNCE: Verifica se este é o gatilho mais recente
+        const settings = await ClinicService.getSettings(clinicId);
+        const debounceMs = (settings?.debounceSeconds ?? 8) * 1000;
+        const now = Date.now();
+        const lastMsgTime = new Date(conversation.lastMessageAt || 0).getTime();
+        const diff = now - lastMsgTime;
+
+        if (diff < debounceMs - 1000) { // Margem de 1s para compensar latência de rede/DB
+            return NextResponse.json({
+                ok: true,
+                skipped: "debounced_by_later_message",
+                diff_ms: diff,
+                threshold: debounceMs
             });
         }
 
