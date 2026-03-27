@@ -44,7 +44,7 @@ export async function PATCH(req: Request) {
         }
 
         const body = await req.json();
-        const { robotEnabled, debounceSeconds } = body;
+        const { robotEnabled, debounceSeconds, prioritySuggestions } = body;
 
         // Monta o objeto de update — restrito aos campos aprovados no plano
         const updateData: any = {};
@@ -55,10 +55,21 @@ export async function PATCH(req: Request) {
             return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
         }
 
-        const updatedSettings = await prisma.setting.update({
-            where: { clinicId },
-            data: updateData,
-        });
+        let updatedSettings = null;
+        if (Object.keys(updateData).length > 0) {
+            updatedSettings = await prisma.setting.update({
+                where: { clinicId },
+                data: updateData,
+            });
+        }
+
+        // Se houver prioritySuggestions, atualiza a CLINIC
+        if (prioritySuggestions) {
+            await prisma.clinic.update({
+                where: { id: clinicId },
+                data: { prioritySuggestions },
+            });
+        }
 
         await LogService.info(clinicId, LogEvent.ACTION_EXECUTED, {
             action: "UPDATE_SETTINGS",

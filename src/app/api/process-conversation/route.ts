@@ -114,20 +114,24 @@ export async function POST(req: NextRequest) {
         // --- LÓGICA DE ESTADO PERSISTENTE ---
         const isScheduling = (conversation as any).state === ConversationState.SCHEDULING || looksLikeScheduleIntent;
 
-        const aiCtx = {
+        const aiCtx: any = {
             mensagem_paciente: lastClientMessage.content,
             nome_paciente: contact.name,
             historico_resumido,
             status_conversa: conversation.status,
             contexto_clinica: clinicContext,
             contexto_agenda: null as any,
+            ultimas_ofertas: (conversation as any).lastOfferedSlots || [],
         };
 
         // Se estiver em modo agendamento, SEMPRE injeta slots
         if (isScheduling) {
             aiCtx.contexto_agenda = await AppointmentService.getAvailableSlots(clinicId);
 
-            // Atualiza estado se necessário
+            // Atualiza estado e PERISTE slots ofertados
+            await ConversationService.setLastOfferedSlots(clinicId, conversationId, aiCtx.contexto_agenda.horarios_disponiveis);
+            aiCtx.ultimas_ofertas = aiCtx.contexto_agenda.horarios_disponiveis;
+
             if ((conversation as any).state !== ConversationState.SCHEDULING) {
                 await ConversationService.setState(clinicId, conversationId, ConversationState.SCHEDULING);
             }
@@ -136,7 +140,7 @@ export async function POST(req: NextRequest) {
 
             await LogService.info(clinicId, LogEvent.AI_RESPONSE, {
                 conversationId,
-                note: "Scheduling state active: slots injected",
+                note: "Scheduling state active: slots injected and persisted",
                 slots: aiCtx.contexto_agenda.horarios_disponiveis
             });
         }
@@ -151,6 +155,11 @@ export async function POST(req: NextRequest) {
                 aiResponse.data ?? undefined,
             );
             aiCtx.contexto_agenda = agendaContext;
+
+            // Persiste as novas opções
+            await ConversationService.setLastOfferedSlots(clinicId, conversationId, agendaContext.horarios_disponiveis);
+            aiCtx.ultimas_ofertas = agendaContext.horarios_disponiveis;
+
             console.log(">>> [SLOTS] (Loop VER_AGENDA) Enviando para IA:", JSON.stringify(aiCtx.contexto_agenda));
             aiResponse = await AIService.respond(aiCtx);
             if (aiResponse?.acao === "VER_AGENDA") aiResponse.acao = "NENHUMA";

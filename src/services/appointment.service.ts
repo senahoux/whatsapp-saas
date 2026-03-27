@@ -90,34 +90,66 @@ export const AppointmentService = {
     ): Promise<AgendaContext> {
         const clinic = await prisma.clinic.findUnique({
             where: { id: clinicId },
-            select: { consultaDuracao: true },
+            select: { consultaDuracao: true, prioritySuggestions: true },
         });
+
         const slotDuration = clinic?.consultaDuracao ?? 30;
-        const allSlots = generateDaySlots(slotDuration);
+        const allSlotsBase = generateDaySlots(slotDuration);
+        const priorities = (clinic?.prioritySuggestions as any[]) || [];
 
         const today = new Date();
-        const resolvedDate =
-            targetDate ??
-            toDateStr(new Date(today.setDate(today.getDate() + 1)));
+        const resolvedDate = targetDate ?? toDateStr(new Date(today.getTime() + 24 * 60 * 60 * 1000));
 
-        const availableForDate = await AppointmentService._getSlotsForDate(
-            clinicId,
-            resolvedDate,
-            allSlots,
-        );
+        let finalSlots: string[] = [];
 
-        const nextDates = getNextDates(new Date(resolvedDate), 7);
-        const nextAvailableDates: string[] = [];
-        for (const d of nextDates) {
-            if (nextAvailableDates.length >= 3) break;
-            const slots = await AppointmentService._getSlotsForDate(clinicId, d, allSlots);
-            if (slots.length > 0) nextAvailableDates.push(d);
+        // 1. Tentar casar com prioridades (se houver)
+        if (priorities.length > 0) {
+            for (const p of priorities) {
+                if (finalSlots.length >= 2) break;
+
+                // Ex: { date: "2026-03-30", period: "tarde" }
+                const date = p.date;
+                const period = p.period; // "manha" | "tarde" | "noite"
+
+                const availableForDate = await AppointmentService._getSlotsForDate(clinicId, date, allSlotsBase);
+
+                const filtered = availableForDate.filter(s => {
+                    const hour = parseInt(s.split(":")[0]);
+                    if (period === "manha") return hour < 12;
+                    if (period === "tarde") return hour >= 12 && hour < 18;
+                    if (period === "noite") return hour >= 18;
+                    return true;
+                });
+
+                for (const s of filtered) {
+                    if (finalSlots.length >= 2) break;
+                    finalSlots.push(`${date} ${s}`);
+                }
+            }
         }
 
+        // 2. Se não deu 2, completar com o fluxo normal (targetDate em diante)
+        if (finalSlots.length < 2) {
+            const searchDates = [resolvedDate, ...getNextDates(new Date(resolvedDate), 14)];
+            for (const d of searchDates) {
+                if (finalSlots.length >= 2) break;
+                const slots = await AppointmentService._getSlotsForDate(clinicId, d, allSlotsBase);
+                for (const s of slots) {
+                    if (finalSlots.length >= 2) break;
+                    const fullSlot = `${d} ${s}`;
+                    if (!finalSlots.includes(fullSlot)) {
+                        finalSlots.push(fullSlot);
+                    }
+                }
+            }
+        }
+
+        // 3. Formatar retorno
+        // Nota: A Interface AgendaContext agora deve lidar com slots completos (data + hora) ou manter compatibilidade
         return {
             data_consultada: resolvedDate,
-            horarios_disponiveis: availableForDate,
-            proximos_dias_disponiveis: nextAvailableDates,
+            horarios_disponiveis: finalSlots, // Agora enviamos ["YYYY-MM-DD HH:MM", ...]
+            proximos_dias_disponiveis: [], // Simplificado para o novo fluxo determinístico
         };
     },
 

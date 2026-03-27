@@ -45,6 +45,7 @@ model Clinic {
   descricaoServicos   String?
   faq                 String?  // JSON serializado
   regrasPersonalizadas String? // JSON serializado
+  prioritySuggestions Json?    @default("[]")
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
@@ -121,6 +122,7 @@ model Conversation {
   bufferStartedAt      DateTime?
   // state: IDLE | SCHEDULING
   state                String    @default("IDLE")
+  lastOfferedSlots     Json?     @default("[]")
   humanInterventionAt  DateTime?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt

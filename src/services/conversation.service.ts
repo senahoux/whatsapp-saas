@@ -273,6 +273,20 @@ export const ConversationService = {
     },
 
     /**
+     * Persiste as últimas opções de slots oferecidas ao paciente.
+     */
+    async setLastOfferedSlots(
+        clinicId: string,
+        id: string,
+        slots: string[]
+    ): Promise<Conversation> {
+        return prisma.conversation.update({
+            where: { id, clinicId },
+            data: { lastOfferedSlots: slots },
+        });
+    },
+
+    /**
      * Lista conversas da clínica com filtro por status e paginação.
      * Sempre filtra por clinicId — nunca vaza dados entre clínicas.
      */

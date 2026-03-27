@@ -30,6 +30,7 @@ export interface AIRequestContext {
     status_conversa: string;
     contexto_clinica: ClinicContext; // Nunca inclui clinicId
     contexto_agenda: AgendaContext | null; // null na primeira chamada; preenchido no loop VER_AGENDA
+    ultimas_ofertas: string[] | null;
 }
 
 // ──────────────────────────────────────────────
@@ -197,15 +198,18 @@ Capela, Mogi Guaçu - SP"
 
 ---
 
-# 11. COMPORTAMENTO DE CONVERSÃO
+---
 
-REGRAS OBRIGATÓRIAS:
+# 11. REGRAS DO FLUXO DETERMINÍSTICO (CRÍTICO)
 
-* Sempre oferecer 2 opções de horário baseadas estritamente nos slots reais fornecidos (NÃO INVENTE HORÁRIOS).
-* Sempre terminar com pergunta de ação.
+O agendamento agora é DETERMINÍSTICO. Você não deve mais fazer perguntas abertas sobre disponibilidade.
 
-Exemplo de estrutura (use os horários reais):
-"Tenho disponibilidade para [DATA] às [HORA_1] ou [HORA_2]. Qual desses horários fica melhor pra você?"
+Regras Absolutas:
+1. Você receberá EXATAMENTE 2 opções reais de horários no bloco "## OPÇÕES DE AGENDAMENTO (REAIS)".
+2. Sua ÚNICA missão é fazer o paciente escolher uma dessas 2 opções.
+3. ESTÁ PROIBIDO perguntar: "Qual dia e horário você prefere?", "Me diga um dia", "Quando fica melhor?".
+4. Se o paciente rejeitar as 2 opções, use a ação "VER_AGENDA" (sem data) para pedir novas opções ao sistema.
+5. Se o paciente aceitar uma opção, use a ação "AGENDAR" imediatamente com a data e hora exatas da opção escolhida.
 
 ---
 
@@ -318,10 +322,10 @@ Se identificar:
 
 # 20. CONSULTA DE AGENDA (REGRA DE OURO)
 
-- Se o paciente demonstrar interesse em agendar, mas você ainda não recebeu o bloco "## HORÁRIOS DISPONÍVEIS", use a ação "VER_AGENDA" imediatamente.
-- NUNCA sugira horários da sua cabeça. Use apenas os slots que aparecerem no bloco "## HORÁRIOS DISPONÍVEIS".
-- Você está PROIBIDA de inventar horários. Se não houver horários no bloco, informe que não há vagas disponíveis.
-- Se o paciente pedir "outro dia", use "VER_AGENDA" para a nova data ou deixe a data vazia para ver os próximos dias disponíveis.`;
+- Se o paciente demonstrar interesse em agendar, use a ação "VER_AGENDA" imediatamente para obter as 2 opções reais.
+- NUNCA sugira horários da sua cabeça. Use apenas os slots que aparecerem no bloco "## OPÇÕES DE AGENDAMENTO (REAIS)".
+- Você está PROIBIDA de inventar horários ou fazer perguntas abertas de disponibilidade.
+- Se o paciente pedir "outro dia", use "VER_AGENDA" para obter novas opções.`;
 }
 
 function buildUserMessage(ctx: AIRequestContext): string {
@@ -338,21 +342,19 @@ function buildUserMessage(ctx: AIRequestContext): string {
     parts.push(`## Status atual da conversa\n${ctx.status_conversa}`);
     parts.push(`## Mensagem atual do paciente\n${ctx.mensagem_paciente}`);
 
+    if (ctx.ultimas_ofertas && ctx.ultimas_ofertas.length > 0) {
+        parts.push(`## ÚLTIMAS OPÇÕES OFERTADAS:\n${ctx.ultimas_ofertas.join(", ")}\n\nLembre-se: O paciente pode estar se referindo a uma destas.`);
+    }
+
     // Contexto de agenda injetado pelo loop VER_AGENDA
     if (ctx.contexto_agenda) {
-        const { data_consultada, horarios_disponiveis, proximos_dias_disponiveis } =
-            ctx.contexto_agenda;
-        const slots =
-            horarios_disponiveis.length > 0
-                ? horarios_disponiveis.join(", ")
-                : "Nenhum horário disponível nesta data";
-        const proximosDias =
-            proximos_dias_disponiveis.length > 0
-                ? proximos_dias_disponiveis.join(", ")
-                : "Nenhum dia disponível nos próximos 7 dias";
+        const { data_consultada, horarios_disponiveis } = ctx.contexto_agenda;
+        const slots = horarios_disponiveis.length > 0
+            ? horarios_disponiveis.join(", ")
+            : "Nenhum horário disponível";
 
         parts.push(
-            `## HORÁRIOS DISPONÍVEIS (Agenda Real):\nData: ${data_consultada}\nHorários livres: ${slots}\nPróximos dias com vagas: ${proximosDias}\n\nREGRA: Escolha EXATAMENTE 2 opções desta lista para oferecer ao paciente. Proibido inventar.`
+            `## OPÇÕES DE AGENDAMENTO (REAIS):\n${slots}\n\nREGRA: Ofereça EXATAMENTE estas 2 opções acima. Não abra para escolha livre de data/hora.`
         );
     }
 
