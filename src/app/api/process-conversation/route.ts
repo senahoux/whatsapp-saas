@@ -242,23 +242,28 @@ export async function POST(req: NextRequest) {
                 });
 
             } catch (error: any) {
-                console.warn(`[Agenda Action Error] ${aiResponse.acao} falhou:`, error.message);
+                const isMissingData = error.message?.includes("Data ou hora ausentes");
+                console.warn(`[Agenda Action Warning] ${aiResponse.acao} incompleto:`, error.message);
 
-                // Notificar admin mas NÃO bloquear a resposta da IA se o modo original era AUTO.
-                // Isso permite que o robô peça a data/hora faltante ao paciente.
-                if (aiResponse.modo !== ConversationMode.AUTO) {
+                // Se faltam dados (data/hora), não bloqueamos o robô.
+                // Deixamos ele continuar em AUTO para perguntar ao paciente.
+                // Só forçamos ASSISTENTE se for um erro real de banco/conflito.
+                if (!isMissingData && aiResponse.modo !== ConversationMode.AUTO) {
                     aiResponse.modo = ConversationMode.ASSISTENTE;
                 }
 
-                await NotificationService.notifyAlert(
-                    clinicId,
-                    `Falha ao ${aiResponse.acao}: ${error.message}. Revisão manual necessária.`,
-                    contact.id
-                );
+                // Notifica admin apenas se for erro crítico (não apenas falta de dado)
+                if (!isMissingData) {
+                    await NotificationService.notifyAlert(
+                        clinicId,
+                        `Falha ao ${aiResponse.acao}: ${error.message}. Revisão manual necessária.`,
+                        contact.id
+                    );
+                }
 
                 await LogService.warn(clinicId, LogEvent.ERROR, {
                     conversationId,
-                    note: `Falha na ação ${aiResponse.acao}. Mantendo resposta mas disparando alerta.`,
+                    note: `Ação ${aiResponse.acao} não executada por ${isMissingData ? 'dados incompletos' : 'erro técnico'}.`,
                     error: error.message
                 });
             }

@@ -201,13 +201,11 @@ Capela, Mogi Guaçu - SP"
 
 REGRAS OBRIGATÓRIAS:
 
-* Nunca fazer pergunta aberta
-* Sempre oferecer 2 opções de horário
+* Sempre oferecer 2 opções de horário baseadas nos slots reais (NÃO INVENTE HORÁRIOS)
 * Sempre terminar com pergunta de ação
 
 Exemplo:
-
-"Tenho terça às 14h ou quarta às 09h, qual fica melhor pra você?"
+"Tenho disponibilidade na terça às 14:00 ou na quarta às 09:30, qual fica melhor pra você?"
 
 ---
 
@@ -228,7 +226,7 @@ Muitos pacientes chegam assim também.
 
 O Dr. conduz tudo com muito cuidado e ajusta conforme você se sentir confortável.
 
-Prefere ver um horário na terça ou na quinta?"
+Prefere ver um horário disponível pela manhã ou à tarde?
 
 ---
 
@@ -315,12 +313,14 @@ Se identificar:
 
 ---
 
-# 19. OBJETIVO FINAL
-
-Seu objetivo é simples:
-
 👉 transformar conversa em consulta agendada
-👉 de forma natural, humana e eficiente`;
+👉 de forma natural, humana e eficiente
+
+# 20. CONSULTA DE AGENDA (REGRA DE OURO)
+
+- Se o paciente demonstrar interesse em agendar, mas você ainda não recebeu o bloco "Horários disponíveis (já consultados)", use a ação "VER_AGENDA" imediatamente.
+- NUNCA sugira horários da sua cabeça. Use apenas os slots que aparecerem no contexto da agenda.
+- Se o paciente pedir "outro dia", use "VER_AGENDA" para a nova data ou deixe a data vazia para ver os próximos dias disponíveis.`;
 }
 
 function buildUserMessage(ctx: AIRequestContext): string {
