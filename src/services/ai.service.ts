@@ -318,8 +318,9 @@ Se identificar:
 
 # 20. CONSULTA DE AGENDA (REGRA DE OURO)
 
-- Se o paciente demonstrar interesse em agendar, mas você ainda não recebeu o bloco "Horários disponíveis (já consultados)", use a ação "VER_AGENDA" imediatamente.
-- NUNCA sugira horários da sua cabeça. Use apenas os slots que aparecerem no contexto da agenda.
+- Se o paciente demonstrar interesse em agendar, mas você ainda não recebeu o bloco "## HORÁRIOS DISPONÍVEIS", use a ação "VER_AGENDA" imediatamente.
+- NUNCA sugira horários da sua cabeça. Use apenas os slots que aparecerem no bloco "## HORÁRIOS DISPONÍVEIS".
+- Você está PROIBIDA de inventar horários. Se não houver horários no bloco, informe que não há vagas disponíveis.
 - Se o paciente pedir "outro dia", use "VER_AGENDA" para a nova data ou deixe a data vazia para ver os próximos dias disponíveis.`;
 }
 
@@ -351,7 +352,7 @@ function buildUserMessage(ctx: AIRequestContext): string {
                 : "Nenhum dia disponível nos próximos 7 dias";
 
         parts.push(
-            `## Horários disponíveis (já consultados)\nData: ${data_consultada}\nHorários livres: ${slots}\nPróximos dias com vagas: ${proximosDias}\n\nAgora responda ao paciente com base nesses horários reais. Ofereça exatamente 2 opções.`
+            `## HORÁRIOS DISPONÍVEIS (Agenda Real):\nData: ${data_consultada}\nHorários livres: ${slots}\nPróximos dias com vagas: ${proximosDias}\n\nREGRA: Escolha EXATAMENTE 2 opções desta lista para oferecer ao paciente. Proibido inventar.`
         );
     }
 

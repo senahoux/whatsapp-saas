@@ -132,6 +132,8 @@ export async function POST(req: NextRequest) {
                 await ConversationService.setState(clinicId, conversationId, ConversationState.SCHEDULING);
             }
 
+            console.log(">>> [SLOTS] Enviando para IA:", JSON.stringify(aiCtx.contexto_agenda));
+
             await LogService.info(clinicId, LogEvent.AI_RESPONSE, {
                 conversationId,
                 note: "Scheduling state active: slots injected",
@@ -149,6 +151,7 @@ export async function POST(req: NextRequest) {
                 aiResponse.data ?? undefined,
             );
             aiCtx.contexto_agenda = agendaContext;
+            console.log(">>> [SLOTS] (Loop VER_AGENDA) Enviando para IA:", JSON.stringify(aiCtx.contexto_agenda));
             aiResponse = await AIService.respond(aiCtx);
             if (aiResponse?.acao === "VER_AGENDA") aiResponse.acao = "NENHUMA";
         }
