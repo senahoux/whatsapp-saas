@@ -124,14 +124,27 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ ok: true, skipped: "no_client_message" });
         }
 
+        const userIntentKeywords = ["disponível", "horário", "vaga", "agendar", "marcar", "consulta", "outro dia"];
+        const looksLikeScheduleIntent = userIntentKeywords.some(kw => lastClientMessage.content.toLowerCase().includes(kw));
+
         const aiCtx = {
             mensagem_paciente: lastClientMessage.content,
             nome_paciente: contact.name,
             historico_resumido,
             status_conversa: conversation.status,
             contexto_clinica: clinicContext,
-            contexto_agenda: null as null | Awaited<ReturnType<typeof AppointmentService.getAvailableSlots>>,
+            contexto_agenda: null as any,
         };
+
+        // Injeção PREVENTIVA de slots para evitar alucinação da IA se ela detectar intenção de agenda
+        if (looksLikeScheduleIntent) {
+            aiCtx.contexto_agenda = await AppointmentService.getAvailableSlots(clinicId);
+            await LogService.info(clinicId, LogEvent.AI_RESPONSE, {
+                conversationId,
+                note: "Pre-emptive slot injection due to user intent",
+                slots: aiCtx.contexto_agenda.horarios_disponiveis
+            });
+        }
 
         // ── 6. Primeira chamada à IA ────────────────────────────────────
         let aiResponse = await AIService.respond(aiCtx);

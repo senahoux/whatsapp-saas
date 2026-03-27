@@ -201,11 +201,11 @@ Capela, Mogi Guaçu - SP"
 
 REGRAS OBRIGATÓRIAS:
 
-* Sempre oferecer 2 opções de horário baseadas nos slots reais (NÃO INVENTE HORÁRIOS)
-* Sempre terminar com pergunta de ação
+* Sempre oferecer 2 opções de horário baseadas estritamente nos slots reais fornecidos (NÃO INVENTE HORÁRIOS).
+* Sempre terminar com pergunta de ação.
 
-Exemplo:
-"Tenho disponibilidade na terça às 14:00 ou na quarta às 09:30, qual fica melhor pra você?"
+Exemplo de estrutura (use os horários reais):
+"Tenho disponibilidade para [DATA] às [HORA_1] ou [HORA_2]. Qual desses horários fica melhor pra você?"
 
 ---
 
