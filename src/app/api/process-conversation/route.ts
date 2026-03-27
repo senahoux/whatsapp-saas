@@ -11,6 +11,7 @@ import {
     MessageAuthor,
     ConversationMode,
     AppointmentSource,
+    ConversationState,
 } from "@/lib/types";
 import { ProviderInst } from "@/providers/uazapi.provider";
 
@@ -19,24 +20,6 @@ import { ProviderInst } from "@/providers/uazapi.provider";
  *
  * Orquestrador principal do pipeline de IA.
  * Chamado pelo DebounceManager após silêncio do paciente.
- *
- * Fluxo:
- *   1. Valida clinicId e conversa
- *   2. Guarda contra processamento duplicado (status != AGUARDANDO_IA)
- *   3. Monta contexto: histórico + clínica + contato
- *   4. Chama IA (AIService.respond)
- *   5. Se acao=VER_AGENDA → consulta slots → chama IA novamente (1 loop máx.)
- *   6. Processa resposta:
- *      - AUTO       → enfileira mensagem do robô + status → NORMAL
- *      - ASSISTENTE → enfileira mensagem + cria notificação de revisão
- *      - HUMANO_URGENTE → NÃO envia + marca HUMANO + cria notificação urgente
- *   7. Processa side-effects: lead, nome, notificar_admin
- *   8. Em caso de falha da IA → ASSISTENTE com fallback ou ERRO
- *
- * REGRAS:
- * - Toda lógica de negócio via services — sem acesso direto ao banco
- * - A IA nunca recebe clinicId
- * - Conversas em ERRO são recuperadas ao criar nova conversa (via webhook)
  */
 
 interface ProcessConversationBody {
@@ -66,7 +49,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "clinicId not found" }, { status: 404 });
         }
 
-        // ── 2. Busca conversa (com validação de clinicId) ──────────────
+        // ── 2. Busca conversa ──────────────────────────────────────────
         const conversation = await ConversationService.findById(clinicId, conversationId);
         if (!conversation) {
             return NextResponse.json(
@@ -76,8 +59,6 @@ export async function POST(req: NextRequest) {
         }
 
         // ── 3. Guarda contra reentrada ─────────────────────────────────
-        //       Só processa se AGUARDANDO_IA — qualquer outro status é skip seguro.
-        //       HUMANO → robô pausado. NORMAL → já processado. ERRO → não reprocessar.
         if (conversation.status !== ConversationStatus.AGUARDANDO_IA) {
             return NextResponse.json({
                 ok: true,
@@ -96,21 +77,17 @@ export async function POST(req: NextRequest) {
         const clinicContext = await ClinicService.buildContextForAI(clinicId);
         if (!clinicContext) {
             await ConversationService.markError(clinicId, conversationId);
-            await LogService.error(clinicId, LogEvent.ERROR, {
-                note: "ClinicContext not found",
-                conversationId,
-            });
             return NextResponse.json({ error: "Clinic context unavailable" }, { status: 500 });
         }
 
         const historyMessages = await MessageService.buildHistoryForAI(
             clinicId,
             conversationId,
-            10, // últimas 10 trocas
+            10,
         );
         const historico_resumido = AIService.buildHistorySummary(historyMessages);
 
-        // Última mensagem do paciente (a que disparou o debounce)
+        // Última mensagem do paciente
         const allMessages = await MessageService.listByConversation(
             clinicId,
             conversationId,
@@ -124,8 +101,18 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ ok: true, skipped: "no_client_message" });
         }
 
-        const userIntentKeywords = ["disponível", "horário", "vaga", "agendar", "marcar", "consulta", "outro dia"];
-        const looksLikeScheduleIntent = userIntentKeywords.some(kw => lastClientMessage.content.toLowerCase().includes(kw));
+        // --- DETECTOR DE INTENÇÃO EXPANDIDO ---
+        const userIntentKeywords = [
+            "disponível", "horário", "vaga", "agendar", "marcar", "consulta",
+            "outro dia", "pode ser outro", "quinta", "outro horário",
+            "não posso nesse", "de manhã", "à tarde", "a noite"
+        ];
+        const looksLikeScheduleIntent = userIntentKeywords.some(kw =>
+            lastClientMessage.content.toLowerCase().includes(kw)
+        );
+
+        // --- LÓGICA DE ESTADO PERSISTENTE ---
+        const isScheduling = (conversation as any).state === ConversationState.SCHEDULING || looksLikeScheduleIntent;
 
         const aiCtx = {
             mensagem_paciente: lastClientMessage.content,
@@ -136,78 +123,43 @@ export async function POST(req: NextRequest) {
             contexto_agenda: null as any,
         };
 
-        // Injeção PREVENTIVA de slots para evitar alucinação da IA se ela detectar intenção de agenda
-        if (looksLikeScheduleIntent) {
+        // Se estiver em modo agendamento, SEMPRE injeta slots
+        if (isScheduling) {
             aiCtx.contexto_agenda = await AppointmentService.getAvailableSlots(clinicId);
+
+            // Atualiza estado se necessário
+            if ((conversation as any).state !== ConversationState.SCHEDULING) {
+                await ConversationService.setState(clinicId, conversationId, ConversationState.SCHEDULING);
+            }
+
             await LogService.info(clinicId, LogEvent.AI_RESPONSE, {
                 conversationId,
-                note: "Pre-emptive slot injection due to user intent",
+                note: "Scheduling state active: slots injected",
                 slots: aiCtx.contexto_agenda.horarios_disponiveis
             });
         }
 
-        // ── 6. Primeira chamada à IA ────────────────────────────────────
+        // ── 6. Chamada à IA ────────────────────────────────────────────
         let aiResponse = await AIService.respond(aiCtx);
 
-        await LogService.info(clinicId, LogEvent.AI_RESPONSE, {
-            conversationId,
-            acao: aiResponse?.acao,
-            modo: aiResponse?.modo,
-            confianca: aiResponse?.confianca,
-        });
-
-        // ── 7. Loop VER_AGENDA (máximo 1 iteração) ──────────────────────
-        //       Se a IA pediu para ver agenda, buscamos os slots e chamamos novamente.
+        // Loop VER_AGENDA (máximo 1 iteração)
         if (aiResponse?.acao === "VER_AGENDA") {
             const agendaContext = await AppointmentService.getAvailableSlots(
                 clinicId,
                 aiResponse.data ?? undefined,
             );
-
             aiCtx.contexto_agenda = agendaContext;
-
-            await LogService.info(clinicId, LogEvent.AI_RESPONSE, {
-                conversationId,
-                note: "VER_AGENDA loop — calling AI with slots",
-                slots: agendaContext.horarios_disponiveis,
-            });
-
-            // Segunda chamada — proibida outra VER_AGENDA (prevenção de loop infinito)
             aiResponse = await AIService.respond(aiCtx);
-
-            if (aiResponse?.acao === "VER_AGENDA") {
-                // IA insistiu novamente — ignoramos a acion e continuamos com a resposta
-                aiResponse.acao = "NENHUMA";
-            }
+            if (aiResponse?.acao === "VER_AGENDA") aiResponse.acao = "NENHUMA";
         }
 
-        // ── 8. Fallback se IA falhou completamente ──────────────────────
         if (!aiResponse) {
-            await LogService.error(clinicId, LogEvent.ERROR, {
-                conversationId,
-                note: "AIService returned null — falling back to ASSISTENTE mode",
-            });
-
-            // Não bloqueia o paciente — notifica admin para revisão manual
-            await NotificationService.notifyAlert(
-                clinicId,
-                `Falha na IA para a conversa ${conversationId}. Revisão manual necessária.`,
-                contact.id,
-            );
-
-            await ConversationService.setStatus(
-                clinicId,
-                conversationId,
-                ConversationStatus.ERRO,
-            );
-
-            return NextResponse.json({ ok: false, error: "AI_FAILED", fallback: "ERRO" });
+            await NotificationService.notifyAlert(clinicId, `Falha na IA para a conversa ${conversationId}.`, contact.id);
+            await ConversationService.setStatus(clinicId, conversationId, ConversationStatus.ERRO);
+            return NextResponse.json({ ok: false, error: "AI_FAILED" });
         }
 
-        // ── 9. Execução de Ações de Agenda (Escrita) ────────────────────
-        //      Se a IA retornou uma ação de escrita, tentamos executar no banco.
-        //      Qualquer falha (conflito de horário, erro de banco) → Fallback ASSISTENTE.
-
+        // ── 7. Execução de Ações de Agenda ──────────────────────────────
         if (["AGENDAR", "REMARCAR", "CANCELAR"].includes(aiResponse.acao)) {
             try {
                 if (aiResponse.acao === "AGENDAR") {
@@ -223,28 +175,24 @@ export async function POST(req: NextRequest) {
                         source: AppointmentSource.ROBO,
                         notes: `Agendado automaticamente via IA (${aiResponse.confianca})`
                     });
-                }
-
-                if (aiResponse.acao === "REMARCAR" || aiResponse.acao === "CANCELAR") {
-                    // Centralizado: Busca o agendamento ativo (AGENDADO/REMARCADO)
+                    // Reset para IDLE após sucesso
+                    await ConversationService.setState(clinicId, conversationId, ConversationState.IDLE);
+                } else {
                     const targetAppt = await AppointmentService.findActiveAppointment(clinicId, contact.id);
-
-                    if (!targetAppt) {
-                        throw new Error(`Nenhum agendamento ativo encontrado para ${aiResponse.acao}`);
-                    }
+                    if (!targetAppt) throw new Error(`Nenhum agendamento ativo encontrado para ${aiResponse.acao}`);
 
                     if (aiResponse.acao === "REMARCAR") {
-                        if (!aiResponse.data || !aiResponse.hora) {
-                            throw new Error("Data ou hora ausentes para REMARCAR");
-                        }
+                        if (!aiResponse.data || !aiResponse.hora) throw new Error("Data ou hora ausentes para REMARCAR");
                         await AppointmentService.reschedule(clinicId, targetAppt.id, {
                             date: aiResponse.data,
                             time: aiResponse.hora,
-                            notes: `Remarcado via IA. Original: ${targetAppt.date} ${targetAppt.time}`
+                            notes: `Remarcado via IA.`
                         });
                     } else {
-                        await AppointmentService.cancel(clinicId, targetAppt.id, "Cancelado via IA a pedido do paciente");
+                        await AppointmentService.cancel(clinicId, targetAppt.id, "Cancelado via IA");
                     }
+                    // Reset para IDLE após sucesso
+                    await ConversationService.setState(clinicId, conversationId, ConversationState.IDLE);
                 }
 
                 await LogService.info(clinicId, LogEvent.ACTION_EXECUTED, {
@@ -253,154 +201,62 @@ export async function POST(req: NextRequest) {
                     data: aiResponse.data,
                     hora: aiResponse.hora
                 });
-
             } catch (error: any) {
                 const isMissingData = error.message?.includes("Data ou hora ausentes");
-                console.warn(`[Agenda Action Warning] ${aiResponse.acao} incompleto:`, error.message);
 
-                // Se faltam dados (data/hora), não bloqueamos o robô.
-                // Deixamos ele continuar em AUTO para perguntar ao paciente.
-                // Só forçamos ASSISTENTE se for um erro real de banco/conflito.
-                if (!isMissingData && aiResponse.modo !== ConversationMode.AUTO) {
+                // --- TRATAMENTO CIRÚRGICO PARA FALTA DE DADOS ---
+                if (isMissingData && aiResponse.acao === "AGENDAR") {
+                    aiResponse.mensagem = "Qual dia e horário você prefere? 😊";
+                    aiResponse.modo = ConversationMode.AUTO;
+                } else if (!isMissingData) {
                     aiResponse.modo = ConversationMode.ASSISTENTE;
-                }
-
-                // Notifica admin apenas se for erro crítico (não apenas falta de dado)
-                if (!isMissingData) {
-                    await NotificationService.notifyAlert(
-                        clinicId,
-                        `Falha ao ${aiResponse.acao}: ${error.message}. Revisão manual necessária.`,
-                        contact.id
-                    );
+                    await NotificationService.notifyAlert(clinicId, `Erro ao ${aiResponse.acao}: ${error.message}`, contact.id);
                 }
 
                 await LogService.warn(clinicId, LogEvent.ERROR, {
                     conversationId,
-                    note: `Ação ${aiResponse.acao} não executada por ${isMissingData ? 'dados incompletos' : 'erro técnico'}.`,
-                    error: error.message
+                    note: `Ação ${aiResponse.acao} falhou: ${error.message}`,
                 });
             }
         }
 
-        // ── 10. Side-effects da resposta ─────────────────────────────────
-
-        // 9a. Nome identificado → salva no contato
+        // ── 8. Side-effects ──────────────────────────────────────────────
         if (aiResponse.nome_identificado) {
             await ContactService.saveName(clinicId, contact.id, aiResponse.nome_identificado);
         }
-
-        // 9b. Lead quente → marca no contato + notifica admin
         if (aiResponse.lead === "QUENTE" && !contact.isHotLead) {
             await ContactService.setHotLead(clinicId, contact.id, true);
             await NotificationService.notifyHotLead(clinicId, contact.id, contact.name);
         }
 
-        // 9c. notificar_admin genérico (sem ser hot lead ou urgência)
-        if (aiResponse.notificar_admin && aiResponse.modo !== "HUMANO_URGENTE") {
-            await NotificationService.notifyAlert(
-                clinicId,
-                `Atenção solicitada na conversa com ${contact.name ?? contact.phoneNumber}`,
-                contact.id,
-            );
-        }
-
-        // ── 10. Despacho por modo ───────────────────────────────────────
-
+        // ── 9. Despacho ──────────────────────────────────────────────────
         if (aiResponse.modo === ConversationMode.HUMANO_URGENTE) {
-            // Não envia mensagem automática — pausa e alerta o humano
             await ConversationService.markHumanIntervention(clinicId, conversationId);
-            await NotificationService.notifyHumanUrgent(
-                clinicId,
-                contact.id,
-                lastClientMessage.content,
-            );
-            await LogService.info(clinicId, LogEvent.HUMAN_INTERVENTION, {
-                conversationId,
-                motivo: "HUMANO_URGENTE retornado pela IA",
-            });
+            await ConversationService.setState(clinicId, conversationId, ConversationState.IDLE); // Reset ao sair do robô
+            await NotificationService.notifyHumanUrgent(clinicId, contact.id, lastClientMessage.content);
             return NextResponse.json({ ok: true, action: "HUMANO_URGENTE" });
         }
 
         if (aiResponse.modo === ConversationMode.ASSISTENTE) {
-            // Enfileira mensagem mas exige revisão — não envia automaticamente
-            const msg = await MessageService.enqueueRobotReply(
-                clinicId,
-                conversationId,
-                aiResponse.mensagem,
-            );
-            // Marca mensagem como já processada (não sai para o robô automaticamente)
+            const msg = await MessageService.enqueueRobotReply(clinicId, conversationId, aiResponse.mensagem);
             await MessageService.markProcessed(clinicId, msg.id);
-            // Status volta a NORMAL — aguarda ação humana pelo painel (Passo 6)
-            await ConversationService.setLastProcessedMessage(
-                clinicId,
-                conversationId,
-                lastClientMessage.id,
-            );
-            await NotificationService.notifyAIReview(
-                clinicId,
-                contact.id,
-                aiResponse.mensagem,
-            );
-            await LogService.info(clinicId, LogEvent.AI_RESPONSE, {
-                conversationId,
-                mode: "ASSISTENTE",
-                messageId: msg.id,
-            });
-            return NextResponse.json({ ok: true, action: "ASSISTENTE", messageId: msg.id });
+            await ConversationService.setLastProcessedMessage(clinicId, conversationId, lastClientMessage.id);
+            await NotificationService.notifyAIReview(clinicId, contact.id, aiResponse.mensagem);
+            return NextResponse.json({ ok: true, action: "ASSISTENTE" });
         }
 
-        // modo AUTO → enfileira para histórico
-        const msg = await MessageService.enqueueRobotReply(
-            clinicId,
-            conversationId,
-            aiResponse.mensagem,
-        );
+        // MODO AUTO
+        const robotMsg = await MessageService.enqueueRobotReply(clinicId, conversationId, aiResponse.mensagem);
+        await ConversationService.setLastProcessedMessage(clinicId, conversationId, lastClientMessage.id);
+        const sent = await ProviderInst.sendMessage(clinicId, contact.phoneNumber, aiResponse.mensagem);
+        if (sent) await MessageService.markProcessed(clinicId, robotMsg.id);
 
-        await ConversationService.setLastProcessedMessage(
-            clinicId,
-            conversationId,
-            lastClientMessage.id,
-        );
+        return NextResponse.json({ ok: true, action: "AUTO", messageId: robotMsg.id });
 
-        // --- DISPARO IMEDIATO VIA PROVIDER (SaaS API) ---
-        const sent = await ProviderInst.sendMessage(
-            clinicId,
-            contact.phoneNumber,
-            aiResponse.mensagem
-        );
-
-        if (sent) {
-            await MessageService.markProcessed(clinicId, msg.id);
-            await LogService.info(clinicId, LogEvent.ACTION_EXECUTED, {
-                conversationId,
-                action: "AUTO_REPLY_SENT",
-                messageId: msg.id,
-                acao: aiResponse.acao,
-            });
-        } else {
-            await LogService.warn(clinicId, LogEvent.ERROR, {
-                note: "Falha ao despachar mensagem via Provider API. Permanecerá na fila de retry do banco.",
-                messageId: msg.id
-            });
-        }
-
-        return NextResponse.json({
-            ok: true,
-            action: "AUTO",
-            messageId: msg.id,
-        });
     } catch (error) {
-        if (clinicId) {
-            await LogService.error(clinicId, LogEvent.ERROR, {
-                endpoint: "POST /api/process-conversation",
-                conversationId,
-                error: String(error),
-            }).catch(() => { });
-
-            // Marca conversa como ERRO para não ficar presa em AGUARDANDO_IA
-            if (conversationId) {
-                await ConversationService.markError(clinicId, conversationId).catch(() => { });
-            }
+        if (clinicId && conversationId) {
+            await LogService.error(clinicId, LogEvent.ERROR, { endpoint: "process-conversation", error: String(error) });
+            await ConversationService.markError(clinicId, conversationId).catch(() => { });
         }
         console.error("[process-conversation] Unhandled error:", error);
         return NextResponse.json({ error: "Internal server error" }, { status: 500 });

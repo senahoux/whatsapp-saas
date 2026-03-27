@@ -24,6 +24,13 @@ export const ConversationStatus = {
 export type ConversationStatus =
     (typeof ConversationStatus)[keyof typeof ConversationStatus];
 
+export const ConversationState = {
+    IDLE: "IDLE",
+    SCHEDULING: "SCHEDULING",
+} as const;
+export type ConversationState =
+    (typeof ConversationState)[keyof typeof ConversationState];
+
 // ──────────────────────────────────────────────
 // Message
 // ──────────────────────────────────────────────

@@ -119,6 +119,8 @@ model Conversation {
   lastMessageAt        DateTime?
   lastProcessedMessageId String?
   bufferStartedAt      DateTime?
+  // state: IDLE | SCHEDULING
+  state                String    @default("IDLE")
   humanInterventionAt  DateTime?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt

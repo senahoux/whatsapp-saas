@@ -259,6 +259,20 @@ export const ConversationService = {
     },
 
     /**
+     * Atualiza o estado da conversa (IDLE | SCHEDULING).
+     */
+    async setState(
+        clinicId: string,
+        id: string,
+        state: string
+    ): Promise<Conversation> {
+        return prisma.conversation.update({
+            where: { id, clinicId },
+            data: { state },
+        });
+    },
+
+    /**
      * Lista conversas da clínica com filtro por status e paginação.
      * Sempre filtra por clinicId — nunca vaza dados entre clínicas.
      */
