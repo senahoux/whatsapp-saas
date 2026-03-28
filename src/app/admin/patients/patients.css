@@ -76,3 +76,23 @@
     border-radius: 4px;
     font-size: 0.75rem;
 }
+
+.btn-delete {
+  background: none;
+  border: 1px solid #fca5a5;
+  color: #dc2626;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-delete:hover {
+  background-color: #fef2f2;
+}
+
+.btn-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

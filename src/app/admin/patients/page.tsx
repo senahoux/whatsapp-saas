@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import "./patients.css";
 import { getSession } from "@/lib/auth";
 import { formatDateOnlyBR } from "@/lib/date";
+import DeleteContactButton from "./DeleteContactButton";
 
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
 
@@ -45,12 +46,13 @@ export default async function PatientsPage({
                             <th>Telefone</th>
                             <th>Status</th>
                             <th>Cadastrado em</th>
+                            <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         {contacts.length === 0 ? (
                             <tr>
-                                <td colSpan={4} className="empty-state">Nenhum paciente encontrado.</td>
+                                <td colSpan={5} className="empty-state">Nenhum paciente encontrado.</td>
                             </tr>
                         ) : (
                             contacts.map((contact: any) => (
@@ -70,6 +72,9 @@ export default async function PatientsPage({
                                         )}
                                     </td>
                                     <td>{formatDateOnlyBR(contact.createdAt)}</td>
+                                    <td>
+                                        <DeleteContactButton contactId={contact.id} />
+                                    </td>
                                 </tr>
                             ))
                         )}
