@@ -9,7 +9,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import { AppointmentStatus, AppointmentSource } from "@/lib/types";
+import { AppointmentStatus, AppointmentSource, NotificationStatus } from "@/lib/types"; // Import from types if defined there, or @prisma/client
 import type { AgendaContext } from "./ai.service";
 
 // ──────────────────────────────────────────────
@@ -179,23 +179,32 @@ export const AppointmentService = {
     // ── Passo 5: CRUD de agendamentos ────────────────────────────────
 
     /**
-     * Cria um agendamento com validação de conflito e bloqueio de dia.
-     * Lança erro se slot já ocupado ou dia bloqueado.
+     * Cria um agendamento com validação de conflito, bloqueio de dia e duplicidade.
+     * Lança erro se slot já ocupado, dia bloqueado ou agendamento duplicado.
      */
     async create(clinicId: string, input: CreateAppointmentInput) {
-        // Verifica conflito de horário na clínica
+        // --- REGRA DE DUPLICIDADE (MUDANÇA 8 refatorada) ---
+        const isDuplicate = await AppointmentService.isDuplicate(
+            clinicId, 
+            input.contactId, 
+            input.date, 
+            input.time
+        );
+        if (isDuplicate) {
+            throw new Error(`Duplicate appointment detected for contact ${input.contactId} at ${input.date} ${input.time}`);
+        }
+
+        // Verifica conflito de horário na clínica (qualquer paciente)
         const conflict = await prisma.appointment.findFirst({
             where: {
                 clinicId,
                 date: input.date,
                 time: input.time,
-                status: { in: ["AGENDADO", "REMARCADO"] },
+                status: { in: [AppointmentStatus.AGENDADO, AppointmentStatus.REMARCADO] },
             },
         });
         if (conflict) {
-            throw new Error(
-                `Slot ${input.date} ${input.time} already booked in clinic ${clinicId}`,
-            );
+            throw new Error(`Slot ${input.date} ${input.time} already booked in clinic ${clinicId}`);
         }
 
         // Verifica se o dia está bloqueado
@@ -203,9 +212,7 @@ export const AppointmentService = {
             where: { clinicId, blockDate: input.date, isAvailable: false },
         });
         if (block) {
-            throw new Error(
-                `Day ${input.date} is blocked in clinic ${clinicId}${block.reason ? ": " + block.reason : ""}`,
-            );
+            throw new Error(`Day ${input.date} is blocked in clinic ${clinicId}${block.reason ? ": " + block.reason : ""}`);
         }
 
         return prisma.appointment.create({
@@ -219,7 +226,49 @@ export const AppointmentService = {
                 time: input.time,
                 source: input.source ?? AppointmentSource.MANUAL,
                 notes: input.notes ?? null,
+                
+                // Inicialização do rastreio de notificação
+                notificationStatus: "PENDING",
+                notificationAttempts: 0
             },
+        });
+    },
+
+    /**
+     * Verifica se já existe um agendamento ATIVO (AGENDADO ou REMARCADO) no mesmo horário 
+     * para o mesmo contato na mesma clínica.
+     */
+    async isDuplicate(clinicId: string, contactId: string, date: string, time: string): Promise<boolean> {
+        const existing = await prisma.appointment.findFirst({
+            where: {
+                clinicId,
+                contactId,
+                date,
+                time,
+                status: { in: [AppointmentStatus.AGENDADO, AppointmentStatus.REMARCADO] }
+            },
+            select: { id: true }
+        });
+        return !!existing;
+    },
+
+    /**
+     * Atualiza o status da notificação pós-agendamento.
+     * Incrementa tentativas e salva erro se houver.
+     */
+    async updateNotificationStatus(
+        appointmentId: string, 
+        status: "SENT" | "FAILED", 
+        error?: string
+    ) {
+        return prisma.appointment.update({
+            where: { id: appointmentId },
+            data: {
+                notificationStatus: status,
+                notificationAttempts: { increment: 1 },
+                notificationLastError: error || null,
+                notificationLastAttemptAt: new Date()
+            }
         });
     },
 

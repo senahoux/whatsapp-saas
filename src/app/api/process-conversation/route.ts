@@ -15,6 +15,27 @@ import {
 } from "@/lib/types";
 import { ProviderInst } from "@/providers/uazapi.provider";
 
+// ── Helpers de Data e Timezone (Intl nativo) ───────────────────
+function getClinicCurrentDate(timeZone: string = 'America/Sao_Paulo'): string {
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).format(new Date()); // YYYY-MM-DD
+}
+
+function getTomorrowDate(timeZone: string = 'America/Sao_Paulo'): string {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).format(tomorrow); // YYYY-MM-DD
+}
+
 /**
  * POST /api/process-conversation
  *
@@ -58,10 +79,18 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        const isValid = await ClinicService.validateClinicId(clinicId);
-        if (!isValid) {
-            return NextResponse.json({ error: "clinicId not found" }, { status: 404 });
+        // --- MUDANÇA 3: CARREGAR CLÍNICA NO TOPO ---
+        const clinic = await ClinicService.findById(clinicId);
+        if (!clinic) {
+            await LogService.error(clinicId, LogEvent.ERROR, { 
+                note: "Clínica não encontrada no início do fluxo.", 
+                clinicId 
+            });
+            return NextResponse.json({ error: "clinic not found" }, { status: 404 });
         }
+
+        const timezone = clinic.timezone || "America/Sao_Paulo";
+        const data_referencia = getClinicCurrentDate(timezone);
 
         // ── 2. Busca conversa ──────────────────────────────────────────
         const conversation = await ConversationService.findById(clinicId, conversationId);
@@ -130,10 +159,24 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ ok: true, skipped: "no_client_message" });
         }
 
-        // --- DETECTOR DE INTENÇÃO EXPANDIDO (PRECISÃO CIRÚRGICA) ---
-        const userIntentRegex = /agendar|marcar|consulta|horário|vaga|disponível|atende|passar|marcará|marcação|médico|dr|doutor|agenda|outro dia|pode ser outro|quinta|sexta|segunda|terça|quarta|sábado|domingo|de manhã|à tarde|a noite/i;
+        // --- MUDANÇA 4: DETECTOR DE INTENÇÃO SEMÂNTICO (BUG 3) ---
+        const content = lastClientMessage.content.toLowerCase();
+        
+        const SCHEDULING_KEYWORDS = ["agendar", "marcar", "reservar", "consulta", "horário", "vaga", "disponível", "passar", "marcação", "agenda", "outro dia"];
+        const INFORMATIVE_KEYWORDS = ["preço", "valor", "unimed", "convênio", "atende", "endereço", "local", "onde fica", "telefone", "contato", "especialidade"];
 
-        const looksLikeScheduleIntent = userIntentRegex.test(lastClientMessage.content);
+        const hasSchedulingIntent = SCHEDULING_KEYWORDS.some(k => content.includes(k));
+        const hasInformativeIntent = INFORMATIVE_KEYWORDS.some(k => content.includes(k));
+
+        // Se houver match apenas informativo e não houver intenção clara de agendar, não força scheduling
+        const looksLikeScheduleIntent = hasSchedulingIntent && !(!hasSchedulingIntent && hasInformativeIntent);
+
+        if (hasInformativeIntent && !hasSchedulingIntent) {
+            await LogService.info(clinicId, LogEvent.MESSAGE_RECEIVED, {
+                conversationId,
+                note: "Intenção classificada como informativa e não scheduling."
+            });
+        }
 
         // --- LÓGICA DE ESTADO PERSISTENTE ---
         const isScheduling = (conversation as any).state === ConversationState.SCHEDULING || looksLikeScheduleIntent;
@@ -146,6 +189,8 @@ export async function POST(req: NextRequest) {
             contexto_clinica: clinicContext,
             contexto_agenda: null as any,
             ultimas_ofertas: (conversation as any).lastOfferedSlots || [],
+            data_referencia,
+            timezone
         };
 
         // Se estiver em modo agendamento, SEMPRE injeta slots
@@ -196,9 +241,23 @@ export async function POST(req: NextRequest) {
 
         // Loop VER_AGENDA (máximo 1 iteração)
         if (aiResponse?.acao === "VER_AGENDA") {
+            // --- MUDANÇA 5: RESOLUÇÃO DE DATA PARA VER_AGENDA (BUG 2) ---
+            let targetDate = aiResponse.data;
+            if (!targetDate || !/^\d{4}-\d{2}-\d{2}$/.test(targetDate)) {
+                targetDate = getTomorrowDate(timezone);
+                await LogService.warn(clinicId, LogEvent.ACTION_EXECUTED, {
+                    conversationId,
+                    note: "VER_AGENDA chegou com data nula/inválida. Usando fallback amanhã.",
+                    originalData: aiResponse.data,
+                    fallback: targetDate
+                });
+            } else if (targetDate < data_referencia) {
+                targetDate = data_referencia; // Nunca busca no passado
+            }
+
             const agendaContext = await AppointmentService.getAvailableSlots(
                 clinicId,
-                aiResponse.data ?? undefined,
+                targetDate,
             );
             aiCtx.contexto_agenda = agendaContext;
 
@@ -258,6 +317,26 @@ export async function POST(req: NextRequest) {
                         throw new Error("Confirmação explícita do paciente não detectada pelo backend.");
                     }
 
+                    // --- MUDANÇA 8: EVITAR DUPLICIDADE ÓBVIA (BUG 1 - REFORÇADA) ---
+                    const isDuplicate = await AppointmentService.isDuplicate(
+                        clinicId, 
+                        contact.id, 
+                        aiResponse.data, 
+                        aiResponse.hora
+                    );
+
+                    if (isDuplicate) {
+                        await LogService.warn(clinicId, LogEvent.ACTION_EXECUTED, {
+                            conversationId,
+                            note: "Tentativa de duplicidade barrada antes de criar.",
+                            contactId: contact.id,
+                            slot: `${aiResponse.data} ${aiResponse.hora}`
+                        });
+                        aiResponse.acao = "NENHUMA";
+                        aiResponse.mensagem = "Ops, notei que você já tem um agendamento para este mesmo horário! 😊";
+                        throw new Error("Agendamento duplicado detectado.");
+                    }
+
                     // Validação DETERMINÍSTICA: deve bater com um dos slots ofertados
                     const selectedSlot = `${aiResponse.data} ${aiResponse.hora}`;
 
@@ -278,7 +357,7 @@ export async function POST(req: NextRequest) {
                         throw new Error(`Slot ${selectedSlot} não autorizado (não estava na última oferta).`);
                     }
 
-                    await AppointmentService.create(clinicId, {
+                    const newAppt = await AppointmentService.create(clinicId, {
                         contactId: contact.id,
                         date: aiResponse.data,
                         time: aiResponse.hora,
@@ -286,6 +365,35 @@ export async function POST(req: NextRequest) {
                         subtype: aiResponse.subtipo ?? null,
                         source: AppointmentSource.ROBO,
                         notes: `Agendado automaticamente via IA após confirmação explícita.`
+                    });
+
+                    // --- MUDANÇA 6 & 7: CONFIRMAÇÃO PÓS-CREATE + TRY/CATCH ENVIO ---
+                    const confirmationMsg = `✅ *Consulta confirmada com sucesso!*\n\n🏥 *Clínica:* ${clinic.nomeClinica}\n📍 *Endereço:* ${clinic.endereco || 'Consultar com a recepção'}\n📅 *Data:* ${aiResponse.data}\n⏰ *Horário:* ${aiResponse.hora}\n\nTe esperamos lá! 😊`;
+                    
+                    // Substitui a mensagem da IA pela confirmação real
+                    aiResponse.mensagem = confirmationMsg;
+
+                    // Envio imediato da confirmação (Try/Catch dedicado)
+                    try {
+                        const sent = await ProviderInst.sendMessage(clinicId, contact.phoneNumber, confirmationMsg);
+                        if (sent) {
+                            await AppointmentService.updateNotificationStatus(newAppt.id, "SENT");
+                            await LogService.info(clinicId, LogEvent.NOTIFICATION_SENT, { appointmentId: newAppt.id });
+                        } else {
+                            throw new Error("Provider falhou ao enviar mensagem.");
+                        }
+                    } catch (sendError: any) {
+                        await AppointmentService.updateNotificationStatus(newAppt.id, "FAILED", sendError.message);
+                        await LogService.error(clinicId, LogEvent.ERROR, { 
+                            note: "Falha ao enviar confirmação de agendamento.", 
+                            error: sendError.message 
+                        });
+                    }
+
+                    await LogService.info(clinicId, LogEvent.ACTION_EXECUTED, {
+                        conversationId,
+                        note: "AGENDAR criado com sucesso.",
+                        appointmentId: newAppt.id
                     });
 
                     // LIMPEZA COMPLETA DE CONTEXTO APÓS SUCESSO

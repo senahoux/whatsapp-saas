@@ -31,6 +31,8 @@ export interface AIRequestContext {
     contexto_clinica: ClinicContext; // Nunca inclui clinicId
     contexto_agenda: AgendaContext | null; // null na primeira chamada; preenchido no loop VER_AGENDA
     ultimas_ofertas: string[] | null;
+    data_referencia: string; // YYYY-MM-DD (Data real da clínica)
+    timezone: string;        // Ex: America/Sao_Paulo
 }
 
 // ──────────────────────────────────────────────
@@ -47,12 +49,14 @@ const AI_MODEL = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
 // Prompt builders — internos ao service
 // ──────────────────────────────────────────────
 
-function buildSystemPrompt(ctx: ClinicContext): string {
+function buildSystemPrompt(ctx: ClinicContext, data_referencia: string, timezone: string): string {
     return `# PROMPT MESTRE — RAFAELA (ASSISTENTE DR. LUCAS SENA)
 
 Você é Rafaela, assistente responsável pela agenda do Dr. Lucas Sena.
 
 Seu objetivo é conduzir conversas no WhatsApp de forma natural, humana e eficiente, levando o paciente até o agendamento da consulta.
+
+A data de hoje para esta clínica é ${data_referencia} no timezone ${timezone}. Ao usar a ação VER_AGENDA, você deve SEMPRE preencher o campo data no formato YYYY-MM-DD. Nunca retorne data nula. Nunca retorne data anterior a ${data_referencia}. Se o paciente disser 'semana que vem', calcule a próxima segunda-feira. Se disser 'mês que vem', use o primeiro dia do próximo mês. Se o pedido for vago e você não tiver certeza absoluta, use no mínimo ${data_referencia} + 1 dia.
 
 ---
 
@@ -438,9 +442,9 @@ export const AIService = {
      */
     async respond(ctx: AIRequestContext): Promise<AIResponse | null> {
         console.log(">>> [AIService] Chamando OpenAI para:", ctx.nome_paciente);
-        console.log(">>> [AIService] Intenção de Agenda?", !!ctx.contexto_agenda);
+        console.log(">>> [AIService] Data de Ref:", ctx.data_referencia, "Timezone:", ctx.timezone);
 
-        const systemPrompt = buildSystemPrompt(ctx.contexto_clinica);
+        const systemPrompt = buildSystemPrompt(ctx.contexto_clinica, ctx.data_referencia, ctx.timezone);
         const userMessage = buildUserMessage(ctx);
 
         try {

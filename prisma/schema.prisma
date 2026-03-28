@@ -28,6 +28,12 @@ datasource db {
 // appointment.source   : MANUAL | ROBO
 // setting.robotModeDefault : AUTO | ASSISTENTE
 
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
 // =============================================================
 // 1. CLINICS — Dados públicos e configuração da clínica
 //    Não possui clinicId (é a raiz do tenant)
@@ -45,6 +51,7 @@ model Clinic {
   descricaoServicos   String?
   faq                 String?  // JSON serializado
   regrasPersonalizadas String? // JSON serializado
+  timezone            String   @default("America/Sao_Paulo")
   prioritySuggestions Json?    @default("[]")
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
@@ -182,6 +189,13 @@ model Appointment {
   source    String   @default("MANUAL")
   notes          String?
   reminderSentAt DateTime? // Gerenciamento de lembrete D-1
+  
+  // Notificação de Confirmação (Pós-Agendamento)
+  notificationStatus        NotificationStatus @default(PENDING)
+  notificationAttempts      Int                @default(0)
+  notificationLastError     String?
+  notificationLastAttemptAt DateTime?
+
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 

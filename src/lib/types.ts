@@ -79,6 +79,14 @@ export const AppointmentStatus = {
 export type AppointmentStatus =
     (typeof AppointmentStatus)[keyof typeof AppointmentStatus];
 
+export const NotificationStatus = {
+    PENDING: "PENDING",
+    SENT: "SENT",
+    FAILED: "FAILED",
+} as const;
+export type NotificationStatus =
+    (typeof NotificationStatus)[keyof typeof NotificationStatus];
+
 export const AppointmentSource = {
     MANUAL: "MANUAL",
     ROBO: "ROBO",
