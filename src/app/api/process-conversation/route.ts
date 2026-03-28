@@ -137,7 +137,20 @@ export async function POST(req: NextRequest) {
 
         // Se estiver em modo agendamento, SEMPRE injeta slots
         if (isScheduling) {
-            aiCtx.contexto_agenda = await AppointmentService.getAvailableSlots(clinicId);
+            // Tenta extrair data da mensagem para filtrar slots iniciais
+            const dateMatch = lastClientMessage.content.match(/(\d{4}-\d{2}-\d{2})|(\d{1,2}\/\d{1,2})/);
+            let requestedDate: string | undefined = undefined;
+            if (dateMatch) {
+                const rawDate = dateMatch[0];
+                if (rawDate.includes('/')) {
+                    const [d, m] = rawDate.split('/');
+                    requestedDate = `${new Date().getFullYear()}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+                } else {
+                    requestedDate = rawDate;
+                }
+            }
+
+            aiCtx.contexto_agenda = await AppointmentService.getAvailableSlots(clinicId, requestedDate);
 
             // Atualiza estado e PERISTE slots ofertados
             await ConversationService.setLastOfferedSlots(clinicId, conversationId, aiCtx.contexto_agenda.horarios_disponiveis);
@@ -232,8 +245,18 @@ export async function POST(req: NextRequest) {
                     if (lastOffered.length > 0 && !lastOffered.includes(selectedSlot)) {
                         await LogService.warn(clinicId, LogEvent.AI_RESPONSE, {
                             conversationId,
-                            note: `Slot ${selectedSlot} não estava entre as opções ofertadas: ${lastOffered.join(", ")}.`,
+                            note: `BLOQUEIO: Slot ${selectedSlot} não estava entre as opções ofertadas: ${lastOffered.join(", ")}.`,
                         });
+                        
+                        // Change C: HARD BLOCK
+                        const freshSlots = await AppointmentService.getAvailableSlots(clinicId, aiResponse.data ?? undefined);
+                        await ConversationService.setLastOfferedSlots(clinicId, conversationId, freshSlots.horarios_disponiveis);
+                        
+                        aiResponse.acao = "NENHUMA";
+                        aiResponse.mensagem = `Desculpe, esse horário não está disponível para seleção direta. Por favor, escolha um destes horários:\n\n${freshSlots.horarios_disponiveis.map((s, i) => `${i + 1}. ${s.split(' ')[1]}`).join('\n')}`;
+                        
+                        // Mantém em SCHEDULING (não reseta para IDLE)
+                        throw new Error(`Slot ${selectedSlot} não autorizado (não estava na última oferta).`);
                     }
 
                     await AppointmentService.create(clinicId, {
@@ -276,9 +299,17 @@ export async function POST(req: NextRequest) {
                 });
             } catch (error: any) {
                 const isMissingData = error.message?.includes("Data ou hora ausentes");
+                const isConflict = error.code === 'P2002' || error.message?.includes("already booked");
 
-                // --- REGRA: O backend NÃO interfere no texto da conversa ---
-                if (!isMissingData) {
+                if (isConflict) {
+                    // Change B: Tratamento de Conflito de Slot
+                    const freshSlots = await AppointmentService.getAvailableSlots(clinicId);
+                    await ConversationService.setLastOfferedSlots(clinicId, conversationId, freshSlots.horarios_disponiveis);
+                    
+                    aiResponse.acao = "NENHUMA";
+                    aiResponse.mensagem = "Poxa, esse horário acabou de ser preenchido por outra pessoa! 😕\nMas não tem problema, tenho esses outros horários disponíveis:\n\n" + 
+                        freshSlots.horarios_disponiveis.map((s, i) => `${i + 1}. ${s.split(' ')[1]}`).join('\n');
+                } else if (!isMissingData) {
                     aiResponse.modo = ConversationMode.ASSISTENTE;
                     await NotificationService.notifyAlert(clinicId, `Erro ao ${aiResponse.acao}: ${error.message} `, contact.id);
                 }
