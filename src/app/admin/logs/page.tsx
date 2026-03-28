@@ -1,87 +1,184 @@
-export const dynamic = "force-dynamic";
+"use client";
 
+import { useState, useEffect, useCallback, useMemo } from "react";
 import "./logs.css";
-import { getSession } from "@/lib/auth";
-import { formatDateBR } from "@/lib/date";
+import { formatLogTime } from "@/lib/date";
 
-const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
-
-// Endpoint nativo da api/logs consome o LogService no servidor
-async function getLogs(clinicId: string, page = 1) {
-    try {
-        const res = await fetch(`${API_URL}/api/logs?clinicId=${clinicId}&page=${page}&pageSize=100`, {
-            cache: "no-store",
-        });
-        if (!res.ok) return { data: [], total: 0 };
-        return await res.json();
-    } catch (err) {
-        console.error("Fetch logs error:", err);
-        return { data: [], total: 0 };
-    }
+interface LogEntry {
+  id: string;
+  level: "INFO" | "WARN" | "ERROR" | "DEBUG";
+  event: string;
+  details: string;
+  createdAt: string;
 }
 
-export default async function LogsPage({
-    searchParams,
-}: {
-    searchParams: { page?: string };
-}) {
-    const session = await getSession();
-    const clinicId = session?.clinicId as string || "Desconhecida";
-    const page = Number(searchParams.page) || 1;
-    const { data: logs, total } = await getLogs(clinicId, page);
+export default function LogsPage() {
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [levelFilter, setLevelFilter] = useState<string>("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [total, setTotal] = useState(0);
 
-    return (
-        <>
-            <div className="page-header">
-                <h2 className="page-title">Logs do Sistema</h2>
-                <div className="total-badge">Total Registros: {total}</div>
-            </div>
+  const fetchLogs = useCallback(async () => {
+    try {
+      setLoading(true);
+      const levelParam = levelFilter === "ALL" ? "" : `&level=${levelFilter}`;
+      const res = await fetch(`/api/logs?page=1&pageSize=100${levelParam}`);
+      if (!res.ok) throw new Error("Falha ao buscar logs");
+      const result = await res.json();
+      setLogs(result.data || []);
+      setTotal(result.total || 0);
+    } catch (err) {
+      console.error("Fetch logs error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [levelFilter]);
 
-            <div className="card">
-                <table className="data-table log-table">
-                    <thead>
-                        <tr>
-                            <th>Timestamp</th>
-                            <th>Level</th>
-                            <th>Evento</th>
-                            <th>Detalhes (Metadata)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {logs.length === 0 ? (
-                            <tr>
-                                <td colSpan={4} className="empty-state">Nenhum log encontrado.</td>
-                            </tr>
-                        ) : (
-                            logs.map((log: any) => {
-                                let formattedMeta = "{}";
-                                try {
-                                    formattedMeta = JSON.stringify(JSON.parse(log.details || "{}"), null, 2);
-                                } catch {
-                                    formattedMeta = log.details;
-                                }
+  // Initial fetch and manual refresh
+  useEffect(() => {
+    fetchLogs();
+  }, [fetchLogs]);
 
-                                return (
-                                    <tr key={log.id}>
-                                        <td className="log-time">
-                                            {formatDateBR(log.createdAt)}
-                                        </td>
-                                        <td>
-                                            <span className={`log-level ${log.level.toLowerCase()}`}>
-                                                {log.level}
-                                            </span>
-                                        </td>
-                                        <td className="log-event">{log.event}</td>
-                                        <td className="log-meta">
-                                            <pre>{formattedMeta}</pre>
-                                        </td>
-                                    </tr>
-                                );
-                            })
-                        )}
-                    </tbody>
-                </table>
-            </div>
-        </>
+  // Auto-refresh interval
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const interval = setInterval(() => {
+      fetchLogs();
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [autoRefresh, fetchLogs]);
+
+  // Local filtering logic
+  const filteredLogs = useMemo(() => {
+    if (!searchQuery) return logs;
+    const q = searchQuery.toLowerCase();
+    return logs.filter(log => 
+      log.event.toLowerCase().includes(q) || 
+      log.details.toLowerCase().includes(q)
     );
+  }, [logs, searchQuery]);
+
+  // Summary extractor helper
+  const getLogSummary = (detailsStr: string) => {
+    try {
+      const details = JSON.parse(detailsStr);
+      const summary = details.note || details.patientMessage || details.action || details.message || "";
+      if (typeof summary !== 'string') return "";
+      return summary.length > 80 ? summary.substring(0, 80) + "..." : summary;
+    } catch {
+      return detailsStr.length > 80 ? detailsStr.substring(0, 80) + "..." : detailsStr;
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      alert("Copiado para a área de transferência!");
+    });
+  };
+
+  const copyAllVisible = () => {
+    const text = filteredLogs.map(log => {
+      const time = formatLogTime(log.createdAt);
+      const summary = getLogSummary(log.details);
+      return `[${time}] [${log.level}] ${log.event} — ${summary}`;
+    }).join("\n");
+    copyToClipboard(text);
+  };
+
+  return (
+    <div className="logs-container">
+      {/* Barra de Controles */}
+      <div className="logs-controls">
+        <div className="level-filters">
+          {["ALL", "INFO", "WARN", "ERROR"].map((lvl) => (
+            <button
+              key={lvl}
+              onClick={() => setLevelFilter(lvl)}
+              className={`filter-btn ${lvl.toLowerCase()} ${levelFilter === lvl ? "active" : ""}`}
+            >
+              {lvl === "ALL" ? "Todos" : lvl}
+            </button>
+          ))}
+        </div>
+
+        <input
+          type="text"
+          placeholder="Buscar no evento ou detalhes..."
+          className="search-input"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+
+        <div className="control-actions">
+          <button className="action-btn" onClick={() => fetchLogs()} disabled={loading}>
+            <span>↻</span> {loading ? "Carregando..." : "Atualizar"}
+          </button>
+          
+          <button className="action-btn" onClick={copyAllVisible}>
+            <span>📋</span> Copiar logs
+          </button>
+
+          <label className="auto-refresh">
+            <input 
+              type="checkbox" 
+              checked={autoRefresh} 
+              onChange={(e) => setAutoRefresh(e.target.checked)} 
+            />
+            Auto (10s)
+          </label>
+        </div>
+
+        <div className="log-count">
+          Exibindo {filteredLogs.length} de {total} registros
+        </div>
+      </div>
+
+      {/* Lista de Logs */}
+      <div className="logs-list">
+        {filteredLogs.length === 0 && !loading ? (
+          <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
+            Nenhum registro encontrado para os filtros atuais.
+          </div>
+        ) : (
+          filteredLogs.map((log) => (
+            <div key={log.id} className="log-row-container">
+              <div 
+                className="log-row" 
+                onClick={() => setExpandedId(expandedId === log.id ? null : log.id)}
+              >
+                <div className="log-timestamp">{formatLogTime(log.createdAt)}</div>
+                <div className="log-level-col">
+                  <span className={`badge ${log.level.toLowerCase()}`}>{log.level}</span>
+                </div>
+                <div className="log-event-col">{log.event}</div>
+                <div className="log-summary-col">{getLogSummary(log.details)}</div>
+              </div>
+
+              {/* Accordion Detail */}
+              {expandedId === log.id && (
+                <div className="log-detail">
+                  <div className="detail-header">
+                    <span className="detail-title">Metadados Completos</span>
+                    <button 
+                      className="copy-inner-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        copyToClipboard(JSON.stringify(JSON.parse(log.details), null, 2));
+                      }}
+                    >
+                      Copiar JSON
+                    </button>
+                  </div>
+                  <pre>{JSON.stringify(JSON.parse(log.details), null, 2)}</pre>
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
 }

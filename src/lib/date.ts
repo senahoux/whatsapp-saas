@@ -36,3 +36,17 @@ export function formatDateOnlyBR(dateInput: string | Date | null | undefined): s
         return "—";
     }
 }
+
+export function formatLogTime(dateInput: string | Date | null | undefined): string {
+    if (!dateInput) return "—";
+    try {
+        return new Intl.DateTimeFormat('pt-BR', {
+            timeZone: TIMEZONE,
+            day: '2-digit', month: '2-digit',
+            hour: '2-digit', minute: '2-digit', second: '2-digit',
+            hour12: false
+        }).format(new Date(dateInput)).replace(',', '');
+    } catch {
+        return "—";
+    }
+}
