@@ -51,6 +51,7 @@ interface ProcessConversationBody {
 export async function POST(req: NextRequest) {
     let clinicId = "";
     let conversationId = "";
+    let messageAlreadySent = false;
 
     try {
         const body: ProcessConversationBody = await req.json();
@@ -181,6 +182,8 @@ export async function POST(req: NextRequest) {
         // --- LÓGICA DE ESTADO PERSISTENTE ---
         const isScheduling = (conversation as any).state === ConversationState.SCHEDULING || looksLikeScheduleIntent;
 
+        const tabela_temporal = AIService.getDateReferences(timezone);
+
         const aiCtx: any = {
             mensagem_paciente: lastClientMessage.content,
             nome_paciente: contact.name,
@@ -190,7 +193,8 @@ export async function POST(req: NextRequest) {
             contexto_agenda: null as any,
             ultimas_ofertas: (conversation as any).lastOfferedSlots || [],
             data_referencia,
-            timezone
+            timezone,
+            tabela_temporal
         };
 
         // Se estiver em modo agendamento, SEMPRE injeta slots
@@ -244,31 +248,37 @@ export async function POST(req: NextRequest) {
             // --- MUDANÇA 5: RESOLUÇÃO DE DATA PARA VER_AGENDA (BUG 2) ---
             let targetDate = aiResponse.data;
             if (!targetDate || !/^\d{4}-\d{2}-\d{2}$/.test(targetDate)) {
-                targetDate = getTomorrowDate(timezone);
-                await LogService.warn(clinicId, LogEvent.ACTION_EXECUTED, {
+                await LogService.error(clinicId, LogEvent.ERROR, {
                     conversationId,
-                    note: "VER_AGENDA chegou com data nula/inválida. Usando fallback amanhã.",
-                    originalData: aiResponse.data,
-                    fallback: targetDate
+                    note: "VER_AGENDA: IA falhou em resolver data relativa ou retornou data nula.",
+                    userText: lastClientMessage.content,
+                    aiResponse: aiResponse
                 });
+                
+                // Em vez de fallback amanhã automático, pedimos esclarecimento se a intenção era data relativa
+                aiResponse.mensagem = "Poderia me dizer exatamente o dia e o mês que você gostaria de agendar? Assim consigo verificar a disponibilidade exata para você. 😊";
+                aiResponse.acao = "NENHUMA";
+                // Não prossegue para busca de slots com data nula
             } else if (targetDate < data_referencia) {
                 targetDate = data_referencia; // Nunca busca no passado
             }
 
-            const agendaContext = await AppointmentService.getAvailableSlots(
-                clinicId,
-                targetDate,
-            );
-            aiCtx.contexto_agenda = agendaContext;
+            if (aiResponse.acao === "VER_AGENDA" && targetDate) {
+                const agendaContext = await AppointmentService.getAvailableSlots(
+                    clinicId,
+                    targetDate,
+                );
+                aiCtx.contexto_agenda = agendaContext;
 
-            // Persiste as novas opções
-            await ConversationService.setLastOfferedSlots(clinicId, conversationId, agendaContext.horarios_disponiveis);
-            aiCtx.ultimas_ofertas = agendaContext.horarios_disponiveis;
+                // Persiste as novas opções
+                await ConversationService.setLastOfferedSlots(clinicId, conversationId, agendaContext.horarios_disponiveis);
+                aiCtx.ultimas_ofertas = agendaContext.horarios_disponiveis;
 
-            console.log(">>> [SLOTS] (Loop VER_AGENDA) Enviando para IA:", JSON.stringify(aiCtx.contexto_agenda));
-            aiResponse = await AIService.respond(aiCtx);
-            if (aiResponse) aiResponse.acao = aiResponse.acao ?? "NENHUMA";
-            if (aiResponse?.acao === "VER_AGENDA") aiResponse.acao = "NENHUMA";
+                console.log(">>> [SLOTS] (Loop VER_AGENDA) Enviando para IA:", JSON.stringify(aiCtx.contexto_agenda));
+                aiResponse = await AIService.respond(aiCtx);
+                if (aiResponse) aiResponse.acao = aiResponse.acao ?? "NENHUMA";
+                if (aiResponse?.acao === "VER_AGENDA") aiResponse.acao = "NENHUMA";
+            }
         }
 
         if (!aiResponse) {
@@ -367,8 +377,18 @@ export async function POST(req: NextRequest) {
                         notes: `Agendado automaticamente via IA após confirmação explícita.`
                     });
 
-                    // --- MUDANÇA 6 & 7: CONFIRMAÇÃO PÓS-CREATE + TRY/CATCH ENVIO ---
-                    const confirmationMsg = `✅ *Consulta confirmada com sucesso!*\n\n🏥 *Clínica:* ${clinic.nomeClinica}\n📍 *Endereço:* ${clinic.endereco || 'Consultar com a recepção'}\n📅 *Data:* ${aiResponse.data}\n⏰ *Horário:* ${aiResponse.hora}\n\nTe esperamos lá! 😊`;
+                    // --- MUDANÇA 6 & 7: CONFIRMAÇÃO PÓS-CREATE REAL (BACKEND-DRIVEN) ---
+                    // Usamos newAppt (dados persistidos) e clinic como fontes da verdade
+                    const confirmationMsg = `
+✅ *Consulta confirmada com sucesso!*
+
+🏥 *Clínica:* ${clinic.nomeClinica}
+📍 *Endereço:* ${clinic.endereco || 'Consultar com a recepção'}
+📅 *Data:* ${newAppt.date}
+⏰ *Horário:* ${newAppt.time}
+
+Te esperamos lá! 😊
+`.trim();
                     
                     // Substitui a mensagem da IA pela confirmação real
                     aiResponse.mensagem = confirmationMsg;
@@ -377,8 +397,12 @@ export async function POST(req: NextRequest) {
                     try {
                         const sent = await ProviderInst.sendMessage(clinicId, contact.phoneNumber, confirmationMsg);
                         if (sent) {
+                            messageAlreadySent = true; // Marca para evitar duplicidade no despacho final
                             await AppointmentService.updateNotificationStatus(newAppt.id, "SENT");
-                            await LogService.info(clinicId, LogEvent.NOTIFICATION_SENT, { appointmentId: newAppt.id });
+                            await LogService.info(clinicId, LogEvent.NOTIFICATION_SENT, { 
+                                appointmentId: newAppt.id,
+                                note: "Confirmação enviada com sucesso no bloco AGENDAR."
+                            });
                         } else {
                             throw new Error("Provider falhou ao enviar mensagem.");
                         }
@@ -405,11 +429,40 @@ export async function POST(req: NextRequest) {
 
                     if (aiResponse.acao === "REMARCAR") {
                         if (!aiResponse.data || !aiResponse.hora) throw new Error("Data ou hora ausentes para REMARCAR");
-                        await AppointmentService.reschedule(clinicId, targetAppt.id, {
+                        
+                        const updatedAppt = await AppointmentService.reschedule(clinicId, targetAppt.id, {
                             date: aiResponse.data,
                             time: aiResponse.hora,
                             notes: `Remarcado via IA.`
                         });
+
+                        const confirmationMsg = `
+✅ *Consulta remarcada com sucesso!*
+
+🏥 *Clínica:* ${clinic.nomeClinica}
+📅 *Data:* ${updatedAppt.date}
+⏰ *Horário:* ${updatedAppt.time}
+
+Tudo certo para seu novo horário. Te esperamos lá! 😊
+`.trim();
+
+                        aiResponse.mensagem = confirmationMsg;
+
+                        try {
+                            const sent = await ProviderInst.sendMessage(clinicId, contact.phoneNumber, confirmationMsg);
+                            if (sent) {
+                                messageAlreadySent = true;
+                                await LogService.info(clinicId, LogEvent.ACTION_EXECUTED, { 
+                                    appointmentId: updatedAppt.id,
+                                    note: "Confirmação de REMARCAR enviada com sucesso."
+                                });
+                            }
+                        } catch (sendError: any) {
+                            await LogService.error(clinicId, LogEvent.ERROR, { 
+                                note: "Falha ao enviar confirmação de remarcação.", 
+                                error: sendError.message 
+                            });
+                        }
                     } else {
                         await AppointmentService.cancel(clinicId, targetAppt.id, "Cancelado via IA");
                     }
@@ -485,6 +538,11 @@ export async function POST(req: NextRequest) {
                 note: "BLOQUEIO FINAL: Envio ao WhatsApp impedido pelo desligamento do robô."
             });
             return NextResponse.json({ ok: true, skipped: "final_send_blocked" });
+        }
+
+        if (messageAlreadySent) {
+            // Se já enviamos a confirmação no AGENDAR, finalizamos aqui sem duplicidade
+            return NextResponse.json({ ok: true, action: "AUTO_CONFIRMADO" });
         }
 
         const sent = await ProviderInst.sendMessage(clinicId, contact.phoneNumber, aiResponse.mensagem);

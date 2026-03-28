@@ -33,6 +33,7 @@ export interface AIRequestContext {
     ultimas_ofertas: string[] | null;
     data_referencia: string; // YYYY-MM-DD (Data real da clínica)
     timezone: string;        // Ex: America/Sao_Paulo
+    tabela_temporal: string; // Tabela formatada para lookup
 }
 
 // ──────────────────────────────────────────────
@@ -46,17 +47,27 @@ const openai = new OpenAI({
 const AI_MODEL = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
 
 // ──────────────────────────────────────────────
-// Prompt builders — internos ao service
-// ──────────────────────────────────────────────
-
-function buildSystemPrompt(ctx: ClinicContext, data_referencia: string, timezone: string): string {
+function buildSystemPrompt(ctx: ClinicContext, data_referencia: string, timezone: string, tabela_temporal: string): string {
     return `# PROMPT MESTRE — RAFAELA (ASSISTENTE DR. LUCAS SENA)
 
 Você é Rafaela, assistente responsável pela agenda do Dr. Lucas Sena.
 
 Seu objetivo é conduzir conversas no WhatsApp de forma natural, humana e eficiente, levando o paciente até o agendamento da consulta.
 
-A data de hoje para esta clínica é ${data_referencia} no timezone ${timezone}. Ao usar a ação VER_AGENDA, você deve SEMPRE preencher o campo data no formato YYYY-MM-DD. Nunca retorne data nula. Nunca retorne data anterior a ${data_referencia}. Se o paciente disser 'semana que vem', calcule a próxima segunda-feira. Se disser 'mês que vem', use o primeiro dia do próximo mês. Se o pedido for vago e você não tiver certeza absoluta, use no mínimo ${data_referencia} + 1 dia.
+A data de hoje para esta clínica é ${data_referencia} no timezone ${timezone}.
+
+---
+
+# 1. TABELA DE REFERÊNCIA TEMPORAL (lookup obrigatório)
+${tabela_temporal}
+
+Regras para datas:
+1. Sempre use a tabela acima como lookup prioritário para converter termos relativos (ex: "segunda que vem", "mês que vem", "hoje", "amanhã") em datas reais (YYYY-MM-DD).
+2. Não tente calcular datas manualmente do zero.
+3. Se o paciente pedir um dia da semana ou data relativa que não esteja explícito na tabela, peça esclarecimento educadamente em vez de inventar uma data ou retornar data nula.
+4. Ao usar a ação VER_AGENDA, você deve SEMPRE preencher o campo data no formato YYYY-MM-DD seguindo este lookup. 
+
+---
 
 ---
 
@@ -444,7 +455,7 @@ export const AIService = {
         console.log(">>> [AIService] Chamando OpenAI para:", ctx.nome_paciente);
         console.log(">>> [AIService] Data de Ref:", ctx.data_referencia, "Timezone:", ctx.timezone);
 
-        const systemPrompt = buildSystemPrompt(ctx.contexto_clinica, ctx.data_referencia, ctx.timezone);
+        const systemPrompt = buildSystemPrompt(ctx.contexto_clinica, ctx.data_referencia, ctx.timezone, ctx.tabela_temporal);
         const userMessage = buildUserMessage(ctx);
 
         try {
@@ -496,4 +507,72 @@ export const AIService = {
             })
             .join("\n");
     },
+
+    /**
+     * Gera a tabela de referência temporal para o prompt da IA.
+     * Baseia-se no timezone da clínica.
+     */
+    getDateReferences(timeZone: string = 'America/Sao_Paulo'): string {
+        try {
+            // Usa Intl para pegar "agora" no timezone correto
+            const now = new Date();
+            const fmt = (d: Date) => new Intl.DateTimeFormat('en-CA', { 
+                timeZone, 
+                year: 'numeric', 
+                month: '2-digit', 
+                day: '2-digit' 
+            }).format(d);
+            
+            // Âncora formatada no fuso da clínica
+            const formatter = new Intl.DateTimeFormat('en-US', {
+                timeZone,
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit',
+                hour12: false
+            });
+            const parts = formatter.formatToParts(now);
+            const getP = (type: string) => parts.find(p => p.type === type)?.value || "0";
+            
+            // Cria objeto Date "local" ao fuso para cálculos de dias da semana
+            const year = parseInt(getP('year'));
+            const month = parseInt(getP('month')) - 1;
+            const day = parseInt(getP('day'));
+            const anchor = new Date(year, month, day);
+            const todayIdx = anchor.getDay(); // 0=Sun, 1=Mon, ..., 5=Fri, 6=Sat
+
+            // Hoje
+            const hoje = fmt(anchor);
+
+            // Amanhã
+            const amanhaDate = new Date(anchor);
+            amanhaDate.setDate(anchor.getDate() + 1);
+            const amanha = fmt(amanhaDate);
+            
+            // Próxima segunda (se hoje for segunda, pula para a próxima)
+            const proxSeg = new Date(anchor);
+            const diffSeg = (todayIdx === 1 ? 7 : (1 - todayIdx + 7) % 7);
+            const finalDiffSeg = diffSeg === 0 ? 7 : diffSeg;
+            proxSeg.setDate(anchor.getDate() + finalDiffSeg);
+            
+            // Próxima sexta
+            const proxSex = new Date(anchor);
+            const diffSex = (todayIdx === 5 ? 7 : (5 - todayIdx + 7) % 7);
+            const finalDiffSex = diffSex === 0 ? 7 : diffSex;
+            proxSex.setDate(anchor.getDate() + finalDiffSex);
+            
+            // Primeiro do próximo mês
+            const proxMes = new Date(year, month + 1, 1);
+            
+            return `TABELA DE REFERÊNCIA TEMPORAL
+Hoje: ${hoje}
+Amanhã: ${amanha}
+Segunda-feira que vem: ${fmt(proxSeg)}
+Sexta-feira que vem: ${fmt(proxSex)}
+Primeiro dia do próximo mês: ${fmt(proxMes)}`.trim();
+        } catch (error) {
+            console.error("[AIService | getDateReferences] Falha crítica ao gerar tabela temporal:", error);
+            const fallback = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+            return `Hoje: ${fallback}`;
+        }
+    }
 };
