@@ -3,8 +3,10 @@ export const dynamic = 'force-dynamic';
 import { DashboardService } from "@/services/dashboard.service";
 import { prisma } from "@/lib/prisma";
 import { NotificationService } from "@/services/notification.service";
+import { SettingsService } from "@/services/settings.service";
 import { getSession } from "@/lib/auth";
 import { formatTimeBR } from "@/lib/date";
+import RobotControlCard from "./RobotControlCard";
 import "./dashboard.css";
 
 async function getHealth() {
@@ -41,6 +43,7 @@ export default async function AdminDashboard() {
     const stats = await DashboardService.getStats(clinicId);
     const health = await getHealth();
     const alerts = await getRecentAlerts(clinicId);
+    const settings = await SettingsService.getByClinicId(clinicId);
 
     return (
         <div className="dashboard-container">
@@ -48,6 +51,10 @@ export default async function AdminDashboard() {
                 <h2 className="page-title">Visão Geral</h2>
                 <div className="sync-badge">Cloud-Native Architecture</div>
             </header>
+
+            <div className="dashboard-top-actions" style={{ marginBottom: "20px" }}>
+                <RobotControlCard initialEnabled={settings.robotEnabled} />
+            </div>
 
             <div className="stats-grid">
                 <div className="stat-card">

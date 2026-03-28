@@ -112,6 +112,94 @@
   color: #4b5563;
 }
 
+/* Robot Control Card */
+.robot-control-card {
+    border-left: 4px solid #94a3b8;
+    transition: all 0.3s ease;
+    margin-bottom: 30px;
+}
+
+.robot-control-card.active {
+    border-left-color: #10b981;
+}
+
+.robot-control-card.disabled {
+    border-left-color: #f59e0b;
+    background-color: #fffbeb;
+}
+
+.robot-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.status-indicator {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.status-indicator.active {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.status-indicator.disabled {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.robot-content p {
+    font-size: 0.9rem;
+    color: #4b5563;
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+.btn-toggle-robot {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}
+
+.btn-toggle-robot.on {
+    background-color: #10b981;
+    color: white;
+}
+
+.btn-toggle-robot.on:hover {
+    background-color: #059669;
+}
+
+.btn-toggle-robot.off {
+    background-color: #f59e0b;
+    color: white;
+}
+
+.btn-toggle-robot.off:hover {
+    background-color: #d97706;
+}
+
+.btn-toggle-robot:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.robot-footer {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #f3f4f6;
+    color: #9ca3af;
+    font-size: 0.75rem;
+}
+
 .health-grid {
   display: flex;
   flex-direction: column;

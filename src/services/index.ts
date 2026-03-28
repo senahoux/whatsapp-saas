@@ -36,3 +36,4 @@ export type { ListLogsOptions } from "./log.service";
 export { AppointmentService } from "./appointment.service";
 export { NotificationService } from "./notification.service";
 export { DashboardService } from "./dashboard.service";
+export { SettingsService } from "./settings.service";

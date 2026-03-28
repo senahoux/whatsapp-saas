@@ -43,7 +43,21 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // ── 1. Valida clinicId ─────────────────────────────────────────
+        // ── 1. Valida clinicId e robotEnabled ─────────────────────────
+        const settings = await ClinicService.getSettings(clinicId);
+        const robotEnabled = settings?.robotEnabled ?? true;
+
+        if (!robotEnabled) {
+            await LogService.warn(clinicId, LogEvent.ACTION_EXECUTED, {
+                conversationId,
+                note: "ROBÔ DESATIVADO (Modo Passivo Estrito). Abortando orquestração automática."
+            });
+            return NextResponse.json({ 
+                ok: true, 
+                skipped: "robot_disabled_passive_mode" 
+            });
+        }
+
         const isValid = await ClinicService.validateClinicId(clinicId);
         if (!isValid) {
             return NextResponse.json({ error: "clinicId not found" }, { status: 404 });
@@ -67,7 +81,6 @@ export async function POST(req: NextRequest) {
         }
 
         // SEMANTIC DEBOUNCE: Verifica se este é o gatilho mais recente
-        const settings = await ClinicService.getSettings(clinicId);
         const debounceMs = (settings?.debounceSeconds ?? 8) * 1000;
         const now = Date.now();
         const lastMsgTime = new Date(conversation.lastMessageAt || 0).getTime();
@@ -210,6 +223,12 @@ export async function POST(req: NextRequest) {
         if (["AGENDAR", "REMARCAR", "CANCELAR"].includes(currentAcao)) {
             try {
                 if (aiResponse.acao === "AGENDAR") {
+                    // --- FASE 2: GUARDA DE AÇÃO AUTOMATIZADA ---
+                    const freshSettings = await ClinicService.getSettings(clinicId);
+                    if (!freshSettings?.robotEnabled) {
+                        throw new Error("Ação de agendamento bloqueada: Robô foi desativado durante o processamento.");
+                    }
+
                     if (!aiResponse.data || !aiResponse.hora) {
                         throw new Error("Data ou hora ausentes para AGENDAR");
                     }
@@ -349,6 +368,17 @@ export async function POST(req: NextRequest) {
         // MODO AUTO
         const robotMsg = await MessageService.enqueueRobotReply(clinicId, conversationId, aiResponse.mensagem);
         await ConversationService.setLastProcessedMessage(clinicId, conversationId, lastClientMessage.id);
+
+        // --- FASE 3: GARANTIA DE ENVIO (ANTI RACE CONDITION) ---
+        const finalCheck = await ClinicService.getSettings(clinicId);
+        if (!finalCheck?.robotEnabled) {
+            await LogService.warn(clinicId, LogEvent.ACTION_EXECUTED, {
+                conversationId,
+                note: "BLOQUEIO FINAL: Envio ao WhatsApp impedido pelo desligamento do robô."
+            });
+            return NextResponse.json({ ok: true, skipped: "final_send_blocked" });
+        }
+
         const sent = await ProviderInst.sendMessage(clinicId, contact.phoneNumber, aiResponse.mensagem);
         if (sent) await MessageService.markProcessed(clinicId, robotMsg.id);
 
