@@ -37,3 +37,5 @@ export { AppointmentService } from "./appointment.service";
 export { NotificationService } from "./notification.service";
 export { DashboardService } from "./dashboard.service";
 export { SettingsService } from "./settings.service";
+export { IntentionService } from "./intention.service";
+export { AIService } from "./ai.service";

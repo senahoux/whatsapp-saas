@@ -130,6 +130,8 @@ model Conversation {
   // state: IDLE | SCHEDULING
   state                String    @default("IDLE")
   lastOfferedSlots     Json?     @default("[]")
+  agendaOfferCooldown  Int       @default(0)
+  lastCooldownConsumedMessageId String?
   humanInterventionAt  DateTime?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt

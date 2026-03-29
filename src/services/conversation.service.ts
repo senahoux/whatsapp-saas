@@ -287,6 +287,50 @@ export const ConversationService = {
     },
 
     /**
+     * Decrementa o cooldown de oferta de agenda apenas se for um turno novo.
+     * Operação ATÔMICA para evitar problemas com retries concorrentes.
+     */
+    async decrementCooldownIfNewTurn(
+        clinicId: string,
+        id: string,
+        messageId: string
+    ): Promise<void> {
+        await prisma.conversation.updateMany({
+            where: {
+                id,
+                clinicId,
+                agendaOfferCooldown: { gt: 0 },
+                AND: [
+                    {
+                        OR: [
+                            { lastCooldownConsumedMessageId: null },
+                            { lastCooldownConsumedMessageId: { not: messageId } }
+                        ]
+                    }
+                ]
+            },
+            data: {
+                agendaOfferCooldown: { decrement: 1 },
+                lastCooldownConsumedMessageId: messageId
+            }
+        });
+    },
+
+    /**
+     * Define o cooldown de oferta de agenda.
+     */
+    async setAgendaOfferCooldown(
+        clinicId: string,
+        id: string,
+        value: number
+    ): Promise<Conversation> {
+        return prisma.conversation.update({
+            where: { id, clinicId },
+            data: { agendaOfferCooldown: value },
+        });
+    },
+
+    /**
      * Lista conversas da clínica com filtro por status e paginação.
      * Sempre filtra por clinicId — nunca vaza dados entre clínicas.
      */

@@ -31,6 +31,7 @@ export interface AIRequestContext {
     contexto_clinica: ClinicContext; // Nunca inclui clinicId
     contexto_agenda: AgendaContext | null; // null na primeira chamada; preenchido no loop VER_AGENDA
     ultimas_ofertas: string[] | null;
+    intention: string; // INFO_ONLY, SOFT_SCHEDULING_INTEREST, etc.
     data_referencia: string; // YYYY-MM-DD (Data real da clínica)
     timezone: string;        // Ex: America/Sao_Paulo
     tabela_temporal: string; // Tabela formatada para lookup
@@ -47,7 +48,7 @@ const openai = new OpenAI({
 const AI_MODEL = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
 
 // ──────────────────────────────────────────────
-function buildSystemPrompt(ctx: ClinicContext, data_referencia: string, timezone: string, tabela_temporal: string): string {
+function buildSystemPrompt(ctx: ClinicContext, data_referencia: string, timezone: string, tabela_temporal: string, intention: string): string {
     return `# PROMPT MESTRE — RAFAELA (ASSISTENTE DR. LUCAS SENA)
 
 Você é Rafaela, assistente responsável pela agenda do Dr. Lucas Sena.
@@ -215,18 +216,24 @@ Capela, Mogi Guaçu - SP"
 
 ---
 
-# 11. REGRAS DO FLUXO DETERMINÍSTICO (CRÍTICO)
+# 11. REGRAS DO FLUXO HÍBRIDO (CRÍTICO)
 
-O agendamento agora é DETERMINÍSTICO. Você não deve mais fazer perguntas abertas sobre disponibilidade.
+O agendamento agora é HÍBRIDO. Você deve agir conforme a intenção detectada pelo sistema:
 
-Regras Absolutas:
-1. Você receberá EXATAMENTE 2 opções reais de horários no bloco "## OPÇÕES DE AGENDAMENTO (REAIS)".
-2. Sua ÚNICA missão é fazer o paciente escolher uma dessas 2 opções.
-3. ESTÁ PROIBIDO perguntar: "Qual dia e horário você prefere?", "Me diga um dia", "Quando fica melhor?".
-4. Se o paciente rejeitar as 2 opções, use a ação "VER_AGENDA" (sem data) para pedir novas opções ao sistema.
-5. EXTREMAMENTE CRÍTICO: Use a ação "AGENDAR" APENAS E SOMENTE quando o paciente tiver escolhido um horário e CONFIRMADO explicitamente (ex: "Pode ser esse", "Sim", "Marcar às 10h").
-6. Se você estiver apenas APRESENTANDO os horários pela primeira vez ou respondendo dúvidas, use a ação "NENHUMA". NUNCA use "AGENDAR" antes do "Sim" definitivo do paciente.
-7. Respostas curtas como "1", "2", "quarta", "a primeira" ou "o segundo" após você oferecer 2 opções DEVEM ser interpretadas como confirmação do slot correspondente. Nestes casos, use a ação "AGENDAR".
+Sua INTENÇÃO ATUAL classificada é: ${intention}
+
+Regras por Intenção:
+1. INFO_ONLY: O paciente só quer tirar dúvidas. Responda de forma completa e humana. NÃO ofereça agenda agora. Ação: "NENHUMA".
+2. SOFT_SCHEDULING_INTEREST: O paciente mostrou interesse leve. Responda a dúvida PRIMEIRO e depois faça uma oferta leve (ex: "Se quiser, posso ver um horário para você"). Use Ação: "OFERTA_LEVE". NÃO mostre horários ainda.
+3. HARD_SCHEDULING_INTENT: O paciente quer marcar agora. Use Ação: "VER_AGENDA" para obter slots ou apresente os horários se já os tiver no bloco "## OPÇÕES DE AGENDAMENTO (REAIS)".
+4. SLOT_CONFIRMATION: O paciente está escolhendo um horário. Use Ação: "AGENDAR" com a data e hora exatas do slot.
+5. BACK_TO_INFO: O paciente saiu do tema agenda. Volte a responder dúvidas normalmente. Ação: "NENHUMA".
+
+Regras de Slots (Quando em HARD_SCHEDULING ou SLOT_CONFIRMATION):
+- Você receberá EXATAMENTE 2 opções reais no bloco "## OPÇÕES DE AGENDAMENTO (REAIS)".
+- Faça o paciente escolher uma dessas 2.
+- PROIBIDO perguntar: "Qual dia e horário você prefere?".
+- Use "AGENDAR" APENAS após confirmação explícita (ex: "Pode ser esse", "Sim", "Marcar às 10h", "1", "2").
 
 ---
 
@@ -334,8 +341,9 @@ Se identificar:
 
 ---
 
-👉 transformar conversa em consulta agendada
-👉 de forma natural, humana e eficiente
+👉 transformar conversa em consulta agendada apenas quando houver intenção real.
+👉 responder primeiro o que foi perguntado.
+👉 de forma natural, humana e eficiente.
 
 # 20. CONSULTA DE AGENDA (REGRA DE OURO)
 
@@ -387,6 +395,7 @@ const VALID_MODOS = ["AUTO", "ASSISTENTE", "HUMANO_URGENTE"] as const;
 const VALID_ACOES = [
     "NENHUMA",
     "VER_AGENDA",
+    "OFERTA_LEVE",
     "AGENDAR",
     "REMARCAR",
     "CANCELAR",
@@ -455,7 +464,7 @@ export const AIService = {
         console.log(">>> [AIService] Chamando OpenAI para:", ctx.nome_paciente);
         console.log(">>> [AIService] Data de Ref:", ctx.data_referencia, "Timezone:", ctx.timezone);
 
-        const systemPrompt = buildSystemPrompt(ctx.contexto_clinica, ctx.data_referencia, ctx.timezone, ctx.tabela_temporal);
+        const systemPrompt = buildSystemPrompt(ctx.contexto_clinica, ctx.data_referencia, ctx.timezone, ctx.tabela_temporal, ctx.intention);
         const userMessage = buildUserMessage(ctx);
 
         try {

@@ -31,6 +31,15 @@ export const ConversationState = {
 export type ConversationState =
     (typeof ConversationState)[keyof typeof ConversationState];
 
+export const Intention = {
+    INFO_ONLY: "INFO_ONLY",
+    SOFT_SCHEDULING_INTEREST: "SOFT_SCHEDULING_INTEREST",
+    HARD_SCHEDULING_INTENT: "HARD_SCHEDULING_INTENT",
+    SLOT_CONFIRMATION: "SLOT_CONFIRMATION",
+    BACK_TO_INFO: "BACK_TO_INFO",
+} as const;
+export type Intention = (typeof Intention)[keyof typeof Intention];
+
 // ──────────────────────────────────────────────
 // Message
 // ──────────────────────────────────────────────
@@ -167,6 +176,7 @@ export interface AIResponse {
     acao:
     | "NENHUMA"
     | "VER_AGENDA"
+    | "OFERTA_LEVE"
     | "AGENDAR"
     | "REMARCAR"
     | "CANCELAR"
