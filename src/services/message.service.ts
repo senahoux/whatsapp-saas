@@ -33,6 +33,7 @@ export interface CreateMessageInput {
 export interface ListMessagesOptions {
     limit?: number;        // default: 50
     onlyUnprocessed?: boolean;
+    order?: "asc" | "desc"; // default: asc
 }
 
 export interface HistoryMessage {
@@ -114,8 +115,33 @@ export const MessageService = {
                 conversationId,
                 ...(options.onlyUnprocessed ? { processed: false } : {}),
             },
-            orderBy: { createdAt: "asc" },
+            orderBy: { createdAt: options.order ?? "asc" },
             take: options.limit ?? 50,
+        });
+    },
+
+    /**
+     * Busca a mensagem mais recente enviada pelo CLIENTE nesta conversa.
+     * Útil para o orquestrador identificar a pergunta atual do paciente.
+     */
+    async getLastClientMessage(
+        clinicId: string,
+        conversationId: string
+    ): Promise<Message | null> {
+        // Validação de pertencimento
+        const conv = await prisma.conversation.findFirst({
+            where: { id: conversationId, clinicId },
+            select: { id: true },
+        });
+        if (!conv) return null;
+
+        return prisma.message.findFirst({
+            where: {
+                clinicId,
+                conversationId,
+                author: MessageAuthor.CLIENTE,
+            },
+            orderBy: { createdAt: "desc" },
         });
     },
 
