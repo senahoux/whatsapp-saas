@@ -70,8 +70,9 @@ export async function POST(req: NextRequest) {
         if (!contact) return NextResponse.json({ error: "contact not found" }, { status: 500 });
 
         // ── 2. Captura da Mensagem e Histórico ───────────────────────
-        const lastMessages = await MessageService.listByConversation(clinicId, conversationId, { limit: 1 });
-        const lastClientMessage = lastMessages.find(m => m.author === MessageAuthor.CLIENTE);
+        // IMPORTANTE: getLastClientMessage ordena DESC — retorna a mensagem mais RECENTE do cliente.
+        // Não usar listByConversation(limit:1) aqui, pois ela ordena ASC e retorna a mais ANTIGA.
+        const lastClientMessage = await MessageService.getLastClientMessage(clinicId, conversationId);
         if (!lastClientMessage) return NextResponse.json({ ok: true, skipped: "no_client_message" });
 
         // ── 3. Gestão de Turno e Cooldown (ATÔMICO) ──────────────────

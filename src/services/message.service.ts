@@ -270,6 +270,21 @@ export const MessageService = {
     },
 
     /**
+     * Retorna a mensagem mais recente enviada pelo CLIENTE na conversa.
+     * Usada pelo process-conversation para identificar a mensagem atual a ser respondida.
+     * Difere de listByConversation(limit:1) — aquela ordena ASC (mais antiga); esta ordena DESC (mais nova).
+     */
+    async getLastClientMessage(
+        clinicId: string,
+        conversationId: string
+    ): Promise<Message | null> {
+        return prisma.message.findFirst({
+            where: { clinicId, conversationId, author: MessageAuthor.CLIENTE },
+            orderBy: { createdAt: "desc" },
+        });
+    },
+
+    /**
      * Cria uma mensagem de resposta do robô na fila de saída.
      * Shortcut para CreateMessageInput com author=ROBO e processed=false.
      * A mensagem fica na fila até o robô confirmar o envio.
