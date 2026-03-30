@@ -71,7 +71,13 @@ export async function POST(req: NextRequest) {
 
         // ── 2. Captura da Mensagem e Histórico ───────────────────────
         const lastClientMessage = await MessageService.getLastClientMessage(clinicId, conversationId);
-        if (!lastClientMessage) return NextResponse.json({ ok: true, skipped: "no_client_message" });
+        if (!lastClientMessage) {
+            await LogService.info(clinicId, LogEvent.MESSAGE_RECEIVED, {
+                conversationId,
+                skipped: "no_client_message"
+            });
+            return NextResponse.json({ ok: true, skipped: "no_client_message" });
+        }
 
         // ── 3. Gestão de Turno e Cooldown (ATÔMICO) ──────────────────
         await ConversationService.decrementCooldownIfNewTurn(clinicId, conversationId, lastClientMessage.id);
