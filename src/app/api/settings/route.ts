@@ -1,6 +1,7 @@
 /**
- * API Route: PATCH /api/settings
- * Permite atualizar configurações da robô (Multi-tenant).
+ * API Route: /api/settings
+ * GET  → Retorna clínica + settings
+ * PATCH → Salva configurações do robô + calendário da clínica
  */
 
 import { NextResponse } from "next/server";
@@ -28,55 +29,68 @@ export async function GET(req: Request) {
 
 export async function PATCH(req: Request) {
     try {
-        const { searchParams } = new URL(req.url);
-
         const session = await getSession();
-        const clinicId = (session?.clinicId as string) || searchParams.get("clinicId");
+        const clinicId = session?.clinicId as string;
 
         if (!clinicId) {
-            return NextResponse.json({ error: "clinicId is required" }, { status: 400 });
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // Valida se a clínica existe
         const clinic = await ClinicService.findById(clinicId);
         if (!clinic) {
             return NextResponse.json({ error: "Clinic not found" }, { status: 404 });
         }
 
         const body = await req.json();
-        const { robotEnabled, debounceSeconds, prioritySuggestions } = body;
+        const { robotEnabled, debounceSeconds, prioritySuggestions, workingDays, workingShifts } = body;
 
-        // Monta o objeto de update — restrito aos campos aprovados no plano
-        const updateData: any = {};
-        if (typeof robotEnabled === "boolean") updateData.robotEnabled = robotEnabled;
-        if (typeof debounceSeconds === "number") updateData.debounceSeconds = debounceSeconds;
+        // ── 1. Settings (tabela Setting) ──────────────────────────────
+        const settingsUpdate: any = {};
+        if (typeof robotEnabled === "boolean") settingsUpdate.robotEnabled = robotEnabled;
+        if (typeof debounceSeconds === "number") settingsUpdate.debounceSeconds = debounceSeconds;
 
-        if (Object.keys(updateData).length === 0) {
-            return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
-        }
-
-        let updatedSettings = null;
-        if (Object.keys(updateData).length > 0) {
-            updatedSettings = await prisma.setting.update({
+        if (Object.keys(settingsUpdate).length > 0) {
+            await prisma.setting.update({
                 where: { clinicId },
-                data: updateData,
+                data: settingsUpdate,
             });
         }
 
-        // Se houver prioritySuggestions, atualiza a CLINIC
-        if (prioritySuggestions) {
+        // ── 2. Clinic calendar config (tabela Clinic) ─────────────────
+        const clinicUpdate: any = {};
+
+        if (Array.isArray(workingDays)) {
+            // Validar: só aceitar números 0-6
+            const validDays = workingDays.filter((d: any) => typeof d === "number" && d >= 0 && d <= 6);
+            clinicUpdate.workingDays = validDays;
+        }
+
+        if (Array.isArray(workingShifts)) {
+            // Validar: cada turno precisa ter period, start, end
+            const validShifts = workingShifts.filter((s: any) =>
+                s && typeof s.period === "string" && typeof s.start === "string" && typeof s.end === "string"
+            );
+            clinicUpdate.workingShifts = validShifts;
+        }
+
+        if (prioritySuggestions !== undefined) {
+            clinicUpdate.prioritySuggestions = prioritySuggestions;
+        }
+
+        if (Object.keys(clinicUpdate).length > 0) {
             await prisma.clinic.update({
                 where: { id: clinicId },
-                data: { prioritySuggestions },
+                data: clinicUpdate,
             });
         }
 
         await LogService.info(clinicId, LogEvent.ACTION_EXECUTED, {
             action: "UPDATE_SETTINGS",
-            changes: updateData
+            settingsChanges: settingsUpdate,
+            clinicChanges: Object.keys(clinicUpdate),
         });
 
-        return NextResponse.json({ ok: true, settings: updatedSettings });
+        return NextResponse.json({ ok: true });
 
     } catch (error: any) {
         console.error("PATCH /api/settings error:", error);

@@ -4,6 +4,12 @@
     margin: 0 auto;
 }
 
+/* ── Cards ──────────────────────────────────── */
+.card {
+    margin-bottom: 24px;
+}
+
+/* ── Forms ─────────────────────────────────── */
 .settings-form {
     display: flex;
     flex-direction: column;
@@ -46,6 +52,13 @@
     font-size: 0.85rem;
 }
 
+.description {
+    color: #6b7280;
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+}
+
+/* ── Buttons ───────────────────────────────── */
 .btn-primary {
     background: #3b82f6;
     color: white;
@@ -63,17 +76,199 @@
 
 .btn-primary:disabled {
     opacity: 0.6;
+    cursor: not-allowed;
 }
 
-.form-message {
-    padding: 10px;
+.btn-secondary {
+    background: #6b7280;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.btn-secondary:hover {
+    background: #4b5563;
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    color: #ef4444;
+    font-size: 1.4rem;
+    cursor: pointer;
+    font-weight: bold;
+    line-height: 1;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background 0.15s;
+}
+
+.btn-icon:hover {
+    background: #fef2f2;
+}
+
+/* ── Weekday Selector ──────────────────────── */
+.weekday-selector {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.weekday-btn {
+    padding: 10px 16px;
     border-radius: 8px;
-    background: #ecfdf5;
-    color: #10b981;
+    border: 2px solid #d1d5db;
+    background: white;
+    cursor: pointer;
     font-weight: 600;
+    font-size: 0.9rem;
+    color: #6b7280;
+    transition: all 0.15s;
+    min-width: 56px;
     text-align: center;
 }
 
+.weekday-btn:hover {
+    border-color: #3b82f6;
+    color: #3b82f6;
+}
+
+.weekday-btn.active {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    color: white;
+}
+
+.weekday-presets {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-preset {
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: #6b7280;
+    transition: all 0.15s;
+}
+
+.btn-preset:hover {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+/* ── Shifts ────────────────────────────────── */
+.shifts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.shift-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #f9fafb;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+.shift-select {
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    font-weight: 600;
+    min-width: 100px;
+}
+
+.shift-time-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.shift-time-group input[type="time"] {
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+    font-size: 0.95rem;
+}
+
+.shift-time-group label {
+    color: #6b7280;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.btn-add-shift {
+    background: none;
+    border: 2px dashed #d1d5db;
+    padding: 10px;
+    border-radius: 8px;
+    color: #6b7280;
+    cursor: pointer;
+    font-weight: 600;
+    width: 100%;
+    transition: all 0.15s;
+}
+
+.btn-add-shift:hover {
+    border-color: #3b82f6;
+    color: #3b82f6;
+}
+
+/* ── Suggestions ───────────────────────────── */
+.suggestions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.suggestion-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f9fafb;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+}
+
+.empty-state {
+    color: #9ca3af;
+    font-size: 0.9rem;
+    text-align: center;
+    padding: 12px;
+}
+
+.add-suggestion-form {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    background: #f3f4f6;
+    padding: 12px;
+    border-radius: 8px;
+}
+
+.add-suggestion-form input,
+.add-suggestion-form select {
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #d1d5db;
+}
+
+/* ── Info Grid ─────────────────────────────── */
 .info-grid {
     display: grid;
     gap: 12px;
@@ -95,59 +290,28 @@
     font-weight: 700;
 }
 
-.suggestions-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-bottom: 16px;
+/* ── Save Bar ──────────────────────────────── */
+.save-bar {
+    position: sticky;
+    bottom: 0;
+    background: white;
+    padding: 16px 0;
+    border-top: 1px solid #e5e7eb;
+    text-align: center;
 }
 
-.suggestion-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #f9fafb;
-    padding: 8px 12px;
-    border-radius: 6px;
-    border: 1px solid #e5e7eb;
+.btn-save-global {
+    width: 100%;
+    padding: 14px;
+    font-size: 1rem;
 }
 
-.add-suggestion-form {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    background: #f3f4f6;
-    padding: 12px;
+.form-message {
+    padding: 10px;
     border-radius: 8px;
-}
-
-.add-suggestion-form input,
-.add-suggestion-form select {
-    padding: 8px;
-    border-radius: 6px;
-    border: 1px solid #d1d5db;
-}
-
-.btn-secondary {
-    background: #6b7280;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-}
-
-.btn-icon {
-    background: none;
-    border: none;
-    color: #ef4444;
-    font-size: 1.2rem;
-    cursor: pointer;
-    font-weight: bold;
-}
-
-.description {
-    color: #6b7280;
-    font-size: 0.9rem;
-    margin-bottom: 12px;
+    background: #ecfdf5;
+    color: #10b981;
+    font-weight: 600;
+    text-align: center;
+    margin-top: 8px;
 }
