@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { ContactService } from "@/services";
 
 /**
  * DELETE /api/contacts/[id]
@@ -20,27 +20,19 @@ export async function DELETE(
         }
 
         const { id } = await params;
-
-        // 1. Busca o contato vinculando ao clinicId da sessão (Garantia Multi-tenant)
-        const contact = await prisma.contact.findFirst({
-            where: {
-                id,
-                clinicId,
-            },
-        });
-
-        if (!contact) {
-            return NextResponse.json(
-                { error: "Contato não encontrado ou não pertence a esta clínica" },
-                { status: 404 }
-            );
+        
+        // 1. Executa a exclusão reforçada via Service (valida clinicId internamente)
+        try {
+            await ContactService.delete(clinicId, id);
+        } catch (err: any) {
+            if (err.message.includes("not found")) {
+                return NextResponse.json(
+                    { error: "Contato não encontrado ou não pertence a esta clínica" },
+                    { status: 404 }
+                );
+            }
+            throw err;
         }
-
-        // 2. Deleta o contato. As relações (conversas, mensagens, agendamentos) 
-        // serão removidas automaticamente pelo onDelete: Cascade do Prisma.
-        await prisma.contact.delete({
-            where: { id },
-        });
 
         return NextResponse.json({ ok: true }, { status: 200 });
     } catch (error: any) {

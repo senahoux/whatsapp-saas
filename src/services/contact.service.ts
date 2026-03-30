@@ -14,6 +14,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
+import { DebounceManager } from "@/lib/debounce";
 import type { Contact } from "@prisma/client";
 
 // ──────────────────────────────────────────────
@@ -228,5 +229,36 @@ export const ContactService = {
         ]);
 
         return { data, total };
+    },
+
+    /**
+     * Deleta um contato e todos os dados relacionados de forma profunda.
+     * Além do Cascade do Prisma, limpa timers de debounce e notificações órfãs.
+     */
+    async delete(clinicId: string, id: string): Promise<void> {
+        // 1. Validar pertencimento
+        const contact = await prisma.contact.findFirst({
+            where: { id, clinicId },
+            include: { conversations: { select: { id: true } } }
+        });
+
+        if (!contact) {
+            throw new Error(`Contact ${id} not found or does not belong to clinic ${clinicId}`);
+        }
+
+        // 2. Cancelar Timers ativos do robô (Debounce)
+        for (const conv of contact.conversations) {
+            DebounceManager.cancel(conv.id);
+        }
+
+        // 3. Deletar Notificações vinculadas (que seriam SetNull pelo schema)
+        await prisma.notification.deleteMany({
+            where: { clinicId, contactId: id }
+        });
+
+        // 4. Deletar o Contato (Cascade emulado pelo Prisma limpa Conversations, Messages e Appointments)
+        await prisma.contact.delete({
+            where: { id }
+        });
     },
 };
