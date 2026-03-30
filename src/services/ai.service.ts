@@ -28,7 +28,6 @@ export interface AIRequestContext {
     status_conversa: string;
     contexto_clinica: ClinicContext;
     agenda_snapshot: AgendaSnapshot | null;
-    intention: string;
     data_referencia: string;
     timezone: string;
     tabela_temporal: string;
@@ -45,7 +44,7 @@ const openai = new OpenAI({
 const AI_MODEL = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
 
 // ──────────────────────────────────────────────
-function buildSystemPrompt(ctx: ClinicContext, data_referencia: string, timezone: string, tabela_temporal: string, intention: string): string {
+function buildSystemPrompt(ctx: ClinicContext, data_referencia: string, timezone: string, tabela_temporal: string): string {
     return `# PROMPT MESTRE — RAFAELA (ASSISTENTE DR. LUCAS SENA)
 
 Você é Rafaela, assistente responsável pela agenda do Dr. Lucas Sena.
@@ -199,58 +198,74 @@ Capela, Mogi Guaçu - SP"
 
 ---
 
-# 11. REGRAS DE AGENDAMENTO
+# 11. REGRAS DO FLUXO PENSANTE DA IA
 
-Intenção atual: ${intention}
+Você não é apenas um chatbot de respostas. Você é o CÉREBRO do agendamento.
+Você decide quando sugerir agenda, quando perguntar o dia desejado, quando buscar no calendário e quando agendar de fato.
 
-Regras por Intenção:
-- INFO_ONLY: Responda a dúvida. Não ofereça agenda. Ação: "NENHUMA".
-- SOFT_SCHEDULING_INTEREST: Responda a dúvida e faça oferta leve. Ação: "OFERTA_LEVE".
-- HARD_SCHEDULING_INTENT / CHANGE_DATE_INTENT: Apresente os horários do snapshot abaixo. Se não houver ou paciente pedir data diferente, use "VER_AGENDA" com data YYYY-MM-DD.
-- SLOT_CONFIRMATION: Paciente escolheu. Use "AGENDAR" com data+hora exatas.
-- BACK_TO_INFO: Responda a dúvida normalmente. Ação: "NENHUMA".
-
-Regra de Ouro: NUNCA invente datas ou horários. Use APENAS o que vier do backend.
+PASSOS GERAIS DO FLUXO ("estado_paciente")
+1. EXPLORANDO: O paciente está tirando dúvidas de valor, localização, etc. 
+   - Ação: "NENHUMA" (não busque agenda ainda, apenas acolha e pergunte se quer agendar).
+   - Se ele der sinal verde ("sim", "quero"), mude a ação para "VER_AGENDA". NUNCA use "AGENDAR" nesta fase de descoberta.
+2. DECIDINDO_DATA: O paciente está focado em buscar horários (ex: "tem pra hoje?", "terça à tarde").
+   - Ação: "VER_AGENDA". Identifique o termo que ele usou e preencha a referência temporal.
+   - O backend retornará os horários reais se acionado. Dê opções (até 3).
+3. CONFIRMANDO_SLOT: O paciente ESCOLHEU CLARAMENTE UM DOS HORÁRIOS ENVIADOS RECENTEMENTE.
+   - Ação: "AGENDAR". Passe a data e hora exatas no "slot_escolhido". NUNCA invente horários fora da lista oferecida.
 
 ---
 
-# 12. HUMANIZAÇÃO E FLUXO
+# 12. EXTRAÇÃO TEMPORAL (OBRIGATÓRIO)
+
+Sempre que o paciente mencionar o desejo por uma data ou dia específico, traduza e preencha estas chaves estruturadas:
+- referencia_temporal_bruta: trecho exato que o paciente falou (ex: "quarta", "dia 15", "mês que vem", "mais tarde").
+- referencia_temporal_tipo: "DIA_DA_SEMANA", "DATA_EXATA", "MES", "RELATIVO" ou null.
+- referencia_temporal_resolvida: Traduza para YYYY-MM-DD ou YYYY-MM usando a TABELA DE REFERÊNCIA TEMPORAL do início do prompt.
+- preferencia_periodo: "manha", "tarde", ou "dia_todo" (ex: se ele pedir "mais tarde" sendo tarde, "tarde").
+
+Se ele não definiu preferencia de data para a busca, passe null nessas chaves.
+
+---
+
+# 13. HUMANIZAÇÃO E FLUXO
 
 - Mensagens curtas (máximo 2-3 linhas)
 - Emoji leve (no inicio), linguagem variada
 - Fluxo: acolher → entender → direcionar → oferecer → fechar
 - Nunca dar diagnóstico, prometer resultado ou falar efeitos colaterais
-- puxar para consulta e fechar com ação
+- Puxe para a consulta e feche com ação conclusiva.
 
 ---
 
-# 13. PACIENTE INDECISO OU OBJEÇÃO DE PREÇO
+# 14. PACIENTE INDECISO OU OBJEÇÃO DE PREÇO
 
 Indeciso: acolher + normalizar + direcionar.
 Preço: reposicionar valor, nunca baixar. Puxar ação.
 
 ---
 
-# 14. RESPOSTA (JSON obrigatório)
+# 15. RESPOSTA (JSON obrigatório)
 
 {
-"mensagem": "texto",
-"modo": "AUTO",
-"acao": "NENHUMA",
-"tipo": "CONSULTA",
-"data": null,
-"hora": null,
-"lead": null,
-"confianca": "ALTA",
-"precisa_nome": false,
-"nome_identificado": null
+  "mensagem": "texto a ser enviado para o whatsapp",
+  "modo_conversa": "AUTO",
+  "estado_paciente": "EXPLORANDO",
+  "referencia_temporal_bruta": null,
+  "referencia_temporal_tipo": null,
+  "referencia_temporal_resolvida": null,
+  "preferencia_periodo": null,
+  "acao_backend": "NENHUMA",
+  "slot_escolhido": null,
+  "nome_identificado": null
 }
+
+Nota sobre "slot_escolhido": Deve ser 'null' a menos que 'acao_backend' seja "AGENDAR". Se for AGENDAR, preencha: {"data": "YYYY-MM-DD", "hora": "HH:MM"}.
 
 ---
 
-# 15. NOME
+# 16. NOME
 
-Se não tiver nome, pergunte. Se identificar, preencha "nome_identificado".`;
+Se não tiver nome, pergunte. Se identificar o nome na fala dele, preencha "nome_identificado".`;
 }
 
 function buildUserMessage(ctx: AIRequestContext): string {
@@ -295,16 +310,10 @@ function buildUserMessage(ctx: AIRequestContext): string {
 // ──────────────────────────────────────────────
 
 const VALID_MODOS = ["AUTO", "ASSISTENTE", "HUMANO_URGENTE"] as const;
-const VALID_ACOES = [
-    "NENHUMA",
-    "VER_AGENDA",
-    "OFERTA_LEVE",
-    "AGENDAR",
-    "REMARCAR",
-    "CANCELAR",
-    "TRIAGEM",
-] as const;
-const VALID_CONFIANCA = ["ALTA", "MEDIA", "BAIXA"] as const;
+const VALID_ESTADOS = ["EXPLORANDO", "DECIDINDO_DATA", "CONFIRMANDO_SLOT"] as const;
+const VALID_ACOES = ["NENHUMA", "VER_AGENDA", "AGENDAR", "CANCELAR"] as const;
+const VALID_TIPOS_TEMPORAIS = ["DIA_DA_SEMANA", "DATA_EXATA", "MES", "RELATIVO", null] as const;
+const VALID_PERIODOS = ["manha", "tarde", "dia_todo", null] as const;
 
 function validateAIResponse(raw: string): AIResponse | null {
     let parsed: any;
@@ -330,21 +339,17 @@ function validateAIResponse(raw: string): AIResponse | null {
     try {
         // Validação estrutural detalhada apontando exatamente onde a IA descumpriu o contrato
         if (typeof parsed.mensagem !== "string" || !parsed.mensagem.trim()) throw new Error("Chave obrigatória 'mensagem' ausente ou mal formatada");
-        if (!VALID_MODOS.includes(parsed.modo)) throw new Error(`Chave 'modo' não reconhecida (${parsed.modo})`);
-        if (parsed.acao !== null && !VALID_ACOES.includes(parsed.acao)) throw new Error(`Chave 'acao' não reconhecida (${parsed.acao})`);
-        if (!VALID_CONFIANCA.includes(parsed.confianca)) throw new Error(`Chave 'confianca' não reconhecida (${parsed.confianca})`);
-        if (typeof parsed.precisa_nome !== "boolean") throw new Error(`Chave 'precisa_nome' ausente ou não-booleana`);
+        if (!VALID_MODOS.includes(parsed.modo_conversa)) throw new Error(`Chave 'modo_conversa' não reconhecida (${parsed.modo_conversa})`);
+        if (!VALID_ESTADOS.includes(parsed.estado_paciente)) throw new Error(`Chave 'estado_paciente' não reconhecida (${parsed.estado_paciente})`);
+        if (!VALID_ACOES.includes(parsed.acao_backend)) throw new Error(`Chave 'acao_backend' não reconhecida (${parsed.acao_backend})`);
+        if (!VALID_TIPOS_TEMPORAIS.includes(parsed.referencia_temporal_tipo)) throw new Error(`Chave 'referencia_temporal_tipo' não reconhecida`);
+        if (!VALID_PERIODOS.includes(parsed.preferencia_periodo)) throw new Error(`Chave 'preferencia_periodo' não reconhecida`);
 
         // Normalização de chaves opcionais e defasadas (sem quebrar o fluxo se for undefined)
-        parsed.tipo = parsed.tipo ?? null;
-        parsed.subtipo = parsed.subtipo ?? null;
-        parsed.data = parsed.data ?? null;
-        parsed.hora = parsed.hora ?? null;
-        parsed.lead = parsed.lead ?? null;
+        parsed.referencia_temporal_bruta = parsed.referencia_temporal_bruta ?? null;
+        parsed.referencia_temporal_resolvida = parsed.referencia_temporal_resolvida ?? null;
+        parsed.slot_escolhido = parsed.slot_escolhido ?? null;
         parsed.nome_identificado = parsed.nome_identificado ?? null;
-
-        // notificar_admin antigamente era obrigatorio, assumindo default fallback false pra salvar o parse da IA!
-        parsed.notificar_admin = parsed.notificar_admin ?? false;
 
         return parsed as AIResponse;
     } catch (err: any) {
@@ -367,7 +372,7 @@ export const AIService = {
         console.log(">>> [AIService] Chamando OpenAI para:", ctx.nome_paciente);
         console.log(">>> [AIService] Data de Ref:", ctx.data_referencia, "Timezone:", ctx.timezone);
 
-        const systemPrompt = buildSystemPrompt(ctx.contexto_clinica, ctx.data_referencia, ctx.timezone, ctx.tabela_temporal, ctx.intention);
+        const systemPrompt = buildSystemPrompt(ctx.contexto_clinica, ctx.data_referencia, ctx.timezone, ctx.tabela_temporal);
         const userMessage = buildUserMessage(ctx);
 
         try {
@@ -396,7 +401,7 @@ export const AIService = {
             if (!validated) {
                 console.error("[AIService] ❌ O retorno JSON foi invalidado pelos filtros acima.");
             } else {
-                console.log(`[AIService] ✅ Parse estrutural validado com ISO-Perfeição. Ação Resultante: [${validated.acao}] Modo: [${validated.modo}]`);
+                console.log(`[AIService] ✅ Parse estrutural validado com ISO-Perfeição. Ação Resultante: [${validated.acao_backend}] Modo: [${validated.modo_conversa}]`);
             }
 
             return validated;
@@ -422,69 +427,67 @@ export const AIService = {
 
     /**
      * Gera a tabela de referência temporal para o prompt da IA.
-     * Baseia-se no timezone da clínica.
+     * Baseia-se no timezone da clínica. Proporciona amplo limite visual temporal.
      */
     getDateReferences(timeZone: string = 'America/Sao_Paulo'): string {
         try {
-            // Usa Intl para pegar "agora" no timezone correto
             const now = new Date();
             const fmt = (d: Date) => new Intl.DateTimeFormat('en-CA', {
-                timeZone,
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit'
+                timeZone, year: 'numeric', month: '2-digit', day: '2-digit'
             }).format(d);
 
-            // Âncora formatada no fuso da clínica
-            const formatter = new Intl.DateTimeFormat('en-US', {
-                timeZone,
-                year: 'numeric', month: '2-digit', day: '2-digit',
-                hour: '2-digit', minute: '2-digit', second: '2-digit',
-                hour12: false
+            const formatter = new Intl.DateTimeFormat('pt-BR', {
+                timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
             });
             const parts = formatter.formatToParts(now);
             const getP = (type: string) => parts.find(p => p.type === type)?.value || "0";
 
-            // Cria objeto Date "local" ao fuso para cálculos de dias da semana
+            // Data local
             const year = parseInt(getP('year'));
             const month = parseInt(getP('month')) - 1;
             const day = parseInt(getP('day'));
             const anchor = new Date(year, month, day);
-            const todayIdx = anchor.getDay(); // 0=Sun, 1=Mon, ..., 5=Fri, 6=Sat
 
-            // Hoje
-            const hoje = fmt(anchor);
+            // Helpers iterativos
+            const addDays = (d: Date, days: number) => {
+                const res = new Date(d);
+                res.setDate(res.getDate() + days);
+                return res;
+            };
 
-            // Amanhã
-            const amanhaDate = new Date(anchor);
-            amanhaDate.setDate(anchor.getDate() + 1);
-            const amanha = fmt(amanhaDate);
+            const dayNames = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+            const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
-            // Próxima segunda (se hoje for segunda, pula para a próxima)
-            const proxSeg = new Date(anchor);
-            const diffSeg = (todayIdx === 1 ? 7 : (1 - todayIdx + 7) % 7);
-            const finalDiffSeg = diffSeg === 0 ? 7 : diffSeg;
-            proxSeg.setDate(anchor.getDate() + finalDiffSeg);
+            // Relativos primários
+            let output = `TABELA DE REFERÊNCIA TEMPORAL\n\n`;
+            
+            output += `--- 1. ÂNCORAS IMEDIATAS ---\n`;
+            output += `Hoje: ${fmt(anchor)}\n`;
+            output += `Amanhã: ${fmt(addDays(anchor, 1))}\n`;
+            output += `Depois de amanhã: ${fmt(addDays(anchor, 2))}\n\n`;
 
-            // Próxima sexta
-            const proxSex = new Date(anchor);
-            const diffSex = (todayIdx === 5 ? 7 : (5 - todayIdx + 7) % 7);
-            const finalDiffSex = diffSex === 0 ? 7 : diffSex;
-            proxSex.setDate(anchor.getDate() + finalDiffSex);
+            output += `--- 2. ÂNCORAS LONGAS ---\n`;
+            output += `Mês Atual (${monthNames[month]}): ${fmt(new Date(year, month, 1))} até ${fmt(new Date(year, month + 1, 0))}\n`;
+            const proxMonthDate = new Date(year, month + 1, 1);
+            output += `Mês que Vem (${monthNames[proxMonthDate.getMonth()]}): ${fmt(proxMonthDate)} até ${fmt(new Date(year, month + 2, 0))}\n\n`;
 
-            // Primeiro do próximo mês
-            const proxMes = new Date(year, month + 1, 1);
+            output += `--- 3. PRÓXIMOS 14 DIAS ---\n`;
+            for (let i = 0; i <= 14; i++) {
+                const stepDate = addDays(anchor, i);
+                const stepDayName = dayNames[stepDate.getDay()];
+                let prefix = "";
+                if (i === 0) prefix = "(Hoje)";
+                else if (i === 1) prefix = "(Amanhã)";
+                // Mapeia até a próxima semana explicitamente (se i < 7 => esta semana/prox depende do dia, mas basta os nomes)
+                
+                output += `- ${stepDayName} ${prefix}: ${fmt(stepDate)}\n`;
+            }
 
-            return `TABELA DE REFERÊNCIA TEMPORAL
-Hoje: ${hoje}
-Amanhã: ${amanha}
-Segunda-feira que vem: ${fmt(proxSeg)}
-Sexta-feira que vem: ${fmt(proxSex)}
-Primeiro dia do próximo mês: ${fmt(proxMes)}`.trim();
+            return output;
         } catch (error) {
-            console.error("[AIService | getDateReferences] Falha crítica ao gerar tabela temporal:", error);
-            const fallback = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
-            return `Hoje: ${fallback}`;
+            console.error("[AIService | getDateReferences] Falha crítica ao gerar tabela temporal expansiva:", error);
+            return `Hoje: ${new Intl.DateTimeFormat('en-CA').format(new Date())}`;
         }
     }
 };

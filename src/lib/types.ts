@@ -173,25 +173,18 @@ export type ConversationMode =
 
 export interface AIResponse {
     mensagem: string;
-    modo: "AUTO" | "ASSISTENTE" | "HUMANO_URGENTE";
-    acao:
-    | "NENHUMA"
-    | "VER_AGENDA"
-    | "OFERTA_LEVE"
-    | "AGENDAR"
-    | "REMARCAR"
-    | "CANCELAR"
-    | "TRIAGEM"
-    | null;
-    tipo: AppointmentType | null;
-    subtipo: AppointmentSubtype | null;
-    data: string | null;   // YYYY-MM-DD
-    hora: string | null;   // HH:MM
-    lead: "QUENTE" | null;
-    confianca: "ALTA" | "MEDIA" | "BAIXA";
-    precisa_nome: boolean;
+    modo_conversa: "AUTO" | "ASSISTENTE" | "HUMANO_URGENTE";
+    estado_paciente: "EXPLORANDO" | "DECIDINDO_DATA" | "CONFIRMANDO_SLOT";
+    referencia_temporal_bruta: string | null;
+    referencia_temporal_tipo: "DIA_DA_SEMANA" | "DATA_EXATA" | "MES" | "RELATIVO" | null;
+    referencia_temporal_resolvida: string | null; // YYYY-MM-DD ou YYYY-MM
+    preferencia_periodo: "manha" | "tarde" | "dia_todo" | null;
+    acao_backend: "NENHUMA" | "VER_AGENDA" | "AGENDAR" | "CANCELAR";
+    slot_escolhido: {
+        data: string; // YYYY-MM-DD
+        hora: string; // HH:MM
+    } | null;
     nome_identificado: string | null;
-    notificar_admin: boolean;
 }
 
 // ──────────────────────────────────────────────

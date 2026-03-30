@@ -32,56 +32,6 @@ function getClinicCurrentDate(timeZone: string = 'America/Sao_Paulo'): string {
 }
 
 /**
- * Extrai um filtro de data estruturado a partir da mensagem do paciente.
- * Retorna YYYY-MM para meses, YYYY-MM-DD para datas específicas, ou null.
- */
-function extractTemporalFilter(message: string, timezone: string): string | null {
-    const content = message.toLowerCase().trim();
-    
-    // Meses absolutos
-    const monthMap: Record<string, string> = {
-        "janeiro": "01", "fevereiro": "02", "março": "03", "marco": "03",
-        "abril": "04", "maio": "05", "junho": "06",
-        "julho": "07", "agosto": "08", "setembro": "09",
-        "outubro": "10", "novembro": "11", "dezembro": "12",
-    };
-    
-    const now = new Date();
-    const year = now.getFullYear();
-    
-    for (const [name, num] of Object.entries(monthMap)) {
-        if (content.includes(name)) {
-            const monthNum = parseInt(num);
-            const resolvedYear = monthNum <= now.getMonth() ? year + 1 : year;
-            return `${resolvedYear}-${num}`;
-        }
-    }
-    
-    // "semana que vem" → próxima segunda-feira
-    if (content.includes("semana que vem")) {
-        const anchor = new Date(now);
-        const dayOfWeek = anchor.getDay();
-        const daysToMonday = dayOfWeek === 0 ? 1 : (8 - dayOfWeek);
-        anchor.setDate(anchor.getDate() + daysToMonday);
-        return `${anchor.getFullYear()}-${String(anchor.getMonth() + 1).padStart(2, "0")}-${String(anchor.getDate()).padStart(2, "0")}`;
-    }
-    
-    // "amanhã"
-    if (content.includes("amanhã") || content.includes("amanha")) {
-        const tomorrow = new Date(now);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        return `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
-    }
-    
-    // "hoje"
-    if (content.includes("hoje")) {
-        return getClinicCurrentDate(timezone);
-    }
-    
-    return null;
-}
-
-/**
  * POST /api/process-conversation
  * Orquestrador do pipeline de IA — arquitetura limpa.
  * 
@@ -138,36 +88,11 @@ export async function POST(req: NextRequest) {
         const lastSlots = (conversation as any).lastOfferedSlots as string[] || [];
         const intention = IntentionService.classify(lastClientMessage.content, conversation, lastSlots);
 
-        // ── 4. Gestão de Estado por Intenção ────────────────────────
-        let activeFilter = (conversation as any).activeSchedulingFilter as string | null;
-
-        if (intention === Intention.BACK_TO_INFO) {
-            // Paciente saiu do tema agenda → limpa tudo
-            await ConversationService.clearSchedulingState(clinicId, conversationId);
-            activeFilter = null;
-            (conversation as any).state = ConversationState.IDLE;
-        }
-
-        if (intention === Intention.CHANGE_DATE_INTENT) {
-            // Paciente mudou período/data → extrair novo filtro, limpar slots antigos
-            const newFilter = extractTemporalFilter(lastClientMessage.content, timezone);
-            activeFilter = newFilter;
-            await ConversationService.setActiveSchedulingFilter(clinicId, conversationId, newFilter);
-            await ConversationService.setLastOfferedSlots(clinicId, conversationId, []);
-            await ConversationService.setState(clinicId, conversationId, ConversationState.SCHEDULING);
-            (conversation as any).state = ConversationState.SCHEDULING;
-        }
-
-        if (
-            intention === Intention.HARD_SCHEDULING_INTENT &&
-            conversation.state === ConversationState.SCHEDULING
-        ) {
-            // Pediu outro horário no mesmo dia → limpar slots, manter filtro
-            await ConversationService.setLastOfferedSlots(clinicId, conversationId, []);
-        }
+        // ── 4. Estado Temporal Atual ────────────────────────
+        let focoTemporalStr = (conversation as any).activeSchedulingFilter as string | null;
 
         await LogService.info(clinicId, LogEvent.MESSAGE_RECEIVED, {
-            conversationId, intention, activeFilter
+            conversationId, intention, focoTemporalStr
         });
 
         // ── 5. Contexto da IA ───────────────────────────────────────
@@ -182,106 +107,112 @@ export async function POST(req: NextRequest) {
             historico_resumido,
             status_conversa: conversation.status,
             contexto_clinica: clinicContext,
-            contexto_agenda: null,      // preenchido abaixo se necessário
-            agenda_snapshot: null,      // novo formato estruturado
+            agenda_snapshot: null,      // Iniciamos sem agenda. Só busca se IA pedir
             data_referencia,
             timezone,
-            tabela_temporal,
-            intention,
+            tabela_temporal
         };
 
-        // ── 6. Injeção de Agenda (Snapshot) ─────────────────────────
-        const needsAgenda =
-            intention === Intention.HARD_SCHEDULING_INTENT ||
-            intention === Intention.SLOT_CONFIRMATION ||
-            intention === Intention.CHANGE_DATE_INTENT;
+        // ── 6. Chamada à IA ─────────────────────────────────────────
+        let aiResponse = await AIService.respond(aiCtx);
+        if (!aiResponse) {
+            // Em caso de falha da OpenAI, logamos e não alteramos estado para não corromper sessão
+            await LogService.error(clinicId, LogEvent.ERROR, { note: "Falha de comunicação com OpenAI. Estado preservado." });
+            return NextResponse.json({ ok: false, error: "AI_FAILED_PRESERVED" });
+        }
 
-        if (needsAgenda) {
-            if (conversation.state !== ConversationState.SCHEDULING) {
-                await ConversationService.setState(clinicId, conversationId, ConversationState.SCHEDULING);
-            }
-
-            // Gerar snapshot com filtro temporal do paciente
+        // ── 7. Loop Especial: A IA pediu a agenda para pensar ────────
+        if (aiResponse.acao_backend === "VER_AGENDA") {
+            const dataFocal = aiResponse.referencia_temporal_resolvida || focoTemporalStr || undefined;
+            const periodoFocal = aiResponse.preferencia_periodo;
+            
             const snapshot = await AppointmentService.getAgendaSnapshot(
                 clinicId,
-                activeFilter ?? undefined,
-                activeFilter,
+                dataFocal,
+                aiResponse.referencia_temporal_bruta,
             );
-            aiCtx.agenda_snapshot = snapshot;
+            
+            // Refinamento de snapshot via preferência da IA
+            if (periodoFocal && periodoFocal !== "dia_todo" && snapshot.availableSlots) {
+                snapshot.availableSlots = snapshot.availableSlots.filter(s => s.period === periodoFocal);
+            }
 
-            // Persistir slots oferecidos para referência de confirmação
-            const flatSlots = snapshot.availableSlots.map(s => `${s.date} ${s.time}`);
-            if (intention !== Intention.CHANGE_DATE_INTENT) {
+            aiCtx.agenda_snapshot = snapshot;
+            
+            // Se gerou um foco atualizado, persistimos para manter na memória inter-rodadas
+            if (dataFocal && dataFocal !== focoTemporalStr) {
+                await ConversationService.setActiveSchedulingFilter(clinicId, conversationId, dataFocal);
+            }
+
+            // A IA pensa de novo (agora com o snapshot na mão)
+            aiResponse = await AIService.respond(aiCtx);
+            if (!aiResponse) {
+                await LogService.error(clinicId, LogEvent.ERROR, { note: "Falha no Loop 2 da OpenAI. Estado preservado." });
+                return NextResponse.json({ ok: false, error: "AI_FAILED_2_PRESERVED" });
+            }
+            
+            // Capturamos os slots REAIS que ela decidiu enviar nesta segunda pernada
+            if (aiCtx.agenda_snapshot && aiCtx.agenda_snapshot.availableSlots) {
+                const flatSlots = aiCtx.agenda_snapshot.availableSlots.map((s: any) => `${s.date} ${s.time}`);
                 await ConversationService.setLastOfferedSlots(clinicId, conversationId, flatSlots);
             }
         }
 
-        // ── 7. Chamada à IA ─────────────────────────────────────────
-        let aiResponse = await AIService.respond(aiCtx);
-        if (!aiResponse) {
-            await ConversationService.setStatus(clinicId, conversationId, ConversationState.IDLE);
-            return NextResponse.json({ ok: false, error: "AI_FAILED" });
-        }
+        // ── 8. Execução de Ações Finais ──────────────────────────────
+        const currentAcao = aiResponse.acao_backend as string;
 
-        // Loop VER_AGENDA: a IA pediu uma data específica
-        if (aiResponse.acao === "VER_AGENDA" && aiResponse.data) {
-            const snapshot = await AppointmentService.getAgendaSnapshot(
-                clinicId,
-                aiResponse.data,
-                activeFilter,
-            );
-            aiCtx.agenda_snapshot = snapshot;
-
-            const flatSlots = snapshot.availableSlots.map(s => `${s.date} ${s.time}`);
-            await ConversationService.setLastOfferedSlots(clinicId, conversationId, flatSlots);
-
-            aiResponse = await AIService.respond(aiCtx);
-            if (!aiResponse) return NextResponse.json({ ok: false, error: "AI_FAILED_2" });
-        }
-
-        // ── 8. Execução de Ações ────────────────────────────────────
-        const currentAcao = aiResponse.acao as string;
-
-        if (["AGENDAR", "REMARCAR"].includes(currentAcao)) {
+        if (currentAcao === "AGENDAR") {
             try {
-                if (!aiResponse.data || !aiResponse.hora) throw new Error("Missing slot data");
+                if (!aiResponse.slot_escolhido || !aiResponse.slot_escolhido.data || !aiResponse.slot_escolhido.hora) {
+                    throw new Error("Missing slot data");
+                }
 
-                const isDup = await AppointmentService.isDuplicate(clinicId, contact.id, aiResponse.data, aiResponse.hora);
-                if (isDup) {
-                    aiResponse.mensagem = "Ops, notei que você já tem um agendamento para este mesmo horário! 😊";
-                    aiResponse.acao = "NENHUMA";
+                const chosenDate = aiResponse.slot_escolhido.data;
+                const chosenTime = aiResponse.slot_escolhido.hora;
+                const chosenFlat = `${chosenDate} ${chosenTime}`;
+                
+                // RECONCILIAÇÃO ANTI-FANTASMA (Validação Orgânica Recente)
+                if (!lastSlots.includes(chosenFlat) && !aiCtx.agenda_snapshot?.availableSlots?.find((s:any) => s.date === chosenDate && s.time === chosenTime)) {
+                     // Devolve o problema para o Cérebro resolver
+                     aiCtx.historico_resumido += `\n[SISTEMA]: O agendamento falhou pois o horário (${chosenFlat}) não existe na lista. Comunique de forma gentil que houve um descompasso temporal e siga a agenda.`;
+                     aiResponse = await AIService.respond(aiCtx);
+                     if (!aiResponse) {
+                        await LogService.error(clinicId, LogEvent.ERROR, { note: "Falha da IA ao contornar slot fantasma."});
+                        return NextResponse.json({ ok: false, error: "AI_ERROR_LOOP" });
+                     }
                 } else {
-                    let finalAppt;
-                    if (currentAcao === "AGENDAR") {
-                        finalAppt = await AppointmentService.create(clinicId, {
+                    const isDup = await AppointmentService.isDuplicate(clinicId, contact.id, chosenDate, chosenTime);
+                    if (isDup) {
+                        aiCtx.historico_resumido += `\n[SISTEMA]: O agendamento falhou. O paciente já tem horário marcado nesta exata data (${chosenFlat}). Avise-o que já consta no sistema.`;
+                        aiResponse = await AIService.respond(aiCtx);
+                        if (!aiResponse) {
+                            await LogService.error(clinicId, LogEvent.ERROR, { note: "Falha da IA ao contornar slot duplicado."});
+                            return NextResponse.json({ ok: false, error: "AI_ERROR_LOOP" });
+                        }
+                    } else {
+                        let finalAppt = await AppointmentService.create(clinicId, {
                             contactId: contact.id,
-                            date: aiResponse.data,
-                            time: aiResponse.hora,
+                            date: chosenDate,
+                            time: chosenTime,
                             notes: "Agendado via IA",
                         });
-                    } else {
-                        const active = await AppointmentService.findActiveAppointment(clinicId, contact.id);
-                        if (active) finalAppt = await AppointmentService.reschedule(clinicId, active.id, { date: aiResponse.data, time: aiResponse.hora });
-                    }
 
-                    if (finalAppt) {
-                        const confirmationMsg = currentAcao === "AGENDAR"
-                            ? `✅ *Consulta confirmada!*\n\n🏥 *Clínica:* ${clinic.nomeClinica}\n📅 *Data:* ${finalAppt.date}\n⏰ *Horário:* ${finalAppt.time}\n\nTe esperamos lá! 😊`
-                            : `✅ *Consulta remarcada!*\n\n🏥 *Clínica:* ${clinic.nomeClinica}\n📅 *Data:* ${finalAppt.date}\n⏰ *Horário:* ${finalAppt.time}\n\nTudo certo! 😊`;
+                        if (finalAppt) {
+                            // Backend Apenas Salva. A Mensagem da IA não é sobrescrita.
+                            const sent = await ProviderInst.sendMessage(clinicId, contact.phoneNumber, aiResponse.mensagem);
+                            if (sent) {
+                                messageAlreadySent = true;
+                                await AppointmentService.updateNotificationStatus(finalAppt.id, "SENT");
+                            }
 
-                        aiResponse.mensagem = confirmationMsg;
-                        const sent = await ProviderInst.sendMessage(clinicId, contact.phoneNumber, confirmationMsg);
-                        if (sent) {
-                            messageAlreadySent = true;
-                            await AppointmentService.updateNotificationStatus(finalAppt.id, "SENT");
+                            // Reset completo após agendamento do lado do BD
+                            await ConversationService.clearSchedulingState(clinicId, conversationId);
                         }
-
-                        // Reset completo após agendamento
-                        await ConversationService.clearSchedulingState(clinicId, conversationId);
                     }
                 }
             } catch (err: any) {
                 await LogService.error(clinicId, LogEvent.ERROR, { note: `Ação ${currentAcao} falhou`, error: err.message });
+                return NextResponse.json({ ok: false, error: "ACTION_FAILED" });
             }
         } else if (currentAcao === "CANCELAR") {
             const active = await AppointmentService.findActiveAppointment(clinicId, contact.id);
@@ -292,6 +223,10 @@ export async function POST(req: NextRequest) {
         }
 
         // ── 9. Finalização ──────────────────────────────────────────
+        if (!aiResponse) {
+            return NextResponse.json({ ok: false, error: "AI_RESPONSE_LOST_IN_EXECUTION" });
+        }
+
         if (aiResponse.nome_identificado) {
             await ContactService.saveName(clinicId, contact.id, aiResponse.nome_identificado);
         }
@@ -299,12 +234,12 @@ export async function POST(req: NextRequest) {
         const robotMsg = await MessageService.enqueueRobotReply(clinicId, conversationId, aiResponse.mensagem);
         await ConversationService.setLastProcessedMessage(clinicId, conversationId, lastClientMessage.id);
 
-        if (!messageAlreadySent && aiResponse.modo !== ConversationMode.HUMANO_URGENTE) {
+        if (!messageAlreadySent && aiResponse.modo_conversa !== ConversationMode.HUMANO_URGENTE) {
             const sent = await ProviderInst.sendMessage(clinicId, contact.phoneNumber, aiResponse.mensagem);
             if (sent) await MessageService.markProcessed(clinicId, robotMsg.id);
         }
 
-        return NextResponse.json({ ok: true, action: aiResponse.acao, messageId: robotMsg.id });
+        return NextResponse.json({ ok: true, action: aiResponse.acao_backend, messageId: robotMsg.id });
 
     } catch (error) {
         console.error("[process-conversation] Error:", error);
