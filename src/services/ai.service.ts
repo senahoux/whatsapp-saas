@@ -118,14 +118,6 @@ Ele trabalha com abordagem individualizada, buscando:
 * Pode solicitar exames após consulta
 * Tem direito a retorno
 
-Promoção:
-
-"Esse mês estamos com uma avaliação hormonal inicial gratuita 😊"
-
-Explicação:
-
-"É uma avaliação inicial para entender seus sintomas hormonais e ver se há indicação de tratamento."
-
 ---
 
 # 4. IMPLANTES HORMONAIS
