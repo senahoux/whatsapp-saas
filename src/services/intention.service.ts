@@ -20,13 +20,11 @@ export const IntentionService = {
         const isScheduling = conversation.state === ConversationState.SCHEDULING;
 
         // 1. SLOT_CONFIRMATION (Prioridade máxima se estiver em fluxo de agenda)
-        // Exemplos: "1", "2", "pode ser o primeiro", "às 10:30", "fechado"
         const isOneOrTwo = (content === "1" || content === "2") && lastOfferedSlots.length === 2;
         const confirmationTerms = [
             "pode marcar", "fechado", "quero esse", "esse horário", "pode ser",
             "sim", "confirmo", "pode agendar", "ok", "beleza", "perfeito", "fechou"
         ];
-        
         const hasConfirmationTerm = confirmationTerms.some(term => content.includes(term));
         const hasTimePattern = /\d{1,2}:\d{2}/.test(content);
         
@@ -34,36 +32,39 @@ export const IntentionService = {
             return Intention.SLOT_CONFIRMATION;
         }
 
-        // 2. HARD_SCHEDULING_INTENT
-        // Paciente explicitamente quer ver agenda ou marcar agora.
-        const HARD_KEYWORDS = [
-            "agendar", "marcar", "reservar", "outro dia", "vaga", 
-            "disponível", "horário", "ver agenda", "queria marcar", "tem vaga"
+        // 2. CHANGE_DATE_INTENT (Mudança explícita de restrição temporal — Nova Data)
+        const dateChangeTerms = [
+            "outro dia", "outra data", "semana que vem", "mes que vem", "mês que vem",
+            "janeiro", "fevereiro", "março", "abril", "maio", "junho", 
+            "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+            "segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo",
+            "amanhã", "amanha", "hoje"
         ];
-        if (HARD_KEYWORDS.some(k => content.includes(k))) {
+        if (isScheduling && dateChangeTerms.some(term => content.includes(term))) {
+            return Intention.CHANGE_DATE_INTENT;
+        }
+
+        // 3. HARD_SCHEDULING_INTENT (Desejo de agendar ou Outro Horário no mesmo dia)
+        const hardTerms = [
+            "agendar", "marcar", "vaga", "horário", "horario", "disponível", "disponivel",
+            "mais tarde", "mais cedo", "outro horário", "outro horario", "não posso", "nao posso", "prefiro"
+        ];
+        if (hardTerms.some(term => content.includes(term))) {
             return Intention.HARD_SCHEDULING_INTENT;
         }
 
-        // 3. BACK_TO_INFO
-        // Se estava em scheduling mas voltou para dúvidas gerais sem confirmar nada.
-        const INFO_KEYWORDS = [
-            "preço", "valor", "unimed", "convênio", "atende", "endereço", 
-            "local", "onde fica", "telefone", "contato", "especialidade", "funciona", "custa"
-        ];
-        const hasInfoIntent = INFO_KEYWORDS.some(k => content.includes(k));
-        
-        if (isScheduling && hasInfoIntent && !hasTimePattern && !isOneOrTwo) {
+        // 4. BACK_TO_INFO (Mudança de tema)
+        const infoTerms = ["preço", "valor", "atende", "onde fica", "endereço", "unimed", "convênio", "custa"];
+        if (isScheduling && infoTerms.some(term => content.includes(term))) {
             return Intention.BACK_TO_INFO;
         }
 
-        // 4. SOFT_SCHEDULING_INTEREST
-        // Paciente mostra abertura, mas não pediu agenda agressivamente.
-        const SOFT_KEYWORDS = ["consulta", "passar", "doutor", "atendimento", "preciso ir"];
-        if (SOFT_KEYWORDS.some(k => content.includes(k))) {
+        // 5. SOFT_SCHEDULING_INTEREST
+        const softTerms = ["consulta", "passar", "doutor", "atendimento"];
+        if (softTerms.some(term => content.includes(term))) {
             return Intention.SOFT_SCHEDULING_INTEREST;
         }
 
-        // 5. INFO_ONLY (Default)
         return Intention.INFO_ONLY;
     }
 };

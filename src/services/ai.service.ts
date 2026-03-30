@@ -224,16 +224,17 @@ Sua INTENÇÃO ATUAL classificada é: ${intention}
 
 Regras por Intenção:
 1. INFO_ONLY: O paciente só quer tirar dúvidas. Responda de forma completa e humana. NÃO ofereça agenda agora. Ação: "NENHUMA".
-2. SOFT_SCHEDULING_INTEREST: O paciente mostrou interesse leve. Responda a dúvida PRIMEIRO e depois faça uma oferta leve (ex: "Se quiser, posso ver um horário para você"). Use Ação: "OFERTA_LEVE". NÃO mostre horários ainda.
-3. HARD_SCHEDULING_INTENT: O paciente quer marcar agora. Use Ação: "VER_AGENDA" para obter slots ou apresente os horários se já os tiver no bloco "## OPÇÕES DE AGENDAMENTO (REAIS)".
-4. SLOT_CONFIRMATION: O paciente está escolhendo um horário. Use Ação: "AGENDAR" com a data e hora exatas do slot.
-5. BACK_TO_INFO: O paciente saiu do tema agenda. Volte a responder dúvidas normalmente. Ação: "NENHUMA".
+2. SOFT_SCHEDULING_INTEREST: O paciente mostrou interesse leve. Responda a dúvida PRIMEIRO e depois faça uma oferta leve (ex: "Se quiser, posso ver um horário para você"). Use Ação: "OFERTA_LEVE".
+3. HARD_SCHEDULING_INTENT ou CHANGE_DATE_INTENT: O paciente quer marcar ou pediu outro período. 
+   - Se você já tem horários no bloco "## OPÇÕES DE AGENDAMENTO (REAIS)", apresente-os.
+   - Se o paciente pediu um dia/mês específico que não está nessas opções, use Ação: "VER_AGENDA" com a data correta (YYYY-MM-DD) para consultar o backend.
+4. SLOT_CONFIRMATION: O paciente escolheu um horário. Use Ação: "AGENDAR" com a data e hora exatas do slot.
 
-Regras de Slots (Quando em HARD_SCHEDULING ou SLOT_CONFIRMATION):
-- Você receberá EXATAMENTE 2 opções reais no bloco "## OPÇÕES DE AGENDAMENTO (REAIS)".
-- Faça o paciente escolher uma dessas 2.
-- PROIBIDO perguntar: "Qual dia e horário você prefere?".
-- Use "AGENDAR" APENAS após confirmação explícita (ex: "Pode ser esse", "Sim", "Marcar às 10h", "1", "2").
+Regras de Disponibilidade (Mandatórias):
+- NUNCA invente datas ou horários da sua cabeça. 
+- Use APENAS a disponibilidade que vier do backend nos blocos de contexto.
+- Se o paciente pedir "outro dia" ou "mes que vem", use "VER_AGENDA" para que o backend forneça as opções reais.
+- Não tente "empurrar" um horário que o paciente já rejeitou. Se ele mudar a restrição de data, acompanhe-o.
 
 ---
 
@@ -347,11 +348,10 @@ Se identificar:
 
 # 20. CONSULTA DE AGENDA (REGRA DE OURO)
 
-- PRIORIDADE TOTAL: Se o paciente demonstrar qualquer sinal de interesse em consulta, atendimento ou perguntar se o Dr. atende, use a ação "VER_AGENDA" imediatamente para obter as 2 opções reais.
-- NUNCA sugira horários da sua cabeça. Use apenas os slots que aparecerem no bloco "## OPÇÕES DE AGENDAMENTO (REAIS)".
-- Se o paciente escolher uma das 2 opções (seja pelo horário, ou dizendo "1", "o primeiro", etc), isso é um AGENDAMENTO. Use a ação "AGENDAR" com a data e hora do slot escolhido.
-- Você está PROIBIDA de inventar horários ou fazer perguntas abertas de disponibilidade.
-- Se o paciente pedir "outro dia", use "VER_AGENDA" para obter novas opções.`;
+- Se o paciente quiser agendar, use "VER_AGENDA" para obter opções reais se elas ainda não estiverem presentes.
+- Se o paciente escolher um horário apresentado, use "AGENDAR".
+- Se o paciente pedir outra data ou período (ex: outro dia, semana que vem, abril), esqueça as opções anteriores e use "VER_AGENDA" para a nova data solicitada.
+- Responda sempre o que foi perguntado antes de oferecer a agenda.`;
 }
 
 function buildUserMessage(ctx: AIRequestContext): string {
@@ -369,7 +369,7 @@ function buildUserMessage(ctx: AIRequestContext): string {
     parts.push(`## Mensagem atual do paciente\n${ctx.mensagem_paciente}`);
 
     if (ctx.ultimas_ofertas && ctx.ultimas_ofertas.length > 0) {
-        parts.push(`## ÚLTIMAS OPÇÕES OFERTADAS:\n${ctx.ultimas_ofertas.join(", ")}\n\nLembre-se: O paciente pode estar se referindo a uma destas.`);
+        parts.push(`## ÚLTIMAS OPÇÕES OFERTADAS:\n${ctx.ultimas_ofertas.join(", ")}`);
     }
 
     // Contexto de agenda injetado pelo loop VER_AGENDA

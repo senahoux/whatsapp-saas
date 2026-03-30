@@ -36,6 +36,7 @@ export const Intention = {
     SOFT_SCHEDULING_INTEREST: "SOFT_SCHEDULING_INTEREST",
     HARD_SCHEDULING_INTENT: "HARD_SCHEDULING_INTENT",
     SLOT_CONFIRMATION: "SLOT_CONFIRMATION",
+    CHANGE_DATE_INTENT: "CHANGE_DATE_INTENT",
     BACK_TO_INFO: "BACK_TO_INFO",
 } as const;
 export type Intention = (typeof Intention)[keyof typeof Intention];

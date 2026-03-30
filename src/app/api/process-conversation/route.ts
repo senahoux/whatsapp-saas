@@ -102,6 +102,17 @@ export async function POST(req: NextRequest) {
             (conversation as any).state = ConversationState.IDLE;
         }
 
+        // REGRA DE REJEIÇÃO/MUDANÇA (Data ou Horário): Limpa slots anteriores para não "aprisionar" a IA
+        const isRejectionOrShift = intention === Intention.CHANGE_DATE_INTENT || 
+                                   (conversation.state === ConversationState.SCHEDULING && intention === Intention.HARD_SCHEDULING_INTENT);
+
+        if (isRejectionOrShift) {
+            await ConversationService.setLastOfferedSlots(clinicId, conversationId, []);
+            await ConversationService.setState(clinicId, conversationId, ConversationState.SCHEDULING);
+            (conversation as any).state = ConversationState.SCHEDULING;
+            (conversation as any).lastOfferedSlots = [];
+        }
+
         await LogService.info(clinicId, LogEvent.MESSAGE_RECEIVED, {
             conversationId,
             intention,
@@ -128,18 +139,29 @@ export async function POST(req: NextRequest) {
             intention // Passamos a intenção classificada para a IA
         };
 
-        // Injeção de slots apenas se houver intenção real de agendamento ou confirmação
-        if (intention === Intention.HARD_SCHEDULING_INTENT || intention === Intention.SLOT_CONFIRMATION) {
+        // Injeção de slots apenas se houver intenção real de agendamento, confirmação ou mudança de data
+        if (
+            intention === Intention.HARD_SCHEDULING_INTENT || 
+            intention === Intention.SLOT_CONFIRMATION ||
+            intention === Intention.CHANGE_DATE_INTENT
+        ) {
             if ((conversation as any).state !== ConversationState.SCHEDULING) {
                 await ConversationService.setState(clinicId, conversationId, ConversationState.SCHEDULING);
             }
             
-            // Busca slots (pode ser filtrado por data se presente na mensagem)
+            // Busca disponibilidade padrão (pode ser refinada no loop VER_AGENDA se a IA identificar data específica)
             const agendaContext = await AppointmentService.getAvailableSlots(clinicId);
             aiCtx.contexto_agenda = agendaContext;
             
-            await ConversationService.setLastOfferedSlots(clinicId, conversationId, agendaContext.horarios_disponiveis);
-            aiCtx.ultimas_ofertas = agendaContext.horarios_disponiveis;
+            // Só atualizamos o banco se não for uma mudança de data (para deixar a IA escolher a data no loop se necessário)
+            // Ou se for um HARD_INTENT inicial.
+            if (intention !== Intention.CHANGE_DATE_INTENT) {
+                await ConversationService.setLastOfferedSlots(clinicId, conversationId, agendaContext.horarios_disponiveis);
+                aiCtx.ultimas_ofertas = agendaContext.horarios_disponiveis;
+            } else {
+                // Se mudou a data, limpamos a visão da IA sobre ofertas passadas
+                aiCtx.ultimas_ofertas = [];
+            }
         }
 
         // ── 6. Chamada à IA ────────────────────────────────────────────
