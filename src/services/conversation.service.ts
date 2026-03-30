@@ -287,46 +287,35 @@ export const ConversationService = {
     },
 
     /**
-     * Decrementa o cooldown de oferta de agenda apenas se for um turno novo.
-     * Operação ATÔMICA para evitar problemas com retries concorrentes.
+     * Define o filtro temporal ativo da negociação de agenda.
+     * Ex: "abril", "2026-04", "semana-2026-04-07"
      */
-    async decrementCooldownIfNewTurn(
+    async setActiveSchedulingFilter(
         clinicId: string,
         id: string,
-        messageId: string
-    ): Promise<void> {
-        await prisma.conversation.updateMany({
-            where: {
-                id,
-                clinicId,
-                agendaOfferCooldown: { gt: 0 },
-                AND: [
-                    {
-                        OR: [
-                            { lastCooldownConsumedMessageId: null },
-                            { lastCooldownConsumedMessageId: { not: messageId } }
-                        ]
-                    }
-                ]
-            },
-            data: {
-                agendaOfferCooldown: { decrement: 1 },
-                lastCooldownConsumedMessageId: messageId
-            }
+        filter: string | null
+    ): Promise<Conversation> {
+        return prisma.conversation.update({
+            where: { id, clinicId },
+            data: { activeSchedulingFilter: filter },
         });
     },
 
     /**
-     * Define o cooldown de oferta de agenda.
+     * Limpa todo o estado de agendamento (slots, filtro, state -> IDLE).
+     * Usado quando o paciente sai do tema agenda ou completa um agendamento.
      */
-    async setAgendaOfferCooldown(
+    async clearSchedulingState(
         clinicId: string,
         id: string,
-        value: number
     ): Promise<Conversation> {
         return prisma.conversation.update({
             where: { id, clinicId },
-            data: { agendaOfferCooldown: value },
+            data: {
+                state: "IDLE",
+                lastOfferedSlots: [],
+                activeSchedulingFilter: null,
+            },
         });
     },
 

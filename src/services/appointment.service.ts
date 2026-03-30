@@ -1,70 +1,51 @@
 /**
  * AppointmentService — WhatsApp SaaS
  *
- * Passo 4: getAvailableSlots + _getSlotsForDate (loop VER_AGENDA)
- * Passo 5: create, reschedule, cancel, list, blockDay, unblockDay
+ * Responsável pela agenda da clínica.
+ * Usa workingDays + workingShifts da clínica para gerar slots dinâmicos.
+ * O backend é a FONTE DE VERDADE da disponibilidade.
  *
  * REGRA: clinicId é sempre o primeiro parâmetro. Nenhuma query sem tenant filter.
- * Nenhum endpoint acessa Prisma diretamente — tudo passa por este service.
  */
 
 import { prisma } from "@/lib/prisma";
-import { AppointmentStatus, AppointmentSource, NotificationStatus } from "@/lib/types"; // Import from types if defined there, or @prisma/client
-import type { AgendaContext } from "./ai.service";
+import { AppointmentStatus, AppointmentSource } from "@/lib/types";
 
 // ──────────────────────────────────────────────
-// Helpers de horário (imutáveis entre os passos)
+// Types
 // ──────────────────────────────────────────────
 
-const WORK_START = 8;
-const WORK_END = 18;
-
-function generateDaySlots(slotDurationMinutes: number): string[] {
-    const slots: string[] = [];
-    const totalMinutes = (WORK_END - WORK_START) * 60;
-    for (let m = 0; m < totalMinutes; m += slotDurationMinutes) {
-        const hour = Math.floor(m / 60) + WORK_START;
-        const min = m % 60;
-        slots.push(`${String(hour).padStart(2, "0")}:${String(min).padStart(2, "0")}`);
-    }
-    return slots;
+export interface WorkingShift {
+    period: "manha" | "tarde";
+    start: string; // HH:MM
+    end: string;   // HH:MM
 }
 
-function toDateStr(d: Date): string {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${day}`;
+export interface AvailableSlot {
+    date: string;   // YYYY-MM-DD
+    time: string;   // HH:MM
+    period: "manha" | "tarde";
 }
 
-function getNextDates(from: Date, count: number): string[] {
-    const dates: string[] = [];
-    const cur = new Date(from);
-    cur.setDate(cur.getDate() + 1);
-    while (dates.length < count) {
-        dates.push(toDateStr(cur));
-        cur.setDate(cur.getDate() + 1);
-    }
-    return dates;
+export interface AgendaSnapshot {
+    initialSuggestions: string[];  // ["YYYY-MM-DD HH:MM", ...] — sugestões prioritárias da clínica
+    availableSlots: AvailableSlot[];
+    activeFilter: string | null;  // Filtro temporal ativo do paciente
 }
-
-// ──────────────────────────────────────────────
-// Input types
-// ──────────────────────────────────────────────
 
 export interface CreateAppointmentInput {
     contactId: string;
-    type?: string;          // AppointmentType (default: CONSULTA)
+    type?: string;
     subtype?: string | null;
-    date: string;           // YYYY-MM-DD
-    time: string;           // HH:MM
-    source?: string;        // AppointmentSource (default: MANUAL)
+    date: string;       // YYYY-MM-DD
+    time: string;       // HH:MM
+    source?: string;
     notes?: string | null;
 }
 
 export interface RescheduleAppointmentInput {
-    date: string;           // YYYY-MM-DD
-    time: string;           // HH:MM
+    date: string;
+    time: string;
     notes?: string | null;
 }
 
@@ -77,83 +58,192 @@ export interface ListAppointmentsOptions {
 }
 
 // ──────────────────────────────────────────────
+// Helpers
+// ──────────────────────────────────────────────
+
+function toDateStr(d: Date): string {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+}
+
+function generateSlotsForShift(shift: WorkingShift, durationMinutes: number): string[] {
+    const slots: string[] = [];
+    const [startH, startM] = shift.start.split(":").map(Number);
+    const [endH, endM] = shift.end.split(":").map(Number);
+    const startTotal = startH * 60 + startM;
+    const endTotal = endH * 60 + endM;
+
+    for (let m = startTotal; m + durationMinutes <= endTotal; m += durationMinutes) {
+        const hour = Math.floor(m / 60);
+        const min = m % 60;
+        slots.push(`${String(hour).padStart(2, "0")}:${String(min).padStart(2, "0")}`);
+    }
+    return slots;
+}
+
+function classifyPeriod(time: string): "manha" | "tarde" {
+    const hour = parseInt(time.split(":")[0]);
+    return hour < 12 ? "manha" : "tarde";
+}
+
+// ──────────────────────────────────────────────
 // Service
 // ──────────────────────────────────────────────
 
 export const AppointmentService = {
 
-    // ── Passo 4: consulta de slots para loop VER_AGENDA ──────────────
-
-    async getAvailableSlots(
+    /**
+     * Gera um AgendaSnapshot estruturado para a IA.
+     * 
+     * @param clinicId - ID da clínica
+     * @param filter - Filtro temporal opcional (ex: "2026-04", "2026-04-01", "2026-W14")
+     * @param activeFilter - Label do filtro ativo para passthrough (ex: "abril")
+     * @param maxSlots - Máximo de slots no snapshot (default: 15)
+     */
+    async getAgendaSnapshot(
         clinicId: string,
-        targetDate?: string,
-    ): Promise<AgendaContext> {
+        filter?: string,
+        activeFilter?: string | null,
+        maxSlots: number = 15,
+    ): Promise<AgendaSnapshot> {
         const clinic = await prisma.clinic.findUnique({
             where: { id: clinicId },
-            select: { consultaDuracao: true, prioritySuggestions: true },
+            select: {
+                consultaDuracao: true,
+                workingDays: true,
+                workingShifts: true,
+                prioritySuggestions: true,
+            },
         });
 
-        const slotDuration = clinic?.consultaDuracao ?? 30;
-        const allSlotsBase = generateDaySlots(slotDuration);
+        const duration = clinic?.consultaDuracao ?? 30;
+        const workingDays: number[] = (clinic?.workingDays as number[]) ?? [1, 2, 3, 4, 5];
+        const shifts: WorkingShift[] = (clinic?.workingShifts as unknown as WorkingShift[]) ?? [
+            { period: "manha", start: "08:00", end: "12:00" },
+            { period: "tarde", start: "13:00", end: "18:00" },
+        ];
         const priorities = (clinic?.prioritySuggestions as any[]) || [];
 
+        // Determinar período de busca
         const today = new Date();
-        const resolvedDate = targetDate ?? toDateStr(new Date(today.getTime() + 24 * 60 * 60 * 1000));
+        let searchStart = new Date(today);
+        searchStart.setDate(searchStart.getDate() + 1); // começa amanhã
+        let searchDays = 14;
 
-        let finalSlots: string[] = [];
+        if (filter) {
+            // Filtro por data específica (YYYY-MM-DD)
+            if (/^\d{4}-\d{2}-\d{2}$/.test(filter)) {
+                searchStart = new Date(filter + "T00:00:00");
+                searchDays = 1;
+            }
+            // Filtro por mês (YYYY-MM)
+            else if (/^\d{4}-\d{2}$/.test(filter)) {
+                const [y, m] = filter.split("-").map(Number);
+                searchStart = new Date(y, m - 1, 1);
+                // Se o mês já começou, começa de amanhã
+                if (searchStart < today) {
+                    searchStart = new Date(today);
+                    searchStart.setDate(searchStart.getDate() + 1);
+                }
+                searchDays = 30; // busca até 30 dias no mês
+            }
+        }
 
-        // 1. Tentar casar com prioridades (se houver)
-        if (priorities.length > 0) {
-            for (const p of priorities) {
-                if (finalSlots.length >= 2) break;
+        // Gerar todas as datas válidas no período
+        const validDates: string[] = [];
+        const cursor = new Date(searchStart);
+        for (let i = 0; i < searchDays && validDates.length < 30; i++) {
+            const dayOfWeek = cursor.getDay();
+            if (workingDays.includes(dayOfWeek)) {
+                validDates.push(toDateStr(cursor));
+            }
+            cursor.setDate(cursor.getDate() + 1);
+        }
 
-                // Ex: { date: "2026-03-30", period: "tarde" }
-                const date = p.date;
-                const period = p.period; // "manha" | "tarde" | "noite"
+        // Gerar slots possíveis por turno
+        const allTimeSlotsPerShift: { shift: WorkingShift; times: string[] }[] = shifts.map(s => ({
+            shift: s,
+            times: generateSlotsForShift(s, duration),
+        }));
+        const allTimeSlots = allTimeSlotsPerShift.flatMap(s => s.times);
 
-                const availableForDate = await AppointmentService._getSlotsForDate(clinicId, date, allSlotsBase);
+        // Buscar bloqueios e ocupação real para todas as datas
+        const blocks = await prisma.scheduleBlock.findMany({
+            where: { clinicId, blockDate: { in: validDates }, isAvailable: false },
+            select: { blockDate: true },
+        });
+        const blockedDates = new Set(blocks.map(b => b.blockDate));
 
-                const filtered = availableForDate.filter(s => {
-                    const hour = parseInt(s.split(":")[0]);
-                    if (period === "manha") return hour < 12;
-                    if (period === "tarde") return hour >= 12 && hour < 18;
-                    if (period === "noite") return hour >= 18;
-                    return true;
+        const occupied = await prisma.appointment.findMany({
+            where: {
+                clinicId,
+                date: { in: validDates },
+                status: { in: [AppointmentStatus.AGENDADO, AppointmentStatus.REMARCADO] },
+            },
+            select: { date: true, time: true },
+        });
+        const occupiedSet = new Set(occupied.map(a => `${a.date} ${a.time}`));
+
+        // Montar slots disponíveis
+        const availableSlots: AvailableSlot[] = [];
+        for (const date of validDates) {
+            if (blockedDates.has(date)) continue;
+            for (const time of allTimeSlots) {
+                if (occupiedSet.has(`${date} ${time}`)) continue;
+                availableSlots.push({
+                    date,
+                    time,
+                    period: classifyPeriod(time),
                 });
+                if (availableSlots.length >= maxSlots) break;
+            }
+            if (availableSlots.length >= maxSlots) break;
+        }
 
-                for (const s of filtered) {
-                    if (finalSlots.length >= 2) break;
-                    finalSlots.push(`${date} ${s}`);
+        // Montar sugestões iniciais (só se não há filtro ativo)
+        const initialSuggestions: string[] = [];
+        if (!activeFilter && priorities.length > 0) {
+            for (const p of priorities) {
+                const pDate = p.date;
+                const pPeriod = p.period;
+                const matching = availableSlots.find(
+                    s => s.date === pDate && s.period === pPeriod
+                );
+                if (matching) {
+                    initialSuggestions.push(`${matching.date} ${matching.time}`);
                 }
             }
         }
 
-        // 2. Se não deu 2, completar com o fluxo normal (targetDate em diante)
-        if (finalSlots.length < 2) {
-            const searchDates = [resolvedDate, ...getNextDates(new Date(resolvedDate), 14)];
-            for (const d of searchDates) {
-                if (finalSlots.length >= 2) break;
-                const slots = await AppointmentService._getSlotsForDate(clinicId, d, allSlotsBase);
-                for (const s of slots) {
-                    if (finalSlots.length >= 2) break;
-                    const fullSlot = `${d} ${s}`;
-                    if (!finalSlots.includes(fullSlot)) {
-                        finalSlots.push(fullSlot);
-                    }
-                }
-            }
-        }
-
-        // 3. Formatar retorno
-        // Nota: A Interface AgendaContext agora deve lidar com slots completos (data + hora) ou manter compatibilidade
         return {
-            data_consultada: resolvedDate,
-            horarios_disponiveis: finalSlots, // Agora enviamos ["YYYY-MM-DD HH:MM", ...]
-            proximos_dias_disponiveis: [], // Simplificado para o novo fluxo determinístico
+            initialSuggestions,
+            availableSlots,
+            activeFilter: activeFilter ?? null,
         };
     },
 
-    /** Interno — use getAvailableSlots externamente */
+    /**
+     * Backward-compatible: retorna slots flat (usado por confirmação).
+     */
+    async getAvailableSlots(
+        clinicId: string,
+        targetDate?: string,
+    ): Promise<{ data_consultada: string; horarios_disponiveis: string[]; proximos_dias_disponiveis: string[] }> {
+        const filter = targetDate ?? undefined;
+        const snapshot = await AppointmentService.getAgendaSnapshot(clinicId, filter);
+        const flatSlots = snapshot.availableSlots.map(s => `${s.date} ${s.time}`);
+        return {
+            data_consultada: targetDate ?? toDateStr(new Date()),
+            horarios_disponiveis: flatSlots,
+            proximos_dias_disponiveis: [],
+        };
+    },
+
+    /**
+     * Internal: busca slots para uma data específica (usado em validação).
+     */
     async _getSlotsForDate(
         clinicId: string,
         date: string,
@@ -168,7 +258,7 @@ export const AppointmentService = {
             where: {
                 clinicId,
                 date,
-                status: { in: ["AGENDADO", "REMARCADO"] }
+                status: { in: [AppointmentStatus.AGENDADO, AppointmentStatus.REMARCADO] },
             },
             select: { time: true },
         });
@@ -176,25 +266,16 @@ export const AppointmentService = {
         return allSlots.filter((slot) => !occupiedTimes.has(slot));
     },
 
-    // ── Passo 5: CRUD de agendamentos ────────────────────────────────
+    // ── CRUD de agendamentos ────────────────────────────────
 
-    /**
-     * Cria um agendamento com validação de conflito, bloqueio de dia e duplicidade.
-     * Lança erro se slot já ocupado, dia bloqueado ou agendamento duplicado.
-     */
     async create(clinicId: string, input: CreateAppointmentInput) {
-        // --- REGRA DE DUPLICIDADE (MUDANÇA 8 refatorada) ---
         const isDuplicate = await AppointmentService.isDuplicate(
-            clinicId, 
-            input.contactId, 
-            input.date, 
-            input.time
+            clinicId, input.contactId, input.date, input.time
         );
         if (isDuplicate) {
             throw new Error(`Duplicate appointment detected for contact ${input.contactId} at ${input.date} ${input.time}`);
         }
 
-        // Verifica conflito de horário na clínica (qualquer paciente)
         const conflict = await prisma.appointment.findFirst({
             where: {
                 clinicId,
@@ -207,7 +288,6 @@ export const AppointmentService = {
             throw new Error(`Slot ${input.date} ${input.time} already booked in clinic ${clinicId}`);
         }
 
-        // Verifica se o dia está bloqueado
         const block = await prisma.scheduleBlock.findFirst({
             where: { clinicId, blockDate: input.date, isAvailable: false },
         });
@@ -226,77 +306,49 @@ export const AppointmentService = {
                 time: input.time,
                 source: input.source ?? AppointmentSource.MANUAL,
                 notes: input.notes ?? null,
-                
-                // Inicialização do rastreio de notificação
                 notificationStatus: "PENDING",
-                notificationAttempts: 0
+                notificationAttempts: 0,
             },
         });
     },
 
-    /**
-     * Verifica se já existe um agendamento ATIVO (AGENDADO ou REMARCADO) no mesmo horário 
-     * para o mesmo contato na mesma clínica.
-     */
     async isDuplicate(clinicId: string, contactId: string, date: string, time: string): Promise<boolean> {
         const existing = await prisma.appointment.findFirst({
             where: {
-                clinicId,
-                contactId,
-                date,
-                time,
-                status: { in: [AppointmentStatus.AGENDADO, AppointmentStatus.REMARCADO] }
+                clinicId, contactId, date, time,
+                status: { in: [AppointmentStatus.AGENDADO, AppointmentStatus.REMARCADO] },
             },
-            select: { id: true }
+            select: { id: true },
         });
         return !!existing;
     },
 
-    /**
-     * Atualiza o status da notificação pós-agendamento.
-     * Incrementa tentativas e salva erro se houver.
-     */
-    async updateNotificationStatus(
-        appointmentId: string, 
-        status: "SENT" | "FAILED", 
-        error?: string
-    ) {
+    async updateNotificationStatus(appointmentId: string, status: "SENT" | "FAILED", error?: string) {
         return prisma.appointment.update({
             where: { id: appointmentId },
             data: {
                 notificationStatus: status,
                 notificationAttempts: { increment: 1 },
                 notificationLastError: error || null,
-                notificationLastAttemptAt: new Date()
-            }
+                notificationLastAttemptAt: new Date(),
+            },
         });
     },
 
-    /**
-     * Remarca agendamento para nova data/hora.
-     * Valida clinicId — garante isolamento multi-tenant.
-     */
-    async reschedule(
-        clinicId: string,
-        appointmentId: string,
-        input: RescheduleAppointmentInput,
-    ) {
+    async reschedule(clinicId: string, appointmentId: string, input: RescheduleAppointmentInput) {
         const appt = await prisma.appointment.findFirst({
             where: { id: appointmentId, clinicId },
         });
         if (!appt) {
-            throw new Error(
-                `Appointment ${appointmentId} not found or does not belong to clinic ${clinicId}`,
-            );
+            throw new Error(`Appointment ${appointmentId} not found or does not belong to clinic ${clinicId}`);
         }
 
-        // Conflito no novo slot (exclui o próprio agendamento)
         const conflict = await prisma.appointment.findFirst({
             where: {
                 clinicId,
                 date: input.date,
                 time: input.time,
-                status: { in: ["AGENDADO", "REMARCADO"] },
+                status: { in: [AppointmentStatus.AGENDADO, AppointmentStatus.REMARCADO] },
                 NOT: { id: appointmentId },
             },
         });
@@ -315,17 +367,12 @@ export const AppointmentService = {
         });
     },
 
-    /**
-     * Cancela um agendamento. Valida clinicId obrigatoriamente.
-     */
     async cancel(clinicId: string, appointmentId: string, notes?: string) {
         const appt = await prisma.appointment.findFirst({
             where: { id: appointmentId, clinicId },
         });
         if (!appt) {
-            throw new Error(
-                `Appointment ${appointmentId} not found or does not belong to clinic ${clinicId}`,
-            );
+            throw new Error(`Appointment ${appointmentId} not found or does not belong to clinic ${clinicId}`);
         }
         return prisma.appointment.update({
             where: { id: appointmentId },
@@ -336,28 +383,17 @@ export const AppointmentService = {
         });
     },
 
-    /**
-     * Busca o agendamento ativo mais recente para um paciente.
-     * Considerado ativo: AGENDADO ou REMARCADO.
-     */
     async findActiveAppointment(clinicId: string, contactId: string) {
         return prisma.appointment.findFirst({
             where: {
-                clinicId,
-                contactId,
+                clinicId, contactId,
                 status: { in: [AppointmentStatus.AGENDADO, AppointmentStatus.REMARCADO] },
             },
             orderBy: { createdAt: "desc" },
-            include: {
-                contact: { select: { name: true, phoneNumber: true } },
-            },
+            include: { contact: { select: { name: true, phoneNumber: true } } },
         });
     },
 
-    /**
-     * Lista agendamentos com filtros e paginação.
-     * Sempre filtra por clinicId.
-     */
     async list(clinicId: string, options: ListAppointmentsOptions = {}) {
         const page = options.page ?? 1;
         const pageSize = options.pageSize ?? 50;
@@ -376,9 +412,7 @@ export const AppointmentService = {
                 orderBy: [{ date: "asc" }, { time: "asc" }],
                 skip,
                 take: pageSize,
-                include: {
-                    contact: { select: { name: true, phoneNumber: true } },
-                },
+                include: { contact: { select: { name: true, phoneNumber: true } } },
             }),
             prisma.appointment.count({ where }),
         ]);
@@ -386,11 +420,8 @@ export const AppointmentService = {
         return { data, total };
     },
 
-    // ── Passo 5: bloqueios de agenda ──────────────────────────────────
+    // ── Bloqueios de agenda ──────────────────────────────────
 
-    /**
-     * Bloqueia um dia inteiro na agenda (idempotente).
-     */
     async blockDay(clinicId: string, blockDate: string, reason?: string) {
         const existing = await prisma.scheduleBlock.findFirst({
             where: { clinicId, blockDate },
@@ -409,9 +440,6 @@ export const AppointmentService = {
         });
     },
 
-    /**
-     * Remove bloqueio de um dia. Retorna null se não havia bloqueio.
-     */
     async unblockDay(clinicId: string, blockDate: string) {
         const block = await prisma.scheduleBlock.findFirst({
             where: { clinicId, blockDate },
@@ -423,9 +451,6 @@ export const AppointmentService = {
         });
     },
 
-    /**
-     * Lista bloqueios de agenda da clínica.
-     */
     async listBlocks(clinicId: string, onlyBlocked = true) {
         return prisma.scheduleBlock.findMany({
             where: {

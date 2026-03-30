@@ -17,24 +17,21 @@ import type { ClinicContext } from "./clinic.service";
 // Types — contexto enviado para a IA
 // ──────────────────────────────────────────────
 
-export interface AgendaContext {
-    data_consultada: string;        // YYYY-MM-DD
-    horarios_disponiveis: string[]; // ["09:00", "10:30", ...]
-    proximos_dias_disponiveis: string[]; // ["2025-03-25", "2025-03-26"]
-}
+// Re-export para compatibilidade
+export type { AgendaSnapshot } from "./appointment.service";
+import type { AgendaSnapshot } from "./appointment.service";
 
 export interface AIRequestContext {
     mensagem_paciente: string;
     nome_paciente: string | null;
-    historico_resumido: string;  // Histórico formatado pelo MessageService
+    historico_resumido: string;
     status_conversa: string;
-    contexto_clinica: ClinicContext; // Nunca inclui clinicId
-    contexto_agenda: AgendaContext | null; // null na primeira chamada; preenchido no loop VER_AGENDA
-    ultimas_ofertas: string[] | null;
-    intention: string; // INFO_ONLY, SOFT_SCHEDULING_INTEREST, etc.
-    data_referencia: string; // YYYY-MM-DD (Data real da clínica)
-    timezone: string;        // Ex: America/Sao_Paulo
-    tabela_temporal: string; // Tabela formatada para lookup
+    contexto_clinica: ClinicContext;
+    agenda_snapshot: AgendaSnapshot | null;
+    intention: string;
+    data_referencia: string;
+    timezone: string;
+    tabela_temporal: string;
 }
 
 // ──────────────────────────────────────────────
@@ -135,8 +132,6 @@ Explicação:
 
 Explicação padrão:
 
-"Os implantes hormonais fazem parte de um acompanhamento médico de 6 meses.
-
 Eles são uma forma moderna de reposição hormonal, que liberam os hormônios de forma contínua e estável no organismo.
 
 Ajudam em sintomas como cansaço, baixa libido, alterações de humor e menopausa.
@@ -151,7 +146,7 @@ Além disso, muitos pacientes relatam melhora na disposição, energia, bem-esta
 
 Nunca aprofundar riscos ou efeitos colaterais.
 
-Sempre direcionar:
+Direcionar:
 
 "O Dr. explica tudo certinho na consulta e tira todas as dúvidas."
 
@@ -166,10 +161,6 @@ Se perguntar:
 Responder:
 
 "O implante costuma durar em média 6 meses no organismo 😊"
-
-Se não for pergunta direta, usar:
-
-"Faz parte de um acompanhamento de 6 meses."
 
 ---
 
@@ -216,107 +207,42 @@ Capela, Mogi Guaçu - SP"
 
 ---
 
-# 11. REGRAS DO FLUXO HÍBRIDO (CRÍTICO)
+# 11. REGRAS DE AGENDAMENTO
 
-O agendamento agora é HÍBRIDO. Você deve agir conforme a intenção detectada pelo sistema:
-
-Sua INTENÇÃO ATUAL classificada é: ${intention}
+Intenção atual: ${intention}
 
 Regras por Intenção:
-1. INFO_ONLY: O paciente só quer tirar dúvidas. Responda de forma completa e humana. NÃO ofereça agenda agora. Ação: "NENHUMA".
-2. SOFT_SCHEDULING_INTEREST: O paciente mostrou interesse leve. Responda a dúvida PRIMEIRO e depois faça uma oferta leve (ex: "Se quiser, posso ver um horário para você"). Use Ação: "OFERTA_LEVE".
-3. HARD_SCHEDULING_INTENT ou CHANGE_DATE_INTENT: O paciente quer marcar ou pediu outro período. 
-   - Se você já tem horários no bloco "## OPÇÕES DE AGENDAMENTO (REAIS)", apresente-os.
-   - Se o paciente pediu um dia/mês específico que não está nessas opções, use Ação: "VER_AGENDA" com a data correta (YYYY-MM-DD) para consultar o backend.
-4. SLOT_CONFIRMATION: O paciente escolheu um horário. Use Ação: "AGENDAR" com a data e hora exatas do slot.
+- INFO_ONLY: Responda a dúvida. Não ofereça agenda. Ação: "NENHUMA".
+- SOFT_SCHEDULING_INTEREST: Responda a dúvida e faça oferta leve. Ação: "OFERTA_LEVE".
+- HARD_SCHEDULING_INTENT / CHANGE_DATE_INTENT: Apresente os horários do snapshot abaixo. Se não houver ou paciente pedir data diferente, use "VER_AGENDA" com data YYYY-MM-DD.
+- SLOT_CONFIRMATION: Paciente escolheu. Use "AGENDAR" com data+hora exatas.
+- BACK_TO_INFO: Responda a dúvida normalmente. Ação: "NENHUMA".
 
-Regras de Disponibilidade (Mandatórias):
-- NUNCA invente datas ou horários da sua cabeça. 
-- Use APENAS a disponibilidade que vier do backend nos blocos de contexto.
-- Se o paciente pedir "outro dia" ou "mes que vem", use "VER_AGENDA" para que o backend forneça as opções reais.
-- Não tente "empurrar" um horário que o paciente já rejeitou. Se ele mudar a restrição de data, acompanhe-o.
+Regra de Ouro: NUNCA invente datas ou horários. Use APENAS o que vier do backend.
 
 ---
 
-# 12. PACIENTE INDECISO
+# 12. HUMANIZAÇÃO E FLUXO
 
-Se houver medo ou dúvida:
-
-Usar estrutura:
-
-* acolher
-* normalizar
-* direcionar
-
-Exemplo:
-
-"Entendo seu receio, isso é muito comum 😊
-Muitos pacientes chegam assim também.
-
-O Dr. conduz tudo com muito cuidado e ajusta conforme você se sentir confortável.
-
-Prefere ver um horário disponível pela manhã ou à tarde?
+- Mensagens curtas (máximo 2-3 linhas)
+- Emoji leve (no inicio), linguagem variada
+- Fluxo: acolher → entender → direcionar → oferecer → fechar
+- Nunca dar diagnóstico, prometer resultado ou falar efeitos colaterais
+- puxar para consulta e fechar com ação
 
 ---
 
-# 13. OBJEÇÃO DE PREÇO
+# 13. PACIENTE INDECISO OU OBJEÇÃO DE PREÇO
 
-Nunca baixar valor.
-
-Sempre reposicionar:
-
-"O valor reflete uma avaliação completa e individualizada, evitando tratamentos desnecessários."
-
-Sempre puxar ação:
-
-"Quer que eu reserve um horário pra você?"
+Indeciso: acolher + normalizar + direcionar.
+Preço: reposicionar valor, nunca baixar. Puxar ação.
 
 ---
 
-# 14. HUMANIZAÇÃO
-
-* mensagens curtas (máximo 2 linhas)
-* pode usar emoji leve
-* variar linguagem
-* evitar repetição
-* não enviar textos longos
-
----
-
-# 15. FLUXO
-
-Sempre seguir:
-
-1. acolher
-2. entender
-3. direcionar
-4. oferecer horários
-5. fechar
-
-Após confirmação:
-
-* confirmar horário
-* enviar instruções
-* encerrar
-
----
-
-# 16. REGRAS CRÍTICAS
-
-* nunca dar diagnóstico
-* nunca prometer resultado
-* nunca falar efeitos colaterais
-* sempre puxar para consulta
-* sempre fechar com ação
-
----
-
-# 17. ESTRUTURA DE RESPOSTA (API)
-
-Sempre responder em JSON:
+# 14. RESPOSTA (JSON obrigatório)
 
 {
-"mensagem": "texto para paciente",
+"mensagem": "texto",
 "modo": "AUTO",
 "acao": "NENHUMA",
 "tipo": "CONSULTA",
@@ -330,28 +256,9 @@ Sempre responder em JSON:
 
 ---
 
-# 18. CAPTURA DE NOME
+# 15. NOME
 
-Se não tiver nome:
-
-* perguntar nome
-
-Se identificar:
-
-* preencher "nome_identificado"
-
----
-
-👉 transformar conversa em consulta agendada apenas quando houver intenção real.
-👉 responder primeiro o que foi perguntado.
-👉 de forma natural, humana e eficiente.
-
-# 20. CONSULTA DE AGENDA (REGRA DE OURO)
-
-- Se o paciente quiser agendar, use "VER_AGENDA" para obter opções reais se elas ainda não estiverem presentes.
-- Se o paciente escolher um horário apresentado, use "AGENDAR".
-- Se o paciente pedir outra data ou período (ex: outro dia, semana que vem, abril), esqueça as opções anteriores e use "VER_AGENDA" para a nova data solicitada.
-- Responda sempre o que foi perguntado antes de oferecer a agenda.`;
+Se não tiver nome, pergunte. Se identificar, preencha "nome_identificado".`;
 }
 
 function buildUserMessage(ctx: AIRequestContext): string {
@@ -368,20 +275,24 @@ function buildUserMessage(ctx: AIRequestContext): string {
     parts.push(`## Status atual da conversa\n${ctx.status_conversa}`);
     parts.push(`## Mensagem atual do paciente\n${ctx.mensagem_paciente}`);
 
-    if (ctx.ultimas_ofertas && ctx.ultimas_ofertas.length > 0) {
-        parts.push(`## ÚLTIMAS OPÇÕES OFERTADAS:\n${ctx.ultimas_ofertas.join(", ")}`);
-    }
+    // Snapshot estruturado da agenda
+    if (ctx.agenda_snapshot) {
+        const { initialSuggestions, availableSlots, activeFilter } = ctx.agenda_snapshot;
 
-    // Contexto de agenda injetado pelo loop VER_AGENDA
-    if (ctx.contexto_agenda) {
-        const { data_consultada, horarios_disponiveis } = ctx.contexto_agenda;
-        const slots = horarios_disponiveis.length > 0
-            ? horarios_disponiveis.join(", ")
-            : "Nenhum horário disponível";
+        if (activeFilter) {
+            parts.push(`## FILTRO TEMPORAL DO PACIENTE\n${activeFilter}`);
+        }
 
-        parts.push(
-            `## OPÇÕES DE AGENDAMENTO (REAIS):\n${slots}\n\nREGRA: Ofereça EXATAMENTE estas 2 opções acima. Não abra para escolha livre de data/hora.`
-        );
+        if (initialSuggestions.length > 0) {
+            parts.push(`## SUGESTÕES INICIAIS DA CLÍNICA\n${initialSuggestions.join(", ")}\n(Use como primeira oferta se o paciente não pediu período específico)`);
+        }
+
+        if (availableSlots.length > 0) {
+            const formatted = availableSlots.map(s => `${s.date} ${s.time} (${s.period})`).join("\n");
+            parts.push(`## DISPONIBILIDADE REAL\n${formatted}\n\nEscolha 2-3 opções boas para oferecer (mix manhã/tarde se possível). Nunca invente horários fora desta lista.`);
+        } else {
+            parts.push(`## DISPONIBILIDADE REAL\nNenhum horário disponível no período solicitado. Informe ao paciente e sugira outro período.`);
+        }
     }
 
     return parts.join("\n\n");
@@ -525,13 +436,13 @@ export const AIService = {
         try {
             // Usa Intl para pegar "agora" no timezone correto
             const now = new Date();
-            const fmt = (d: Date) => new Intl.DateTimeFormat('en-CA', { 
-                timeZone, 
-                year: 'numeric', 
-                month: '2-digit', 
-                day: '2-digit' 
+            const fmt = (d: Date) => new Intl.DateTimeFormat('en-CA', {
+                timeZone,
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
             }).format(d);
-            
+
             // Âncora formatada no fuso da clínica
             const formatter = new Intl.DateTimeFormat('en-US', {
                 timeZone,
@@ -541,7 +452,7 @@ export const AIService = {
             });
             const parts = formatter.formatToParts(now);
             const getP = (type: string) => parts.find(p => p.type === type)?.value || "0";
-            
+
             // Cria objeto Date "local" ao fuso para cálculos de dias da semana
             const year = parseInt(getP('year'));
             const month = parseInt(getP('month')) - 1;
@@ -556,22 +467,22 @@ export const AIService = {
             const amanhaDate = new Date(anchor);
             amanhaDate.setDate(anchor.getDate() + 1);
             const amanha = fmt(amanhaDate);
-            
+
             // Próxima segunda (se hoje for segunda, pula para a próxima)
             const proxSeg = new Date(anchor);
             const diffSeg = (todayIdx === 1 ? 7 : (1 - todayIdx + 7) % 7);
             const finalDiffSeg = diffSeg === 0 ? 7 : diffSeg;
             proxSeg.setDate(anchor.getDate() + finalDiffSeg);
-            
+
             // Próxima sexta
             const proxSex = new Date(anchor);
             const diffSex = (todayIdx === 5 ? 7 : (5 - todayIdx + 7) % 7);
             const finalDiffSex = diffSex === 0 ? 7 : diffSex;
             proxSex.setDate(anchor.getDate() + finalDiffSex);
-            
+
             // Primeiro do próximo mês
             const proxMes = new Date(year, month + 1, 1);
-            
+
             return `TABELA DE REFERÊNCIA TEMPORAL
 Hoje: ${hoje}
 Amanhã: ${amanha}

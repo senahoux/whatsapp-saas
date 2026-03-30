@@ -52,6 +52,9 @@ model Clinic {
   faq                 String?  // JSON serializado
   regrasPersonalizadas String? // JSON serializado
   timezone            String   @default("America/Sao_Paulo")
+  // Configuração de calendário da clínica
+  workingDays         Int[]    @default([1, 2, 3, 4, 5]) // 0=Dom, 1=Seg, ..., 6=Sáb
+  workingShifts       Json?    @default("[{\"period\":\"manha\",\"start\":\"08:00\",\"end\":\"12:00\"},{\"period\":\"tarde\",\"start\":\"13:00\",\"end\":\"18:00\"}]")
   prioritySuggestions Json?    @default("[]")
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
@@ -130,8 +133,7 @@ model Conversation {
   // state: IDLE | SCHEDULING
   state                String    @default("IDLE")
   lastOfferedSlots     Json?     @default("[]")
-  agendaOfferCooldown  Int       @default(0)
-  lastCooldownConsumedMessageId String?
+  activeSchedulingFilter String? // Filtro temporal ativo: "abril", "semana-2026-04-07", etc.
   humanInterventionAt  DateTime?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
