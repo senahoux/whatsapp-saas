@@ -1,0 +1,88 @@
+import { AIService } from "../src/services/ai.service";
+import { AIRequestContext, ClinicContext } from "../src/lib/types";
+
+require('dotenv').config();
+
+const clinicContext: ClinicContext = {
+    nomeClinica: "Clínica Nova Vida",
+    especialidade: "Clínica Geral",
+    servicos: ["Consulta Média"],
+    configAgenda: { horarioInicio: "08:00", horarioFim: "18:00" },
+    endereco: "Av Brasil 123",
+    telefone: "1199999999"
+};
+
+const baseCtx: AIRequestContext = {
+    mensagem_paciente: "",
+    nome_paciente: "João Silva",
+    historico_resumido: "",
+    status_conversa: "SCHEDULING",
+    contexto_clinica: clinicContext,
+    agenda_snapshot: null,
+    data_referencia: "2026-03-30",
+    timezone: "America/Sao_Paulo",
+    tabela_temporal: AIService.getDateReferences("America/Sao_Paulo")
+};
+
+async function runTest(nome: string, ctx: AIRequestContext) {
+    console.log(`\n======================================================`);
+    console.log(`TESTE: ${nome}`);
+    console.log(`MENSAGEM: "${ctx.mensagem_paciente}"`);
+    console.log(`======================================================`);
+    try {
+        const res = await AIService.respond(ctx);
+        console.log(JSON.stringify(res, null, 2));
+    } catch (e) {
+        console.error("ERRO:", e);
+    }
+}
+
+async function main() {
+    // 1. "SIM"
+    await runTest("1. SIM APÓS CONVITE DE ENTRADA", {
+        ...baseCtx,
+        mensagem_paciente: "sim",
+        historico_resumido: "[ROBÔ]: Vi que você tem interesse na consulta. Quer que eu veja na agenda nosso próximo horário disponível?\n[PACIENTE]: sim"
+    });
+
+    // 2. PREFERÊNCIA DO PACIENTE
+    await runTest("2. PREFERÊNCIA DO PACIENTE SOBREPÕE", {
+        ...baseCtx,
+        mensagem_paciente: "prefiro quarta à tarde",
+        historico_resumido: "[ROBÔ]: Posso agendar para você hoje às 14:00?\n[PACIENTE]: prefiro quarta à tarde"
+    });
+
+    // 3. "ESSE MAIS TARDE"
+    await runTest("3. ESSE MAIS TARDE", {
+        ...baseCtx,
+        mensagem_paciente: "esse mais tarde",
+        historico_resumido: "[ROBÔ]: Encontrei esses horários para amanhã: 14:00, 16:30 e 18:00. Algum atende?\n[PACIENTE]: esse mais tarde",
+        agenda_snapshot: { availableSlots: [
+            { date: "2026-03-31", time: "14:00" },
+            { date: "2026-03-31", time: "16:30" },
+            { date: "2026-03-31", time: "18:00" }
+        ], dateRef: "2026-03-31" }
+    });
+
+    // 4. SLOT FANTASMA (ERRO INJETADO PELO BACKEND)
+    await runTest("4. SLOT FANTASMA (CONTORNO DE ERRO)", {
+        ...baseCtx,
+        mensagem_paciente: "quero 22h",
+        historico_resumido: "[ROBÔ]: Horários amanhã: 14h, 16h.\n[PACIENTE]: quero 22h\n[SISTEMA]: O agendamento falhou pois o horário (2026-03-31 22:00) não existe na lista. Comunique de forma gentil que houve um descompasso temporal e siga a agenda."
+    });
+
+    // 5. DUPLICIDADE (ERRO INJETADO PELO BACKEND)
+    await runTest("5. DUPLICIDADE DE AGENDAMENTO", {
+        ...baseCtx,
+        mensagem_paciente: "pode ser as 14h entao",
+        historico_resumido: "[ROBÔ]: Temos 14:00. Pode ser?\n[PACIENTE]: pode ser as 14h\n[SISTEMA]: O agendamento falhou. O paciente já tem horário marcado nesta exata data (2026-03-31 14:00). Avise-o que já consta no sistema."
+    });
+
+    // 6. REFERÊNCIAS TEMPORAIS
+    await runTest("6. REFERÊNCIAS TEMPORAIS VARIADAS (Mês que vem)", {
+        ...baseCtx,
+        mensagem_paciente: "tem algo pro mês que vem?"
+    });
+}
+
+main();

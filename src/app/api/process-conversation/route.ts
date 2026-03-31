@@ -194,11 +194,23 @@ export async function POST(req: NextRequest) {
                             contactId: contact.id,
                             date: chosenDate,
                             time: chosenTime,
+                            source: AppointmentSource.ROBO,
                             notes: "Agendado via IA",
                         });
 
                         if (finalAppt) {
-                            // Backend Apenas Salva. A Mensagem da IA não é sobrescrita.
+                            // Log explícito de agendamento criado (Ponto 3)
+                            await LogService.info(clinicId, LogEvent.APPOINTMENT_CREATED, {
+                                appointmentId: finalAppt.id,
+                                conversationId,
+                                contactId: contact.id,
+                                date: chosenDate,
+                                time: chosenTime,
+                                source: AppointmentSource.ROBO,
+                                clinicId
+                            });
+
+                            // Backend envia a mensagem de confirmação da IA (Ponto 1)
                             const sent = await ProviderInst.sendMessage(clinicId, contact.phoneNumber, aiResponse.mensagem);
                             if (sent) {
                                 messageAlreadySent = true;

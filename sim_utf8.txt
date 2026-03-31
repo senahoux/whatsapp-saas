@@ -1,0 +1,11 @@
+﻿========= INICIANDO TESTES INTEGRAIS ==========
+-> TESTE A: 'Gostaria de agendar uma consulta'
+ROBO:  Oi, Teste Integrado! ≡ƒÿè Vamos agendar sua consulta. Voc├¬ tem prefer├¬ncia por algum dia ou hor├írio espec├¡fico?
+-> TESTE A.1: 'sim'
+ROBO:  ├ôtimo, Teste Integrado! ≡ƒÿè Que dia ou hor├írio voc├¬ tem em mente para agendarmos sua consulta? Estou aqui para ajudar!
+CONVO STATUS: NORMAL
+OFFERS GERADOS: []
+-> TESTE B: 'prefiro quarta ├á tarde'
+ROBO:  Infelizmente, n├úo temos hor├írios dispon├¡veis para quarta ├á tarde. ≡ƒÿö Que tal tentarmos agendar para outro dia? Temos op├º├╡es na manh├ú ou tarde de outros dias. O que voc├¬ acha?
+OFFERS APOS TESTE B: []
+-> TESTE C: 'esse mais tarde por favor'

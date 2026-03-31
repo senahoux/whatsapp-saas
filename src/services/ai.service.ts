@@ -212,6 +212,7 @@ PASSOS GERAIS DO FLUXO ("estado_paciente")
    - O backend retornará os horários reais se acionado. Dê opções (até 3).
 3. CONFIRMANDO_SLOT: O paciente ESCOLHEU CLARAMENTE UM DOS HORÁRIOS ENVIADOS RECENTEMENTE.
    - Ação: "AGENDAR". Passe a data e hora exatas no "slot_escolhido". NUNCA invente horários fora da lista oferecida.
+   - TOM OBRIGATÓRIO (MUITO IMPORTANTE): Quando você emitir esta ação, use um tom de confirmação CONCLUÍDA e fechada. Ex: "Perfeito! Sua consulta está agendada para o dia 10 de abril às 14:00." Não use "Vou agendar" ou "Deixa que eu marco". Fale como se já estivesse garantido no sistema.
 
 ---
 
@@ -432,35 +433,39 @@ export const AIService = {
     getDateReferences(timeZone: string = 'America/Sao_Paulo'): string {
         try {
             const now = new Date();
+            
+            // Helpers de formatação vinculados ao timezone da clínica (Regra 4)
             const fmt = (d: Date) => new Intl.DateTimeFormat('en-CA', {
                 timeZone, year: 'numeric', month: '2-digit', day: '2-digit'
             }).format(d);
+            
+            const fmtWeekday = (d: Date) => {
+                const name = new Intl.DateTimeFormat('pt-BR', { timeZone, weekday: 'long' }).format(d);
+                return name.charAt(0).toUpperCase() + name.slice(1); // Capitaliza
+            };
 
-            const formatter = new Intl.DateTimeFormat('pt-BR', {
-                timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
-                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
-            });
-            const parts = formatter.formatToParts(now);
-            const getP = (type: string) => parts.find(p => p.type === type)?.value || "0";
+            const monthName = (d: Date) => new Intl.DateTimeFormat('pt-BR', { timeZone, month: 'long' }).format(d);
 
-            // Data local
-            const year = parseInt(getP('year'));
-            const month = parseInt(getP('month')) - 1;
-            const day = parseInt(getP('day'));
-            const anchor = new Date(year, month, day);
+            // Extraímos a realidade local da clínica para ancorar a 12h (meio-dia)
+            // Meio-dia é a âncora mais segura para addDays sem saltar de fuso
+            const localParts = new Intl.DateTimeFormat('en-US', {
+                timeZone, year: 'numeric', month: 'numeric', day: 'numeric'
+            }).formatToParts(now);
+            
+            const getLoc = (t: string) => localParts.find(p => p.type === t)?.value;
+            const year = parseInt(getLoc('year') || "0");
+            const month = parseInt(getLoc('month') || "0") - 1;
+            const day = parseInt(getLoc('day') || "0");
 
-            // Helpers iterativos
+            const anchor = new Date(year, month, day, 12, 0, 0);
+
             const addDays = (d: Date, days: number) => {
-                const res = new Date(d);
+                const res = new Date(d.getTime());
                 res.setDate(res.getDate() + days);
                 return res;
             };
 
-            const dayNames = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
-            const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-
-            // Relativos primários
-            let output = `TABELA DE REFERÊNCIA TEMPORAL\n\n`;
+            let output = `TABELA DE REFERÊNCIA TEMPORAL (ÚNICA VERDADE ABSOLUTA)\n\n`;
             
             output += `--- 1. ÂNCORAS IMEDIATAS ---\n`;
             output += `Hoje: ${fmt(anchor)}\n`;
@@ -468,25 +473,24 @@ export const AIService = {
             output += `Depois de amanhã: ${fmt(addDays(anchor, 2))}\n\n`;
 
             output += `--- 2. ÂNCORAS LONGAS ---\n`;
-            output += `Mês Atual (${monthNames[month]}): ${fmt(new Date(year, month, 1))} até ${fmt(new Date(year, month + 1, 0))}\n`;
-            const proxMonthDate = new Date(year, month + 1, 1);
-            output += `Mês que Vem (${monthNames[proxMonthDate.getMonth()]}): ${fmt(proxMonthDate)} até ${fmt(new Date(year, month + 2, 0))}\n\n`;
+            output += `Mês Atual (${monthName(anchor)}): ${fmt(new Date(year, month, 1, 12))} até ${fmt(new Date(year, month + 1, 0, 12))}\n`;
+            const proxMonthDate = new Date(year, month + 1, 1, 12);
+            output += `Mês que Vem (${monthName(proxMonthDate)}): ${fmt(proxMonthDate)} até ${fmt(new Date(year, month + 2, 0, 12))}\n\n`;
 
             output += `--- 3. PRÓXIMOS 14 DIAS ---\n`;
             for (let i = 0; i <= 14; i++) {
                 const stepDate = addDays(anchor, i);
-                const stepDayName = dayNames[stepDate.getDay()];
+                const stepDayName = fmtWeekday(stepDate);
                 let prefix = "";
                 if (i === 0) prefix = "(Hoje)";
                 else if (i === 1) prefix = "(Amanhã)";
-                // Mapeia até a próxima semana explicitamente (se i < 7 => esta semana/prox depende do dia, mas basta os nomes)
                 
                 output += `- ${stepDayName} ${prefix}: ${fmt(stepDate)}\n`;
             }
 
             return output;
         } catch (error) {
-            console.error("[AIService | getDateReferences] Falha crítica ao gerar tabela temporal expansiva:", error);
+            console.error("[AIService | getDateReferences] Falha crítica ao gerar tabela temporal:", error);
             return `Hoje: ${new Intl.DateTimeFormat('en-CA').format(new Date())}`;
         }
     }
