@@ -64,7 +64,10 @@ async function main() {
         mensagem_paciente: "esse mais tarde",
         historico_resumido: "[ROBÔ]: Encontrei esses horários para amanhã: 14:00, 16:30 e 18:00. Algum atende?\n[PACIENTE]: esse mais tarde",
         agenda_snapshot: { 
+            monthInFocus: "Março/2026",
+            validServiceDays: "Segunda, Terça e Quarta",
             initialSuggestions: [],
+            monthSummary: "- Terça-feira (31/03): 14:00 (manhã) ou 16:30 (tarde)",
             availableSlots: [
                 { date: "2026-03-31", time: "14:00", period: "tarde" },
                 { date: "2026-03-31", time: "16:30", period: "tarde" },

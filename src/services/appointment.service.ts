@@ -28,9 +28,12 @@ export interface AvailableSlot {
 }
 
 export interface AgendaSnapshot {
+    monthInFocus: string;          // ex: "Abril/2026"
+    validServiceDays: string;      // ex: "Segunda, Terça, Quarta, Quinta e Sexta"
     initialSuggestions: string[];  // ["YYYY-MM-DD HH:MM", ...] — sugestões prioritárias da clínica
+    monthSummary: string;          // Resumo estratégico (1 manhã, 1 tarde por dia)
     availableSlots: AvailableSlot[];
-    activeFilter: string | null;  // Filtro temporal ativo do paciente
+    activeFilter: string | null;   // Filtro temporal ativo do paciente
 }
 
 export interface CreateAppointmentInput {
@@ -130,7 +133,7 @@ export const AppointmentService = {
         const today = new Date();
         let searchStart = new Date(today);
         searchStart.setDate(searchStart.getDate() + 1); // começa amanhã
-        let searchDays = 14;
+        let searchDays = 30; // busca por padrão 30 dias (Mês em Foco)
 
         if (filter) {
             // Filtro por data específica (YYYY-MM-DD)
@@ -186,39 +189,78 @@ export const AppointmentService = {
         });
         const occupiedSet = new Set(occupied.map(a => `${a.date} ${a.time}`));
 
-        // Montar slots disponíveis
-        const availableSlots: AvailableSlot[] = [];
+        // 6. Montar o Resumo Mensal (Soberania do Mês em Foco)
+        // Agrupamos todos os slots possíveis por dia e pegamos 1 manhã + 1 tarde
+        const summaryMap: Record<string, { manha?: string, tarde?: string }> = {};
         for (const date of validDates) {
             if (blockedDates.has(date)) continue;
-            for (const time of allTimeSlots) {
-                if (occupiedSet.has(`${date} ${time}`)) continue;
-                availableSlots.push({
-                    date,
-                    time,
-                    period: classifyPeriod(time),
-                });
-                if (availableSlots.length >= maxSlots) break;
+            
+            // Filtramos slots ocupados para este dia
+            const daySlots = allTimeSlots.filter(t => !occupiedSet.has(`${date} ${t}`));
+            if (daySlots.length === 0) continue;
+
+            const manha = daySlots.find(t => classifyPeriod(t) === "manha");
+            const tarde = daySlots.find(t => classifyPeriod(t) === "tarde");
+
+            if (manha || tarde) {
+                summaryMap[date] = {};
+                if (manha) summaryMap[date].manha = manha;
+                if (tarde) summaryMap[date].tarde = tarde;
             }
-            if (availableSlots.length >= maxSlots) break;
         }
 
-        // Montar sugestões iniciais (só se não há filtro ativo)
+        const monthSummaryParts = Object.entries(summaryMap).map(([date, slots]) => {
+            const dayName = new Intl.DateTimeFormat('pt-BR', { weekday: 'long' }).format(new Date(date + "T12:00:00"));
+            const formattedDate = date.split('-').reverse().slice(0, 2).join('/'); // DD/MM
+            let line = `- ${dayName} (${formattedDate}): `;
+            const opts = [];
+            if (slots.manha) opts.push(`${slots.manha} (manhã)`);
+            if (slots.tarde) opts.push(`${slots.tarde} (tarde)`);
+            return line + opts.join(" ou ");
+        });
+
+        const monthSummary = monthSummaryParts.join("\n") || "Nenhuma disponibilidade estratégica encontrada para este período.";
+
+        // 8. Montar slots detalhados (Disponibilidade Real) — AFUNILAMENTO
+        const availableSlots: AvailableSlot[] = [];
+        if (maxSlots > 0) {
+            for (const date of validDates) {
+                if (blockedDates.has(date)) continue;
+                for (const time of allTimeSlots) {
+                    if (occupiedSet.has(`${date} ${time}`)) continue;
+                    availableSlots.push({
+                        date,
+                        time,
+                        period: classifyPeriod(time),
+                    });
+                    if (availableSlots.length >= maxSlots) break;
+                }
+                if (availableSlots.length >= maxSlots) break;
+            }
+        }
+
+        // 9. Montar sugestões iniciais (Governança da Abertura)
         const initialSuggestions: string[] = [];
         if (!activeFilter && priorities.length > 0) {
             for (const p of priorities) {
                 const pDate = p.date;
-                const pPeriod = p.period;
-                const matching = availableSlots.find(
-                    s => s.date === pDate && s.period === pPeriod
-                );
-                if (matching) {
-                    initialSuggestions.push(`${matching.date} ${matching.time}`);
+                // Buscamos se esse horário específico da prioridade está de fato livre no BD
+                if (allTimeSlots.includes(p.time) && !occupiedSet.has(`${pDate} ${p.time}`)) {
+                    initialSuggestions.push(`${pDate} ${p.time}`);
                 }
             }
         }
 
+        // 10. Determinar Nome do Mês e Dias Atendidos
+        const monthInFocus = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(searchStart);
+        const weekdayNames = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+        const validServiceDays = workingDays.map(d => weekdayNames[d]).join(", ");
+
         return {
+            monthInFocus,
+            validServiceDays,
             initialSuggestions,
+            monthSummary,
             availableSlots,
             activeFilter: activeFilter ?? null,
         };

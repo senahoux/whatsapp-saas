@@ -62,9 +62,18 @@ Regras para datas:
 1. Sempre use a tabela acima como lookup prioritário para converter termos relativos (ex: "segunda que vem", "mês que vem", "hoje", "amanhã") em datas reais (YYYY-MM-DD).
 2. Não tente calcular datas manualmente do zero.
 3. Se o paciente pedir um dia da semana ou data relativa que não esteja explícito na tabela, peça esclarecimento educadamente em vez de inventar uma data ou retornar data nula.
-4. Ao usar a ação VER_AGENDA, você deve SEMPRE preencher o campo data no formato YYYY-MM-DD seguindo este lookup. 
+4. Ao usar a ação VER_AGENDA, você deve SEMPRE preencher o campo data no formato YYYY-MM-DD seguindo este lookup.
 
 ---
+
+# 2. HIERARQUIA E SOBERANIA DA AGENDA (REGRAS CRÍTICAS)
+
+Quando a conversa entra em modo de agendamento, o backend fornece um bloco estruturado de agenda. Respeite esta hierarquia:
+1. **Soberania do Mês em Foco**: O mês informado no campo \`Mês em Foco\` é a sua verdade absoluta atual. Se o paciente pede para trocar de mês, você deve solicitar a agenda do novo mês.
+2. **Sugestão Prioritária (Obrigatória para Abertura)**: Se houver uma \`Sugestão Prioritária\`, você DEVE usá-la como sua primeira oferta de horário de forma gentil (ex: "Vi que temos uma vaga ótima para o dia X, serve para você?"). Não comece perguntando "quando você quer?". Sugira primeiro.
+3. **Resumo Mensal (Visão de Águia)**: Use o \`Resumo Mensal\` para responder perguntas amplas como "quais dias você atende?" ou "tem algo para a semana que vem?". Ele mostra o panorama geral com poucos horários por dia para não poluir.
+4. **Disponibilidade Real (Detalhamento)**: Se o paciente escolher um dia ou demonstrar interesse real em um período, use a \`Disponibilidade Real\` (slots completos) para oferecer as opções finais. Se a lista estiver vazia para um dia, use a ação \`VER_AGENDA\` para buscar o detalhe.
+5. **Troca de Mês**: Quando o foco mudar para um novo mês, o novo contexto assume soberania total. O mês anterior deve ser ignorado para fins de agendamento, servindo apenas como histórico.
 
 ---
 
@@ -283,23 +292,29 @@ function buildUserMessage(ctx: AIRequestContext): string {
     parts.push(`## Status atual da conversa\n${ctx.status_conversa}`);
     parts.push(`## Mensagem atual do paciente\n${ctx.mensagem_paciente}`);
 
-    // Snapshot estruturado da agenda
+    // Snapshot estruturado da agenda (Hierarquia Soberana)
     if (ctx.agenda_snapshot) {
-        const { initialSuggestions, availableSlots, activeFilter } = ctx.agenda_snapshot;
+        const { monthInFocus, validServiceDays, initialSuggestions, monthSummary, availableSlots, activeFilter } = ctx.agenda_snapshot;
 
-        if (activeFilter) {
-            parts.push(`## FILTRO TEMPORAL DO PACIENTE\n${activeFilter}`);
-        }
+        parts.push(`# CONTEXTO DE AGENDA ATIVO`);
+        parts.push(`## Mês em Foco: ${monthInFocus}`);
+        parts.push(`## Dias de Atendimento: ${validServiceDays}`);
 
         if (initialSuggestions.length > 0) {
-            parts.push(`## SUGESTÕES INICIAIS DA CLÍNICA\n${initialSuggestions.join(", ")}\n(Use como primeira oferta se o paciente não pediu período específico)`);
+            parts.push(`## SUGESTÃO PRIORITÁRIA (USE PARA ABRIR A CONVERSA)\n${initialSuggestions.join(", ")}`);
         }
 
-        if (availableSlots.length > 0) {
+        if (monthSummary) {
+            parts.push(`## RESUMO MENSAL (MAPA DE NAVEGAÇÃO)\n${monthSummary}\n(Use este resumo para orientar o paciente sobre os dias disponíveis no mês)`);
+        }
+
+        if (activeFilter) {
+            parts.push(`## FOCO ATUAL (FILTRO)\n${activeFilter}`);
+        }
+
+        if (availableSlots && availableSlots.length > 0) {
             const formatted = availableSlots.map(s => `${s.date} ${s.time} (${s.period})`).join("\n");
-            parts.push(`## DISPONIBILIDADE REAL\n${formatted}\n\nEscolha 2-3 opções boas para oferecer (mix manhã/tarde se possível). Nunca invente horários fora desta lista.`);
-        } else {
-            parts.push(`## DISPONIBILIDADE REAL\nNenhum horário disponível no período solicitado. Informe ao paciente e sugira outro período.`);
+            parts.push(`## DISPONIBILIDADE REAL (DETALHE DO DIA/PERÍODO)\n${formatted}\n\nOfereça 2-3 opções exatas desta lista para fechamento.`);
         }
     }
 

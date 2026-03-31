@@ -107,13 +107,31 @@ export async function POST(req: NextRequest) {
             historico_resumido,
             status_conversa: conversation.status,
             contexto_clinica: clinicContext,
-            agenda_snapshot: null,      // Iniciamos sem agenda. Só busca se IA pedir
+            agenda_snapshot: null,      // Iniciamos sem agenda. 
             data_referencia,
             timezone,
             tabela_temporal
         };
 
-        // ── 6. Chamada à IA ─────────────────────────────────────────
+        // ── 6. Entrega Proativa de Agenda (Visão de Águia) ───────────
+        // Se a intenção é agendar, já mandamos o resumo mensal no Loop 1
+        const isSchedulingIntent = ([
+            Intention.SOFT_SCHEDULING_INTEREST,
+            Intention.HARD_SCHEDULING_INTENT,
+            Intention.SLOT_CONFIRMATION,
+            Intention.CHANGE_DATE_INTENT
+        ] as Intention[]).includes(intention);
+
+        if (isSchedulingIntent) {
+            aiCtx.agenda_snapshot = await AppointmentService.getAgendaSnapshot(
+                clinicId,
+                focoTemporalStr || undefined,
+                focoTemporalStr,
+                0 // maxSlots: 0 (Apenas resumo na abertura)
+            );
+        }
+
+        // ── 7. Chamada à IA ─────────────────────────────────────────
         let aiResponse = await AIService.respond(aiCtx);
         if (!aiResponse) {
             // Em caso de falha da OpenAI, logamos e não alteramos estado para não corromper sessão
@@ -130,6 +148,7 @@ export async function POST(req: NextRequest) {
                 clinicId,
                 dataFocal,
                 aiResponse.referencia_temporal_bruta,
+                15 // maxSlots: 15 (Traz detalhes no afunilamento)
             );
             
             // Refinamento de snapshot via preferência da IA
