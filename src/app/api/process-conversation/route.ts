@@ -31,6 +31,29 @@ function getClinicCurrentDate(timeZone: string = 'America/Sao_Paulo'): string {
     }).format(new Date());
 }
 
+async function logAgendaContext(
+    clinicId: string, 
+    conversationId: string, 
+    contactId: string,
+    stage: 'opening' | 'detail',
+    aiCtx: any
+) {
+    const snap = aiCtx.agenda_snapshot;
+    await LogService.info(clinicId, LogEvent.MESSAGE_RECEIVED, {
+        topic: "AGENDA_CONTEXT_SNAPSHOT",
+        conversationId,
+        contactId,
+        stage,
+        mensagem_paciente: aiCtx.mensagem_paciente,
+        mes_foco: snap?.monthInFocus || null,
+        filtro_ativo: snap?.activeFilter || null,
+        sugestao_prioritaria: snap?.initialSuggestions?.[0] || null,
+        qtd_resumo: snap?.monthSummary ? snap.monthSummary.split("\n").length : 0,
+        qtd_detalhe: snap?.availableSlots?.length || 0,
+        first_detailed_slots: snap?.availableSlots?.slice(0, 5).map((s: any) => `${s.date} ${s.time}`) || []
+    });
+}
+
 /**
  * POST /api/process-conversation
  * Orquestrador do pipeline de IA — arquitetura limpa.
@@ -132,6 +155,7 @@ export async function POST(req: NextRequest) {
         }
 
         // ── 7. Chamada à IA ─────────────────────────────────────────
+        await logAgendaContext(clinicId, conversationId, contact.id, 'opening', aiCtx);
         let aiResponse = await AIService.respond(aiCtx);
         if (!aiResponse) {
             // Em caso de falha da OpenAI, logamos e não alteramos estado para não corromper sessão
@@ -162,6 +186,9 @@ export async function POST(req: NextRequest) {
             if (dataFocal && dataFocal !== focoTemporalStr) {
                 await ConversationService.setActiveSchedulingFilter(clinicId, conversationId, dataFocal);
             }
+
+            // Log do contexto de detalhe (Afunilamento)
+            await logAgendaContext(clinicId, conversationId, contact.id, 'detail', aiCtx);
 
             // A IA pensa de novo (agora com o snapshot na mão)
             aiResponse = await AIService.respond(aiCtx);

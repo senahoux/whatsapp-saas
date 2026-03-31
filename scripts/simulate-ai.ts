@@ -96,6 +96,21 @@ async function main() {
         ...baseCtx,
         mensagem_paciente: "tem algo pro mês que vem?"
     });
+
+    // 7. FUNIL DE DISPONIBILIDADE (RESUMO VS DETALHE)
+    await runTest("7. FUNIL: MAIS OPÇÕES DO DIA", {
+        ...baseCtx,
+        mensagem_paciente: "só tem esses horários de manhã? não teria um pouco mais tarde?",
+        historico_resumido: "[ROBÔ]: Vi no meu mapa que temos quarta (01/04) às 09:00 (manhã) ou 15:00 (tarde).\n[PACIENTE]: só tem esses horários de manhã? não teria um pouco mais tarde?",
+        agenda_snapshot: { 
+            monthInFocus: "Abril/2026",
+            validServiceDays: "Segunda a Sexta",
+            initialSuggestions: [],
+            monthSummary: "- Quarta-feira (01/04): 09:00 (manhã) ou 15:00 (tarde)",
+            availableSlots: [], // Na abertura, os slots técnicos estão vazios
+            activeFilter: null
+        }
+    });
 }
 
 main();

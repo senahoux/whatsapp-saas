@@ -199,13 +199,18 @@ export const AppointmentService = {
             const daySlots = allTimeSlots.filter(t => !occupiedSet.has(`${date} ${t}`));
             if (daySlots.length === 0) continue;
 
-            const manha = daySlots.find(t => classifyPeriod(t) === "manha");
-            const tarde = daySlots.find(t => classifyPeriod(t) === "tarde");
+            const manhaSlots = daySlots.filter(t => classifyPeriod(t) === "manha");
+            const tardeSlots = daySlots.filter(t => classifyPeriod(t) === "tarde");
 
-            if (manha || tarde) {
+            if (manhaSlots.length > 0 || tardeSlots.length > 0) {
                 summaryMap[date] = {};
-                if (manha) summaryMap[date].manha = manha;
-                if (tarde) summaryMap[date].tarde = tarde;
+                // Pegamos o segundo slot disponível (se houver) para distribuir melhor, senão o primeiro.
+                if (manhaSlots.length > 0) {
+                    summaryMap[date].manha = manhaSlots[Math.min(1, manhaSlots.length - 1)];
+                }
+                if (tardeSlots.length > 0) {
+                    summaryMap[date].tarde = tardeSlots[Math.min(1, tardeSlots.length - 1)];
+                }
             }
         }
 
