@@ -79,6 +79,34 @@ export default function LogsPage() {
     });
   };
 
+  const handleDownload = async (limit: number) => {
+    try {
+      const res = await fetch(`/api/logs/export?limit=${limit}`);
+      if (!res.ok) throw new Error("Falha ao baixar logs");
+      
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      
+      const contentDisposition = res.headers.get("Content-Disposition");
+      let filename = `logs-export-${limit}.md`;
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="(.+)"/);
+        if (match) filename = match[1];
+      }
+      
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Download error:", err);
+      alert("Erro ao baixar relatório de logs.");
+    }
+  };
+
   const copyAllVisible = () => {
     const text = filteredLogs.map(log => {
       const time = formatLogTime(log.createdAt);
@@ -115,6 +143,14 @@ export default function LogsPage() {
         <div className="control-actions">
           <button className="action-btn" onClick={() => fetchLogs()} disabled={loading}>
             <span>↻</span> {loading ? "Carregando..." : "Atualizar"}
+          </button>
+          
+          <button className="action-btn" onClick={() => handleDownload(50)}>
+            <span>📥</span> Baixar 50
+          </button>
+
+          <button className="action-btn" onClick={() => handleDownload(100)}>
+            <span>📥</span> Baixar 100
           </button>
           
           <button className="action-btn" onClick={copyAllVisible}>
