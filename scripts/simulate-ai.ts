@@ -1,15 +1,21 @@
 import { AIService } from "../src/services/ai.service";
-import { AIRequestContext, ClinicContext } from "../src/lib/types";
+import type { AIRequestContext } from "../src/services/ai.service";
+import type { ClinicContext } from "../src/services/clinic.service";
 
 require('dotenv').config();
 
 const clinicContext: ClinicContext = {
     nomeClinica: "Clínica Nova Vida",
-    especialidade: "Clínica Geral",
-    servicos: ["Consulta Média"],
-    configAgenda: { horarioInicio: "08:00", horarioFim: "18:00" },
-    endereco: "Av Brasil 123",
-    telefone: "1199999999"
+    nomeMedico: "Dr. Lucas Sena",
+    endereco: "Mogi Guaçu - SP", 
+    telefone: "5511999999999",
+    consultaValor: 400,
+    consultaDuracao: 60,
+    promocaoAtiva: false,
+    promocaoTexto: null,
+    descricaoServicos: "Saúde hormonal e performance",
+    faq: [],
+    regrasPersonalizadas: [],
 };
 
 const baseCtx: AIRequestContext = {
@@ -57,11 +63,15 @@ async function main() {
         ...baseCtx,
         mensagem_paciente: "esse mais tarde",
         historico_resumido: "[ROBÔ]: Encontrei esses horários para amanhã: 14:00, 16:30 e 18:00. Algum atende?\n[PACIENTE]: esse mais tarde",
-        agenda_snapshot: { availableSlots: [
-            { date: "2026-03-31", time: "14:00" },
-            { date: "2026-03-31", time: "16:30" },
-            { date: "2026-03-31", time: "18:00" }
-        ], dateRef: "2026-03-31" }
+        agenda_snapshot: { 
+            initialSuggestions: [],
+            availableSlots: [
+                { date: "2026-03-31", time: "14:00", period: "tarde" },
+                { date: "2026-03-31", time: "16:30", period: "tarde" },
+                { date: "2026-03-31", time: "18:00", period: "tarde" }
+            ], 
+            activeFilter: "2026-03-31" 
+        }
     });
 
     // 4. SLOT FANTASMA (ERRO INJETADO PELO BACKEND)
