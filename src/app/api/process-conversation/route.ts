@@ -31,26 +31,50 @@ function getClinicCurrentDate(timeZone: string = 'America/Sao_Paulo'): string {
     }).format(new Date());
 }
 
-async function logAgendaContext(
-    clinicId: string, 
-    conversationId: string, 
+async function logAIDecision(
+    clinicId: string,
+    conversationId: string,
+    contactId: string,
+    aiCtx: any,
+    decision: any
+) {
+    await LogService.info(clinicId, LogEvent.MESSAGE_RECEIVED, {
+        topic: "AI_DECISION",
+        conversationId,
+        contactId,
+        mensagem_paciente: aiCtx.mensagem_paciente,
+        estado_paciente: aiCtx.status_conversa,
+        acao_backend: decision.acao_backend,
+        referencia_temporal_bruta: decision.referencia_temporal_bruta,
+        referencia_temporal_tipo: decision.referencia_temporal_tipo,
+        referencia_temporal_resolvida: decision.referencia_temporal_resolvida,
+        preferencia_periodo: decision.preferencia_periodo,
+        slot_escolhido: decision.slot_confirmado_final,
+        modo_conversa: decision.conversa_modo_atendimento
+    });
+}
+
+async function logAgendaFetchResult(
+    clinicId: string,
+    conversationId: string,
     contactId: string,
     stage: 'opening' | 'detail',
-    aiCtx: any
+    filter_received: any,
+    snapshot: any
 ) {
-    const snap = aiCtx.agenda_snapshot;
     await LogService.info(clinicId, LogEvent.MESSAGE_RECEIVED, {
-        topic: "AGENDA_CONTEXT_SNAPSHOT",
+        topic: "AGENDA_FETCH_RESULT",
         conversationId,
         contactId,
         stage,
-        mensagem_paciente: aiCtx.mensagem_paciente,
-        mes_foco: snap?.monthInFocus || null,
-        filtro_ativo: snap?.activeFilter || null,
-        sugestao_prioritaria: snap?.initialSuggestions?.[0] || null,
-        qtd_resumo: snap?.monthSummary ? snap.monthSummary.split("\n").length : 0,
-        qtd_detalhe: snap?.availableSlots?.length || 0,
-        first_detailed_slots: snap?.availableSlots?.slice(0, 5).map((s: any) => `${s.date} ${s.time}`) || []
+        filter_recebido: filter_received,
+        mes_foco: snapshot?.monthInFocus || null,
+        filtro_ativo: snapshot?.activeFilter || null,
+        sugestao_prioritaria: snapshot?.initialSuggestions?.[0] || null,
+        qtd_resumo: snapshot?.monthSummary ? snapshot.monthSummary.split("\n").length : 0,
+        qtd_detalhe: snapshot?.availableSlots?.length || 0,
+        first_detailed_slots: snapshot?.availableSlots?.slice(0, 5).map((s: any) => `${s.date} ${s.time}`) || [],
+        monthSummary_preview: snapshot?.monthSummary ? snapshot.monthSummary.substring(0, 150) + "..." : null
     });
 }
 
@@ -152,11 +176,14 @@ export async function POST(req: NextRequest) {
                 focoTemporalStr,
                 0 // maxSlots: 0 (Apenas resumo na abertura)
             );
+            await logAgendaFetchResult(clinicId, conversationId, contact.id, 'opening', { data: focoTemporalStr }, aiCtx.agenda_snapshot);
         }
 
         // ── 7. Chamada à IA ─────────────────────────────────────────
-        await logAgendaContext(clinicId, conversationId, contact.id, 'opening', aiCtx);
         let aiResponse = await AIService.respond(aiCtx);
+        if (aiResponse) {
+            await logAIDecision(clinicId, conversationId, contact.id, aiCtx, aiResponse);
+        }
         if (!aiResponse) {
             // Em caso de falha da OpenAI, logamos e não alteramos estado para não corromper sessão
             await LogService.error(clinicId, LogEvent.ERROR, { note: "Falha de comunicação com OpenAI. Estado preservado." });
@@ -174,6 +201,7 @@ export async function POST(req: NextRequest) {
                 aiResponse.referencia_temporal_bruta,
                 15 // maxSlots: 15 (Traz detalhes no afunilamento)
             );
+            await logAgendaFetchResult(clinicId, conversationId, contact.id, 'detail', { dataFocal, periodoFocal }, snapshot);
             
             // Refinamento de snapshot via preferência da IA
             if (periodoFocal && periodoFocal !== "dia_todo" && snapshot.availableSlots) {
@@ -187,11 +215,11 @@ export async function POST(req: NextRequest) {
                 await ConversationService.setActiveSchedulingFilter(clinicId, conversationId, dataFocal);
             }
 
-            // Log do contexto de detalhe (Afunilamento)
-            await logAgendaContext(clinicId, conversationId, contact.id, 'detail', aiCtx);
-
             // A IA pensa de novo (agora com o snapshot na mão)
             aiResponse = await AIService.respond(aiCtx);
+            if (aiResponse) {
+                await logAIDecision(clinicId, conversationId, contact.id, aiCtx, aiResponse);
+            }
             if (!aiResponse) {
                 await LogService.error(clinicId, LogEvent.ERROR, { note: "Falha no Loop 2 da OpenAI. Estado preservado." });
                 return NextResponse.json({ ok: false, error: "AI_FAILED_2_PRESERVED" });

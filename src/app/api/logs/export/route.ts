@@ -20,8 +20,8 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     let limit = Number(searchParams.get("limit") ?? 50);
     
-    // Regra 8: Normalização de limite
-    if (limit !== 50 && limit !== 100) {
+    // Regra 8: Normalização de limite (Suporta 50, 100, 200)
+    if (limit !== 50 && limit !== 100 && limit !== 200) {
         limit = 50;
     }
 

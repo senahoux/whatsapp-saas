@@ -152,6 +152,10 @@ export default function LogsPage() {
           <button className="action-btn" onClick={() => handleDownload(100)}>
             <span>📥</span> Baixar 100
           </button>
+
+          <button className="action-btn" onClick={() => handleDownload(200)}>
+            <span>📥</span> Baixar 200
+          </button>
           
           <button className="action-btn" onClick={copyAllVisible}>
             <span>📋</span> Copiar logs
