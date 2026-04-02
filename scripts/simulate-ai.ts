@@ -25,6 +25,7 @@ const baseCtx: AIRequestContext = {
     status_conversa: "SCHEDULING",
     contexto_clinica: clinicContext,
     agenda_snapshot: null,
+    foco_temporal_ativo: null, // Contexto passivo persistido
     data_referencia: "2026-03-30",
     timezone: "America/Sao_Paulo",
     tabela_temporal: AIService.getDateReferences("America/Sao_Paulo")
