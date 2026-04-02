@@ -43,14 +43,14 @@ async function logAIDecision(
         conversationId,
         contactId,
         mensagem_paciente: aiCtx.mensagem_paciente,
-        estado_paciente: aiCtx.status_conversa,
+        estado_paciente: decision.estado_paciente,
         acao_backend: decision.acao_backend,
         referencia_temporal_bruta: decision.referencia_temporal_bruta,
         referencia_temporal_tipo: decision.referencia_temporal_tipo,
         referencia_temporal_resolvida: decision.referencia_temporal_resolvida,
         preferencia_periodo: decision.preferencia_periodo,
-        slot_escolhido: decision.slot_confirmado_final,
-        modo_conversa: decision.conversa_modo_atendimento
+        slot_escolhido: decision.slot_escolhido,
+        modo_conversa: decision.modo_conversa
     });
 }
 
@@ -155,29 +155,12 @@ export async function POST(req: NextRequest) {
             status_conversa: conversation.status,
             contexto_clinica: clinicContext,
             agenda_snapshot: null,      // Iniciamos sem agenda. 
+            foco_temporal_ativo: focoTemporalStr, // Contexto passivo persistido
             data_referencia,
             timezone,
             tabela_temporal
         };
 
-        // ── 6. Entrega Proativa de Agenda (Visão de Águia) ───────────
-        // Se a intenção é agendar, já mandamos o resumo mensal no Loop 1
-        const isSchedulingIntent = ([
-            Intention.SOFT_SCHEDULING_INTEREST,
-            Intention.HARD_SCHEDULING_INTENT,
-            Intention.SLOT_CONFIRMATION,
-            Intention.CHANGE_DATE_INTENT
-        ] as Intention[]).includes(intention);
-
-        if (isSchedulingIntent) {
-            aiCtx.agenda_snapshot = await AppointmentService.getAgendaSnapshot(
-                clinicId,
-                focoTemporalStr || undefined,
-                focoTemporalStr,
-                0 // maxSlots: 0 (Apenas resumo na abertura)
-            );
-            await logAgendaFetchResult(clinicId, conversationId, contact.id, 'opening', { data: focoTemporalStr }, aiCtx.agenda_snapshot);
-        }
 
         // ── 7. Chamada à IA ─────────────────────────────────────────
         let aiResponse = await AIService.respond(aiCtx);
