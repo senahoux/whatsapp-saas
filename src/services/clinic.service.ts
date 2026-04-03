@@ -27,6 +27,8 @@ export interface ClinicContext {
     faq: unknown[];
     regrasPersonalizadas: unknown[];
     prioritySuggestions?: any;
+    aiContextMode: string;
+    nomeAssistente: string;
 }
 
 export const ClinicService = {
@@ -99,6 +101,8 @@ export const ClinicService = {
             descricaoServicos: clinic.descricaoServicos,
             faq,
             regrasPersonalizadas,
+            aiContextMode: clinic.aiContextMode,
+            nomeAssistente: clinic.nomeAssistente,
         };
     },
 

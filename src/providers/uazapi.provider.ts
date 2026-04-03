@@ -97,6 +97,12 @@ export class UazapiProvider implements WhatsAppProvider {
 
             // Limpeza do telefone: pega apenas números antes do @
             const cleanPhone = String(rawPhone).split("@")[0].replace(/\D/g, "");
+            
+            // Normalização de Tipo: Garante que 'chat', 'text', 'txt' sejam salvos como 'TEXT' (Uppercase)
+            let normalizedType = (msgData.type || msgData.messageType || "TEXT").toUpperCase();
+            if (normalizedType === "CHAT" || normalizedType === "TEXT" || normalizedType === "TXT") {
+                normalizedType = "TEXT";
+            }
 
             return {
                 clinicId: clinicId,
@@ -104,7 +110,7 @@ export class UazapiProvider implements WhatsAppProvider {
                 message: String(textRaw),
                 externalMessageId: msgId || `msg_${Date.now()}`,
                 isFromMe: fromMe,
-                messageType: msgData.type || msgData.messageType || "TEXT",
+                messageType: normalizedType,
                 sentAt: (() => {
                     const ts = msgData.messageTimestamp;
                     if (!ts) return new Date();

@@ -52,6 +52,8 @@ model Clinic {
   faq                 String?  // JSON serializado
   regrasPersonalizadas String? // JSON serializado
   timezone            String   @default("America/Sao_Paulo")
+  aiContextMode       String   @default("LEGACY") // LEGACY | DYNAMIC
+  nomeAssistente      String   @default("Assistente")
   // Configuração de calendário da clínica
   workingDays         Int[]    @default([1, 2, 3, 4, 5]) // 0=Dom, 1=Seg, ..., 6=Sáb
   workingShifts       Json?    @default("[{\"period\":\"manha\",\"start\":\"08:00\",\"end\":\"12:00\"},{\"period\":\"tarde\",\"start\":\"13:00\",\"end\":\"18:00\"}]")

@@ -211,8 +211,10 @@ export async function POST(req: NextRequest) {
 
         // ── 5. Contexto da IA ───────────────────────────────────────
         const clinicContext = await ClinicService.buildContextForAI(clinicId);
-        const historyMessages = await MessageService.buildHistoryForAI(clinicId, conversationId, 10);
-        const historico_resumido = AIService.buildHistorySummary(historyMessages);
+        if (!clinicContext) return NextResponse.json({ error: "Clinic context not found" }, { status: 500 });
+
+        const historyMessages = await MessageService.buildHistoryForAI(clinicId, conversationId, 15);
+        const historico_resumido = AIService.buildHistorySummary(historyMessages, clinicContext.nomeAssistente);
         const tabela_temporal = AIService.getDateReferences(timezone);
 
         const aiCtx: any = {

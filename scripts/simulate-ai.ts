@@ -16,6 +16,8 @@ const clinicContext: ClinicContext = {
     descricaoServicos: "Saúde hormonal e performance",
     faq: [],
     regrasPersonalizadas: [],
+    aiContextMode: "LEGACY",
+    nomeAssistente: "Rafaela",
 };
 
 const baseCtx: AIRequestContext = {
