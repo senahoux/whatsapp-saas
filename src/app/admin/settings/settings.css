@@ -161,6 +161,7 @@ input, textarea, select {
     font-size: 0.95rem;
     transition: all 0.2s;
     background: #ffffff;
+    color: var(--text-main);
 }
 
 input:focus, textarea:focus {
