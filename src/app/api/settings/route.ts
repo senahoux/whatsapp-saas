@@ -42,7 +42,17 @@ export async function PATCH(req: Request) {
         }
 
         const body = await req.json();
-        const { robotEnabled, debounceSeconds, prioritySuggestions, workingDays, workingShifts } = body;
+        const { 
+            robotEnabled, debounceSeconds, prioritySuggestions, workingDays, workingShifts,
+            nomeClinica, nomeMedico, endereco, telefone, consultaValor, consultaDuracao, 
+            descricaoServicos, faq, regrasPersonalizadas, aiContextMode, nomeAssistente
+        } = body;
+
+        // ── 0. Proteção de Payload ────────────────────────────────────
+        const payloadSize = JSON.stringify(body).length;
+        if (payloadSize > 100 * 1024) { // 100KB limit
+            return NextResponse.json({ error: "Payload too large (max 100KB)" }, { status: 413 });
+        }
 
         // ── 1. Settings (tabela Setting) ──────────────────────────────
         const settingsUpdate: any = {};
@@ -56,17 +66,41 @@ export async function PATCH(req: Request) {
             });
         }
 
-        // ── 2. Clinic calendar config (tabela Clinic) ─────────────────
+        // ── 2. Clinic calendar & Info & AI config (tabela Clinic) ─────
         const clinicUpdate: any = {};
 
+        // Dados Básicos
+        if (typeof nomeClinica === "string") clinicUpdate.nomeClinica = nomeClinica;
+        if (typeof nomeMedico === "string") clinicUpdate.nomeMedico = nomeMedico;
+        if (typeof endereco === "string") clinicUpdate.endereco = endereco;
+        if (typeof telefone === "string") clinicUpdate.telefone = telefone;
+        if (typeof consultaValor === "number") clinicUpdate.consultaValor = consultaValor;
+        if (typeof consultaDuracao === "number") clinicUpdate.consultaDuracao = consultaDuracao;
+        if (typeof descricaoServicos === "string") clinicUpdate.descricaoServicos = descricaoServicos;
+
+        // Configurações IA
+        if (typeof nomeAssistente === "string") clinicUpdate.nomeAssistente = nomeAssistente;
+        if (["LEGACY", "DYNAMIC"].includes(aiContextMode)) clinicUpdate.aiContextMode = aiContextMode;
+
+        // FAQ (Array -> JSON String)
+        if (Array.isArray(faq)) {
+            const validFaq = faq.filter((item: any) => item.pergunta?.trim() && item.resposta?.trim());
+            clinicUpdate.faq = JSON.stringify(validFaq);
+        }
+
+        // Regras Personalizadas (Array -> JSON String)
+        if (Array.isArray(regrasPersonalizadas)) {
+            const validRegras = regrasPersonalizadas.filter((r: any) => typeof r === "string" && r.trim());
+            clinicUpdate.regrasPersonalizadas = JSON.stringify(validRegras);
+        }
+
+        // Calendário
         if (Array.isArray(workingDays)) {
-            // Validar: só aceitar números 0-6
             const validDays = workingDays.filter((d: any) => typeof d === "number" && d >= 0 && d <= 6);
             clinicUpdate.workingDays = validDays;
         }
 
         if (Array.isArray(workingShifts)) {
-            // Validar: cada turno precisa ter period, start, end
             const validShifts = workingShifts.filter((s: any) =>
                 s && typeof s.period === "string" && typeof s.start === "string" && typeof s.end === "string"
             );
@@ -85,8 +119,8 @@ export async function PATCH(req: Request) {
         }
 
         await LogService.info(clinicId, LogEvent.ACTION_EXECUTED, {
-            action: "UPDATE_SETTINGS",
-            settingsChanges: settingsUpdate,
+            action: "UPDATE_SETTINGS_FULL",
+            settingsChanges: Object.keys(settingsUpdate),
             clinicChanges: Object.keys(clinicUpdate),
         });
 
