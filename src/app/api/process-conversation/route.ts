@@ -212,6 +212,9 @@ export async function POST(req: NextRequest) {
         // ── 5. Contexto da IA ───────────────────────────────────────
         const clinicContext = await ClinicService.buildContextForAI(clinicId);
         if (!clinicContext) return NextResponse.json({ error: "Clinic context not found" }, { status: 500 });
+        
+        // Sincroniza versão do prompt no trace (Fase 3.5)
+        fullTrace.metadata.promptVersion = clinicContext.aiContextMode;
 
         const historyMessages = await MessageService.buildHistoryForAI(clinicId, conversationId, 15);
         const historico_resumido = AIService.buildHistorySummary(historyMessages, clinicContext.nomeAssistente);

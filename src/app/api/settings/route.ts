@@ -1,7 +1,7 @@
 /**
  * API Route: /api/settings
  * GET  → Retorna clínica + settings
- * PATCH → Salva configurações do robô + calendário da clínica
+ * PATCH → Salva configurações do robô + dados da clínica (incluindo IA e Calendário)
  */
 
 import { NextResponse } from "next/server";
@@ -32,96 +32,91 @@ export async function PATCH(req: Request) {
         const session = await getSession();
         const clinicId = session?.clinicId as string;
 
-        if (!clinicId) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        }
-
-        const clinic = await ClinicService.findById(clinicId);
-        if (!clinic) {
-            return NextResponse.json({ error: "Clinic not found" }, { status: 404 });
-        }
+        if (!clinicId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const body = await req.json();
         const { 
-            robotEnabled, debounceSeconds, prioritySuggestions, workingDays, workingShifts,
+            // Setting Model
+            robotEnabled, debounceSeconds,
+            // Clinic Model
             nomeClinica, nomeMedico, endereco, telefone, consultaValor, consultaDuracao, 
-            descricaoServicos, faq, regrasPersonalizadas, aiContextMode, nomeAssistente
+            descricaoServicos, faq, regrasPersonalizadas, aiContextMode, nomeAssistente,
+            workingDays, workingShifts, prioritySuggestions
         } = body;
 
-        // ── 0. Proteção de Payload ────────────────────────────────────
-        const payloadSize = JSON.stringify(body).length;
-        if (payloadSize > 100 * 1024) { // 100KB limit
-            return NextResponse.json({ error: "Payload too large (max 100KB)" }, { status: 413 });
+        // ── 1. VALIDAÇÃO DE LIMITES (FASE 3.5) ────────────────────────
+        const errors: string[] = [];
+        const check = (val: any, limit: number, label: string) => {
+            if (val && String(val).length > limit) errors.push(`${label} excede limite de ${limit} caracteres.`);
+        };
+
+        check(nomeClinica, 80, "Nome da clínica");
+        check(nomeMedico, 80, "Nome do médico");
+        check(nomeAssistente, 40, "Nome da assistente");
+        check(telefone, 20, "Telefone");
+        check(endereco, 180, "Endereço");
+        check(descricaoServicos, 350, "Descrição de serviços");
+
+        if (errors.length > 0) {
+            return NextResponse.json({ error: errors[0], details: errors }, { status: 400 });
         }
 
-        // ── 1. Settings (tabela Setting) ──────────────────────────────
-        const settingsUpdate: any = {};
-        if (typeof robotEnabled === "boolean") settingsUpdate.robotEnabled = robotEnabled;
-        if (typeof debounceSeconds === "number") settingsUpdate.debounceSeconds = debounceSeconds;
+        // Validação de FAQ e Regras
+        const sanitizedFaq = Array.isArray(faq) 
+            ? faq.filter(f => f.pergunta?.trim() && f.resposta?.trim())
+                 .map(f => ({ pergunta: f.pergunta.trim().slice(0, 120), resposta: f.resposta.trim().slice(0, 300) }))
+                 .slice(0, 20)
+            : [];
+        
+        const sanitizedRegras = Array.isArray(regrasPersonalizadas)
+            ? regrasPersonalizadas.filter(r => typeof r === "string" && r.trim())
+                                 .map(r => r.trim().slice(0, 160))
+                                 .slice(0, 15)
+            : [];
 
-        if (Object.keys(settingsUpdate).length > 0) {
-            await prisma.setting.update({
-                where: { clinicId },
-                data: settingsUpdate,
-            });
-        }
+        // ── 2. PERSISTÊNCIA ──────────────────────────────────────────
 
-        // ── 2. Clinic calendar & Info & AI config (tabela Clinic) ─────
-        const clinicUpdate: any = {};
+        // Tabela: settings (Modelo Setting)
+        await prisma.setting.update({
+            where: { clinicId },
+            data: {
+                robotEnabled: typeof robotEnabled === "boolean" ? robotEnabled : undefined,
+                debounceSeconds: typeof debounceSeconds === "number" ? debounceSeconds : undefined,
+            },
+        });
 
-        // Dados Básicos
-        if (typeof nomeClinica === "string") clinicUpdate.nomeClinica = nomeClinica;
-        if (typeof nomeMedico === "string") clinicUpdate.nomeMedico = nomeMedico;
-        if (typeof endereco === "string") clinicUpdate.endereco = endereco;
-        if (typeof telefone === "string") clinicUpdate.telefone = telefone;
-        if (typeof consultaValor === "number") clinicUpdate.consultaValor = consultaValor;
-        if (typeof consultaDuracao === "number") clinicUpdate.consultaDuracao = consultaDuracao;
-        if (typeof descricaoServicos === "string") clinicUpdate.descricaoServicos = descricaoServicos;
+        // Tabela: clinics (Modelo Clinic)
+        const clinicUpdate: any = {
+            nomeClinica: nomeClinica?.trim(),
+            nomeMedico: nomeMedico?.trim(),
+            endereco: endereco?.trim(),
+            telefone: telefone?.trim(),
+            consultaValor: typeof consultaValor === "number" ? consultaValor : undefined,
+            consultaDuracao: typeof consultaDuracao === "number" ? consultaDuracao : undefined,
+            descricaoServicos: descricaoServicos?.trim(),
+            faq: JSON.stringify(sanitizedFaq),
+            regrasPersonalizadas: JSON.stringify(sanitizedRegras),
+            aiContextMode: ["LEGACY", "DYNAMIC"].includes(aiContextMode) ? aiContextMode : undefined,
+            nomeAssistente: nomeAssistente?.trim() || undefined,
+            // Calendário
+            workingDays: Array.isArray(workingDays) ? workingDays : undefined,
+            workingShifts: workingShifts !== undefined ? workingShifts : undefined,
+            prioritySuggestions: prioritySuggestions !== undefined ? prioritySuggestions : undefined,
+        };
 
-        // Configurações IA
-        if (typeof nomeAssistente === "string") clinicUpdate.nomeAssistente = nomeAssistente;
-        if (["LEGACY", "DYNAMIC"].includes(aiContextMode)) clinicUpdate.aiContextMode = aiContextMode;
+        // Remove campos undefined para evitar erros no Prisma
+        Object.keys(clinicUpdate).forEach(key => clinicUpdate[key] === undefined && delete clinicUpdate[key]);
 
-        // FAQ (Array -> JSON String)
-        if (Array.isArray(faq)) {
-            const validFaq = faq.filter((item: any) => item.pergunta?.trim() && item.resposta?.trim());
-            clinicUpdate.faq = JSON.stringify(validFaq);
-        }
-
-        // Regras Personalizadas (Array -> JSON String)
-        if (Array.isArray(regrasPersonalizadas)) {
-            const validRegras = regrasPersonalizadas.filter((r: any) => typeof r === "string" && r.trim());
-            clinicUpdate.regrasPersonalizadas = JSON.stringify(validRegras);
-        }
-
-        // Calendário
-        if (Array.isArray(workingDays)) {
-            const validDays = workingDays.filter((d: any) => typeof d === "number" && d >= 0 && d <= 6);
-            clinicUpdate.workingDays = validDays;
-        }
-
-        if (Array.isArray(workingShifts)) {
-            const validShifts = workingShifts.filter((s: any) =>
-                s && typeof s.period === "string" && typeof s.start === "string" && typeof s.end === "string"
-            );
-            clinicUpdate.workingShifts = validShifts;
-        }
-
-        if (prioritySuggestions !== undefined) {
-            clinicUpdate.prioritySuggestions = prioritySuggestions;
-        }
-
-        if (Object.keys(clinicUpdate).length > 0) {
-            await prisma.clinic.update({
-                where: { id: clinicId },
-                data: clinicUpdate,
-            });
-        }
+        await prisma.clinic.update({
+            where: { id: clinicId },
+            data: clinicUpdate,
+        });
 
         await LogService.info(clinicId, LogEvent.ACTION_EXECUTED, {
-            action: "UPDATE_SETTINGS_FULL",
-            settingsChanges: Object.keys(settingsUpdate),
-            clinicChanges: Object.keys(clinicUpdate),
+            action: "UPDATE_SETTINGS_P35",
+            aiContextMode,
+            hasFaq: sanitizedFaq.length > 0,
+            hasRegras: sanitizedRegras.length > 0
         });
 
         return NextResponse.json({ ok: true });

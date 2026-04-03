@@ -67,7 +67,7 @@ export const ClinicService = {
     async buildContextForAI(clinicId: string): Promise<ClinicContext | null> {
         const clinic = await prisma.clinic.findUnique({
             where: { id: clinicId },
-        });
+        }) as any;
 
         if (!clinic) return null;
 
