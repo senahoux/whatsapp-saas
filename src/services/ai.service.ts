@@ -34,6 +34,13 @@ export interface AIRequestContext {
     tabela_temporal: string;
 }
 
+export interface AIRespondOptions {
+    stage?: string;
+    invocationIndex?: number;
+    reason?: string;
+    onTrace?: (data: any) => void;
+}
+
 // ──────────────────────────────────────────────
 // OpenAI client singleton
 // ──────────────────────────────────────────────
@@ -399,46 +406,94 @@ export const AIService = {
      * Retorna AIResponse validada ou null em caso de falha/JSON inválido.
      * Em null, o orquestrador (process-conversation) cai em modo ASSISTENTE.
      */
-    async respond(ctx: AIRequestContext): Promise<AIResponse | null> {
+    async respond(ctx: AIRequestContext, options?: AIRespondOptions): Promise<AIResponse | null> {
+        const startTime = Date.now();
         console.log(">>> [AIService] Chamando OpenAI para:", ctx.nome_paciente);
-        console.log(">>> [AIService] Data de Ref:", ctx.data_referencia, "Timezone:", ctx.timezone);
-
+        
         const systemPrompt = buildSystemPrompt(ctx.contexto_clinica, ctx.data_referencia, ctx.timezone, ctx.tabela_temporal);
         const userMessage = buildUserMessage(ctx);
+
+        const messages: any[] = [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userMessage },
+        ];
+
+        let completion: any = null;
+        let error: any = null;
+        let validated: AIResponse | null = null;
 
         try {
             console.log(`\n[AIService] 🤖 Disparando Request p/ OpenAI (${AI_MODEL})...`);
 
-            const completion = await openai.chat.completions.create({
+            completion = await openai.chat.completions.create({
                 model: AI_MODEL,
-                messages: [
-                    {
-                        role: "system",
-                        content: systemPrompt
-                    },
-                    { role: "user", content: userMessage },
-                ],
+                messages,
                 temperature: 0.4,
                 max_tokens: 800,
-                response_format: { type: "json_object" }, // força JSON nativo
+                response_format: { type: "json_object" },
             });
 
             const rawContent = completion.choices[0]?.message?.content ?? "";
-            console.log(`[AIService] 📩 Retorno OpenAI recebido (Tamanho do Raw Content: ${rawContent.length} caracteres)`);
-            console.log(`[AIService] Conteúdo Raw:\n${rawContent.slice(0, 300)}...\n`);
-
-            const validated = validateAIResponse(rawContent);
+            validated = validateAIResponse(rawContent);
 
             if (!validated) {
                 console.error("[AIService] ❌ O retorno JSON foi invalidado pelos filtros acima.");
-            } else {
-                console.log(`[AIService] ✅ Parse estrutural validado com ISO-Perfeição. Ação Resultante: [${validated.acao_backend}] Modo: [${validated.modo_conversa}]`);
             }
 
             return validated;
-        } catch (err) {
-            console.error("[AIService] ❌ OpenAI API error (Exceção de rede/chamada):", err);
+        } catch (err: any) {
+            console.error("[AIService] ❌ OpenAI API error:", err);
+            error = {
+                message: err.message,
+                code: err.code || err.status,
+                type: err.type,
+                status: err.status
+            };
             return null;
+        } finally {
+            const latencyMs = Date.now() - startTime;
+            
+            if (options?.onTrace) {
+                // Subset seguro e serializável conforme exigência 2
+                const rawObject = completion ? {
+                    id: completion.id,
+                    model: completion.model,
+                    usage: completion.usage,
+                    choices: [{
+                        finish_reason: completion.choices?.[0]?.finish_reason,
+                        message: {
+                            role: completion.choices?.[0]?.message?.role,
+                            content: completion.choices?.[0]?.message?.content
+                        }
+                    }]
+                } : null;
+
+                options.onTrace({
+                    invocationIndex: options.invocationIndex ?? 0,
+                    stage: options.stage ?? "PRIMARY",
+                    reason: options.reason ?? "Standard call",
+                    request: {
+                        model: AI_MODEL,
+                        messages, // Payload real enviado
+                        temperature: 0.4
+                    },
+                    response: {
+                        rawText: completion?.choices?.[0]?.message?.content ?? null,
+                        rawObject,
+                        validated,
+                        finishReason: completion?.choices?.[0]?.finish_reason ?? null
+                    },
+                    error,
+                    metrics: {
+                        latencyMs,
+                        tokens: completion?.usage ? {
+                            prompt: completion.usage.prompt_tokens,
+                            completion: completion.usage.completion_tokens,
+                            total: completion.usage.total_tokens
+                        } : { prompt: 0, completion: 0, total: 0 }
+                    }
+                });
+            }
         }
     },
 
@@ -525,3 +580,4 @@ export const AIService = {
         }
     }
 };
+

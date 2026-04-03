@@ -137,6 +137,7 @@ export const LogEvent = {
     NOTIFICATION_SENT: "NOTIFICATION_SENT",
     HUMAN_INTERVENTION: "HUMAN_INTERVENTION",
     DEBOUNCE_TRIGGERED: "DEBOUNCE_TRIGGERED",
+    AI_FULL_TRACE: "AI_FULL_TRACE",
     ERROR: "ERROR",
 } as const;
 export type LogEvent = (typeof LogEvent)[keyof typeof LogEvent];

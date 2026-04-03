@@ -81,17 +81,84 @@ async function logAgendaFetchResult(
 /**
  * POST /api/process-conversation
  * Orquestrador do pipeline de IA — arquitetura limpa.
- * 
- * Princípios:
- * 1. A IA conduz a conversa.
- * 2. O backend fornece disponibilidade real (AgendaSnapshot).
- * 3. Nunca "aprisiona" a IA em ofertas anteriores.
- * 4. Filtro temporal do paciente persiste até mudança explícita.
  */
 export async function POST(req: NextRequest) {
+    const startTimeOverall = Date.now();
     let clinicId = "";
     let conversationId = "";
     let messageAlreadySent = false;
+    
+    // Objeto consolidado do Trace (Fase 1)
+    const fullTrace: any = {
+        metadata: {
+            traceId: `tr_${Math.random().toString(36).substring(2, 11)}`,
+            timestamp: new Date().toISOString(),
+            promptVersion: "legacy",
+            pipelineVersion: "ai-full-trace-v1"
+        },
+        input: {},
+        invocations: [],
+        finalOutput: {
+            postProcessingApplied: true, // Padrão do orquestrador
+            normalizationsApplied: true,
+            filtersApplied: []
+        }
+    };
+
+    /** Helper para salvar o trace com segurança */
+    const persistTrace = async () => {
+        try {
+            fullTrace.metadata.totalLatencyMs = Date.now() - startTimeOverall;
+            
+            // Lógica de Truncamento Defensivo conforme Exigência 3 e 5
+            let traceStr = JSON.stringify(fullTrace);
+            const MAX_BYTES = 100 * 1024; // 100KB
+
+            if (traceStr.length > MAX_BYTES) {
+                fullTrace.safety = {
+                    isTruncated: true,
+                    originalSize: traceStr.length,
+                    truncatedFields: []
+                };
+
+                // Ordem de truncamento: rawObject -> clinicContextSnapshot -> contactSnapshot/conversationStateSnapshot -> messages
+                for (const inv of fullTrace.invocations) {
+                    if (inv.response?.rawObject) {
+                        inv.response.rawObject = "{truncated}";
+                        fullTrace.safety.truncatedFields.push("invocations.response.rawObject");
+                    }
+                }
+                
+                if (JSON.stringify(fullTrace).length > MAX_BYTES) {
+                    fullTrace.input.clinicContextSnapshot = "{truncated}";
+                    fullTrace.safety.truncatedFields.push("input.clinicContextSnapshot");
+                }
+                
+                if (JSON.stringify(fullTrace).length > MAX_BYTES) {
+                    fullTrace.input.contactSnapshot = "{truncated}";
+                    fullTrace.input.conversationStateSnapshot = "{truncated}";
+                    fullTrace.safety.truncatedFields.push("input.snapshots");
+                }
+
+                if (JSON.stringify(fullTrace).length > MAX_BYTES && fullTrace.invocations[0]?.request?.messages) {
+                    // Mantém apenas as últimas 3 mensagens (System + User + context anterior se houver)
+                    fullTrace.invocations.forEach((inv: any) => {
+                        if (inv.request?.messages?.length > 3) {
+                            inv.request.messages = [
+                                inv.request.messages[0], // System
+                                ...inv.request.messages.slice(-2) // Últimas 2
+                            ];
+                        }
+                    });
+                    fullTrace.safety.truncatedFields.push("invocations.request.messages");
+                }
+            }
+
+            await LogService.info(clinicId, LogEvent.AI_FULL_TRACE, fullTrace);
+        } catch (e) {
+            console.error("[Trace] Falha ao persistir AI_FULL_TRACE:", e);
+        }
+    };
 
     try {
         const body = await req.json();
@@ -161,9 +228,25 @@ export async function POST(req: NextRequest) {
             tabela_temporal
         };
 
+        // Snapshot inicial para o trace
+        fullTrace.metadata.clinicId = clinicId;
+        fullTrace.metadata.conversationId = conversationId;
+        fullTrace.metadata.contactId = contact.id;
+        fullTrace.input = {
+            patientMessage: lastClientMessage.content,
+            recentMessagesUsed: historyMessages, // Array estruturado (Exigência 1)
+            clinicContextSnapshot: clinicContext,
+            conversationStateSnapshot: { status: conversation.status, state: conversation.state, focus: focoTemporalStr },
+            contactSnapshot: contact
+        };
 
         // ── 7. Chamada à IA ─────────────────────────────────────────
-        let aiResponse = await AIService.respond(aiCtx);
+        let aiResponse = await AIService.respond(aiCtx, {
+            stage: "PRIMARY",
+            invocationIndex: 0,
+            reason: "Interpretação inicial da mensagem",
+            onTrace: (t) => fullTrace.invocations.push(t)
+        });
         if (aiResponse) {
             await logAIDecision(clinicId, conversationId, contact.id, aiCtx, aiResponse);
         }
@@ -199,7 +282,12 @@ export async function POST(req: NextRequest) {
             }
 
             // A IA pensa de novo (agora com o snapshot na mão)
-            aiResponse = await AIService.respond(aiCtx);
+            aiResponse = await AIService.respond(aiCtx, {
+                stage: "AGENDA_LOOP",
+                invocationIndex: fullTrace.invocations.length,
+                reason: "Re-avaliação com dados reais da agenda",
+                onTrace: (t) => fullTrace.invocations.push(t)
+            });
             if (aiResponse) {
                 await logAIDecision(clinicId, conversationId, contact.id, aiCtx, aiResponse);
             }
@@ -232,7 +320,12 @@ export async function POST(req: NextRequest) {
                 if (!lastSlots.includes(chosenFlat) && !aiCtx.agenda_snapshot?.availableSlots?.find((s:any) => s.date === chosenDate && s.time === chosenTime)) {
                      // Devolve o problema para o Cérebro resolver
                      aiCtx.historico_resumido += `\n[SISTEMA]: O agendamento falhou pois o horário (${chosenFlat}) não existe na lista. Comunique de forma gentil que houve um descompasso temporal e siga a agenda.`;
-                     aiResponse = await AIService.respond(aiCtx);
+                     aiResponse = await AIService.respond(aiCtx, {
+                        stage: "GHOST_SLOT_RESOLUTION",
+                        invocationIndex: fullTrace.invocations.length,
+                        reason: "Tentativa de agendar horário inexistente no snapshot",
+                        onTrace: (t) => fullTrace.invocations.push(t)
+                     });
                      if (!aiResponse) {
                         await LogService.error(clinicId, LogEvent.ERROR, { note: "Falha da IA ao contornar slot fantasma."});
                         return NextResponse.json({ ok: false, error: "AI_ERROR_LOOP" });
@@ -241,7 +334,12 @@ export async function POST(req: NextRequest) {
                     const isDup = await AppointmentService.isDuplicate(clinicId, contact.id, chosenDate, chosenTime);
                     if (isDup) {
                         aiCtx.historico_resumido += `\n[SISTEMA]: O agendamento falhou. O paciente já tem horário marcado nesta exata data (${chosenFlat}). Avise-o que já consta no sistema.`;
-                        aiResponse = await AIService.respond(aiCtx);
+                        aiResponse = await AIService.respond(aiCtx, {
+                            stage: "OCCUPIED_SLOT_RESOLUTION",
+                            invocationIndex: fullTrace.invocations.length,
+                            reason: "Tentativa de agendar horário já ocupado para este paciente",
+                            onTrace: (t) => fullTrace.invocations.push(t)
+                        });
                         if (!aiResponse) {
                             await LogService.error(clinicId, LogEvent.ERROR, { note: "Falha da IA ao contornar slot duplicado."});
                             return NextResponse.json({ ok: false, error: "AI_ERROR_LOOP" });
@@ -308,10 +406,19 @@ export async function POST(req: NextRequest) {
             if (sent) await MessageService.markProcessed(clinicId, robotMsg.id);
         }
 
+        fullTrace.finalOutput.messageSent = aiResponse.mensagem;
+        fullTrace.finalOutput.actionFinal = aiResponse.acao_backend;
+        await persistTrace();
+
         return NextResponse.json({ ok: true, action: aiResponse.acao_backend, messageId: robotMsg.id });
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("[process-conversation] Error:", error);
+        fullTrace.error = {
+            message: error.message,
+            stack: error.stack
+        };
+        await persistTrace();
         return NextResponse.json({ error: "Internal Error" }, { status: 500 });
     }
 }
