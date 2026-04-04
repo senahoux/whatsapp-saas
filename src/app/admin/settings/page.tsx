@@ -68,6 +68,7 @@ export default function SettingsPage() {
     const [cockpitTrace, setCockpitTrace] = useState<any>(null);
     const [cockpitLoading, setCockpitLoading] = useState(false);
     const [cockpitActiveFilter, setCockpitActiveFilter] = useState<string | null>(null);
+    const [cockpitTab, setCockpitTab] = useState<'resumo' | 'prompt' | 'contexto' | 'json'>('resumo');
 
     // Original state for isDirty check
     const [original, setOriginal] = useState<any>(null);
@@ -272,6 +273,46 @@ export default function SettingsPage() {
         a.href = url;
         a.download = `trace_${cockpitTrace.metadata.traceId}.json`;
         a.click();
+    }
+
+    function undoLastTurn() {
+        if (cockpitHistory.length < 2) return;
+        setCockpitHistory(prev => prev.slice(0, -2));
+        setCockpitTrace(null);
+    }
+
+    async function retryLastTurn() {
+        if (cockpitHistory.length < 2 || cockpitLoading) return;
+        const lastUserMsg = cockpitHistory[cockpitHistory.length - 2].content;
+        const previousHistory = cockpitHistory.slice(0, -2);
+        
+        setCockpitLoading(true);
+        // Remove temporarily for the request
+        setCockpitHistory(previousHistory);
+
+        try {
+            const res = await fetch('/api/admin/cockpit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    messageText: lastUserMsg,
+                    history: previousHistory,
+                    activeFilter: cockpitActiveFilter
+                })
+            });
+
+            const data = await res.json();
+            if (data.ok) {
+                setCockpitHistory([
+                    ...previousHistory,
+                    { role: 'user' as const, content: lastUserMsg },
+                    { role: 'assistant' as const, content: data.message }
+                ]);
+                setCockpitTrace(data.trace);
+            }
+        } finally {
+            setCockpitLoading(false);
+        }
     }
 
     // ── Render Helpers ──────────────────────────────
@@ -648,6 +689,10 @@ export default function SettingsPage() {
                             {cockpitLoading && <div className="chat-bubble assistant loading">Pensando...</div>}
                         </div>
                         <div className="chat-input-area">
+                            <div className="chat-controls-left">
+                                <button type="button" onClick={undoLastTurn} disabled={cockpitHistory.length < 2} className="btn-icon-turn" title="Voltar 1 turno">↩</button>
+                                <button type="button" onClick={retryLastTurn} disabled={cockpitHistory.length < 2 || cockpitLoading} className="btn-icon-turn" title="Regerar última resposta">↻</button>
+                            </div>
                             <input 
                                 value={cockpitMessage}
                                 onChange={e => setCockpitMessage(e.target.value)}
@@ -663,9 +708,14 @@ export default function SettingsPage() {
 
                     <div className="cockpit-inspector-panel">
                         <div className="inspector-header">
-                            <h4>AI_FULL_TRACE Inspector</h4>
+                            <div className="inspector-tabs">
+                                <button className={`tab-btn ${cockpitTab === 'resumo' ? 'active' : ''}`} onClick={() => setCockpitTab('resumo')}>Resumo</button>
+                                <button className={`tab-btn ${cockpitTab === 'prompt' ? 'active' : ''}`} onClick={() => setCockpitTab('prompt')}>Prompt</button>
+                                <button className={`tab-btn ${cockpitTab === 'contexto' ? 'active' : ''}`} onClick={() => setCockpitTab('contexto')}>Contexto</button>
+                                <button className={`tab-btn ${cockpitTab === 'json' ? 'active' : ''}`} onClick={() => setCockpitTab('json')}>JSON</button>
+                            </div>
                             {cockpitTrace && (
-                                <button onClick={exportCockpitTrace} className="btn-export">Exportar JSON</button>
+                                <button onClick={exportCockpitTrace} className="btn-export">Exportar</button>
                             )}
                         </div>
                         <div className="inspector-content">
@@ -674,9 +724,56 @@ export default function SettingsPage() {
                                     Interaja com a IA para visualizar o trace técnico da execução.
                                 </div>
                             ) : (
-                                <pre className="trace-code">
-                                    {JSON.stringify(cockpitTrace, null, 2)}
-                                </pre>
+                                <div className="tab-viewport">
+                                    {cockpitTab === 'json' && (
+                                        <pre className="trace-code">
+                                            {JSON.stringify(cockpitTrace, null, 2)}
+                                        </pre>
+                                    )}
+                                    {cockpitTab === 'prompt' && (
+                                        <div className="prompt-view">
+                                            <h5>PROMPT DE SISTEMA (FASE 4.1):</h5>
+                                            <div className="prompt-text-box">
+                                                {cockpitTrace?.invocations?.[0]?.request?.messages?.[0]?.content}
+                                            </div>
+                                        </div>
+                                    )}
+                                    {cockpitTab === 'contexto' && (
+                                        <div className="context-view">
+                                            <h5>SNAPSHOT DO CONTEXTO (CLÍNICA):</h5>
+                                            <div className="context-grid">
+                                                <div className="context-item"><strong>Assistente:</strong> {cockpitTrace?.input?.clinicContextSnapshot?.nomeAssistente}</div>
+                                                <div className="context-item"><strong>Modo:</strong> {cockpitTrace?.input?.clinicContextSnapshot?.aiContextMode}</div>
+                                                <div className="context-item full"><strong>Descrição:</strong> {cockpitTrace?.input?.clinicContextSnapshot?.descricaoServicos}</div>
+                                                <div className="context-item full"><strong>FAQs ({cockpitTrace?.input?.clinicContextSnapshot?.faq?.length}):</strong> 
+                                                    <ul className="mini-list">
+                                                        {cockpitTrace?.input?.clinicContextSnapshot?.faq?.slice(0, 3).map((f: any, i: number) => (
+                                                            <li key={i}>{f.pergunta.substring(0, 30)}...</li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {cockpitTab === 'resumo' && (
+                                        <div className="summary-view">
+                                            <div className="summary-cards">
+                                                <div className="s-card">
+                                                    <label>Ação Final</label>
+                                                    <span className={`badge-action ${cockpitTrace?.finalOutput?.actionFinal}`}>{cockpitTrace?.finalOutput?.actionFinal}</span>
+                                                </div>
+                                                <div className="s-card">
+                                                    <label>Latência</label>
+                                                    <span>{cockpitTrace?.metadata?.totalLatencyMs}ms</span>
+                                                </div>
+                                                <div className="s-card full">
+                                                    <label>Nota de Simulação</label>
+                                                    <p>{cockpitTrace?.finalOutput?.simulationNote || "Tratada como mensagem comum."}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             )}
                         </div>
                     </div>
