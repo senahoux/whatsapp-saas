@@ -468,11 +468,92 @@ export default function SettingsPage() {
                     <h3>Disponibilidade Operacional</h3>
                     <p>Dias e turnos em que a agenda WhatsApp permite marcações.</p>
                 </div>
-                {/* ... (Conteúdo de calendários mantido funcional) ... */}
+                
                 <div className="card">
-                     {/* Simplificado para brevidade, mas mantendo a lógica de dias/turnos/sugestões */}
-                     <p className="description">Calendário operando nos dias configurados: {workingDays.map(d => WEEKDAYS.find(w => w.value === d)?.label).join(", ")}</p>
-                     <small className="help-text">Use o painel completo para ajustes finos de horários excepcionais.</small>
+                    <div className="form-group mb-24">
+                        <label>Dias de Atendimento</label>
+                        <div className="weekday-selector">
+                            {WEEKDAYS.map(day => (
+                                <button
+                                    key={day.value}
+                                    type="button"
+                                    className={`weekday-btn ${workingDays.includes(day.value) ? "active" : ""}`}
+                                    onClick={() => toggleDay(day.value)}
+                                >
+                                    {day.label}
+                                </button>
+                            ))}
+                        </div>
+                        <small className="help-text">Selecione os dias da semana em que há expediente clínico.</small>
+                    </div>
+
+                    <div className="form-group mb-24">
+                        <label>Turnos de Funcionamento</label>
+                        <div className="shifts-list">
+                            {workingShifts.map((shift, i) => (
+                                <div key={i} className="shift-row">
+                                    <select 
+                                        value={shift.period} 
+                                        onChange={e => {
+                                            const updated = [...workingShifts];
+                                            updated[i].period = e.target.value;
+                                            setWorkingShifts(updated);
+                                        }}
+                                    >
+                                        <option value="manha">Manhã</option>
+                                        <option value="tarde">Tarde</option>
+                                        <option value="noite">Noite</option>
+                                    </select>
+                                    <div className="time-inputs">
+                                        <input type="time" value={shift.start} onChange={e => {
+                                            const updated = [...workingShifts];
+                                            updated[i].start = e.target.value;
+                                            setWorkingShifts(updated);
+                                        }} />
+                                        <span className="time-sep">até</span>
+                                        <input type="time" value={shift.end} onChange={e => {
+                                            const updated = [...workingShifts];
+                                            updated[i].end = e.target.value;
+                                            setWorkingShifts(updated);
+                                        }} />
+                                    </div>
+                                    <button type="button" onClick={() => setWorkingShifts(workingShifts.filter((_, idx) => idx !== i))} className="btn-delete-small">×</button>
+                                </div>
+                            ))}
+                            <button type="button" onClick={() => setWorkingShifts([...workingShifts, { period: "manha", start: "08:00", end: "12:00" }])} className="btn-add-outline">
+                                + Adicionar Turno
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="form-group">
+                        <label>Sugestões Prioritárias (Próximas Datas)</label>
+                        <div className="suggestions-compact-container">
+                            <div className="suggestion-input-row">
+                                <input type="date" value={newSuggestion.date} onChange={e => setNewSuggestion({...newSuggestion, date: e.target.value})} />
+                                <select value={newSuggestion.period} onChange={e => setNewSuggestion({...newSuggestion, period: e.target.value})}>
+                                    <option value="manha">Manhã</option>
+                                    <option value="tarde">Tarde</option>
+                                    <option value="dia_todo">Dia Todo</option>
+                                </select>
+                                <button type="button" onClick={() => {
+                                    if (!newSuggestion.date) return;
+                                    setPrioritySuggestions([...prioritySuggestions, newSuggestion]);
+                                    setNewSuggestion({ date: "", period: "manha" });
+                                }} className="btn-action">Adicionar</button>
+                            </div>
+                            <div className="suggestions-tags-list">
+                                {prioritySuggestions.map((s, i) => (
+                                    <div key={i} className="suggestion-tag">
+                                        <span>{s.date} ({s.period})</span>
+                                        <button type="button" onClick={() => setPrioritySuggestions(prioritySuggestions.filter((_, idx) => idx !== i))}>×</button>
+                                    </div>
+                                ))}
+                                {prioritySuggestions.length === 0 && <span className="empty-hint">Nenhuma data prioritária cadastrada.</span>}
+                            </div>
+                        </div>
+                        <small className="help-text">Estas datas serão oferecidas primeiro pelo robô ao paciente.</small>
+                    </div>
                 </div>
             </section>
 
