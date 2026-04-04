@@ -645,13 +645,21 @@ input:focus, textarea:focus {
 }
 
 .btn-tiny {
-    background: #f1f5f9;
-    border: 1px solid var(--border);
-    padding: 2px 8px;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid #3b82f6;
+    color: #60a5fa;
+    padding: 3px 10px;
     font-size: 0.7rem;
     border-radius: 4px;
     cursor: pointer;
-    font-weight: 600;
+    font-weight: 700;
+    text-transform: uppercase;
+    transition: all 0.2s;
+}
+
+.btn-tiny:hover {
+    background: #3b82f6;
+    color: white;
 }
 
 .prompt-editor {
@@ -740,15 +748,21 @@ input:focus, textarea:focus {
 .bubble-actions button:hover { opacity: 1; }
 
 .btn-warn {
-    background: #fef2f2;
-    color: #991b1b;
-    border: 1px solid #fecaca;
-    padding: 4px 10px;
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 6px 12px;
     border-radius: 4px;
     font-size: 0.75rem;
     font-weight: 700;
     cursor: pointer;
-    margin-right: 8px;
+    margin-right: 12px;
+    transition: all 0.2s;
+}
+
+.btn-warn:hover {
+    background: #dc2626;
+    transform: scale(1.05);
 }
 
 .override-tag-list {
@@ -827,11 +841,12 @@ input:focus, textarea:focus {
 
 /* Inspector Views */
 .tab-viewport h5 {
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
-    color: #94a3b8;
+    color: #cbd5e1;
     margin-bottom: 12px;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.1em;
+    font-weight: 800;
 }
 
 .prompt-text-box {
