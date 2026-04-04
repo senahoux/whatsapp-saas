@@ -624,6 +624,158 @@ input:focus, textarea:focus {
 
 .btn-export:hover { background: #1e293b; }
 
+/* ── Cockpit Phase 4.2 Simulation Lab ──────── */
+.override-banner {
+    background: #fff7ed;
+    color: #9a3412;
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+    border: 1px solid #fbbf24;
+    text-align: center;
+}
+
+.view-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.btn-tiny {
+    background: #f1f5f9;
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    font-size: 0.7rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.prompt-editor {
+    width: 100%;
+    height: 350px;
+    background: #0f172a;
+    color: #cbd5e1;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.85rem;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid #334155;
+    resize: none;
+    line-height: 1.6;
+}
+
+.lab-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-item label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+}
+
+.form-item input, .form-item textarea {
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: white;
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+.faq-mini-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.faq-mini-item {
+    display: flex;
+    gap: 8px;
+}
+
+.faq-mini-item input { flex: 1; font-size: 0.8rem; }
+.faq-mini-item button { 
+    background: #ef444422; 
+    color: #ef4444; 
+    border: none; 
+    border-radius: 4px; 
+    width: 30px; 
+}
+
+.bubble-actions {
+    display: flex;
+    gap: 6px;
+    margin-left: 10px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.chat-bubble:hover .bubble-actions {
+    opacity: 1;
+}
+
+.bubble-actions button {
+    background: none;
+    border: none;
+    color: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+    opacity: 0.6;
+}
+
+.bubble-actions button:hover { opacity: 1; }
+
+.btn-warn {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    margin-right: 8px;
+}
+
+.override-tag-list {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    display: inline-block;
+    margin-bottom: 16px;
+}
+
+.inspector-actions {
+    display: flex;
+    align-items: center;
+}
+
+.hint {
+    display: block;
+    margin-top: 8px;
+    font-size: 0.75rem;
+    color: #64748b;
+    font-style: italic;
+}
+
+
 /* ── Cockpit Phase 4.1 ─────────────────────── */
 .inspector-tabs {
     display: flex;

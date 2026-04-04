@@ -35,10 +35,11 @@ export interface AIRequestContext {
 }
 
 export interface AIRespondOptions {
-    stage?: string;
+    stage?: 'PRIMARY' | 'AGENDA_LOOP' | 'GHOST_SLOT_RESOLUTION' | 'OCCUPIED_SLOT_RESOLUTION';
     invocationIndex?: number;
     reason?: string;
-    onTrace?: (data: any) => void;
+    onTrace?: (invocation: any) => void;
+    systemPromptOverride?: string; // Fase 4.2 Simulation Lab
 }
 
 // ──────────────────────────────────────────────
@@ -556,7 +557,7 @@ export const AIService = {
         const startTime = Date.now();
         console.log(">>> [AIService] Chamando OpenAI para:", ctx.nome_paciente);
         
-        const systemPrompt = buildSystemPrompt(ctx.contexto_clinica, ctx.data_referencia, ctx.timezone, ctx.tabela_temporal);
+        const systemPrompt = options?.systemPromptOverride || buildSystemPrompt(ctx.contexto_clinica, ctx.data_referencia, ctx.timezone, ctx.tabela_temporal);
         const userMessage = buildUserMessage(ctx);
 
         const messages: any[] = [

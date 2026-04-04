@@ -69,6 +69,11 @@ export default function SettingsPage() {
     const [cockpitLoading, setCockpitLoading] = useState(false);
     const [cockpitActiveFilter, setCockpitActiveFilter] = useState<string | null>(null);
     const [cockpitTab, setCockpitTab] = useState<'resumo' | 'prompt' | 'contexto' | 'json'>('resumo');
+    
+    // Simulation Lab Overrides (Fase 4.2)
+    const [cockpitPromptOverride, setCockpitPromptOverride] = useState<string | null>(null);
+    const [cockpitContextOverride, setCockpitContextOverride] = useState<any | null>(null);
+    const [isHistoryEdited, setIsHistoryEdited] = useState(false);
 
     // Original state for isDirty check
     const [original, setOriginal] = useState<any>(null);
@@ -230,18 +235,21 @@ export default function SettingsPage() {
                 body: JSON.stringify({
                     messageText: cockpitMessage,
                     history: cockpitHistory,
-                    activeFilter: cockpitActiveFilter
+                    activeFilter: cockpitActiveFilter,
+                    promptOverride: cockpitPromptOverride,
+                    contextOverride: cockpitContextOverride,
+                    isHistoryEdited
                 })
             });
 
             const data = await res.json();
             if (data.ok) {
-                const newHistory = [
+                const newResponse = { role: 'assistant' as const, content: data.message };
+                setCockpitHistory([
                     ...cockpitHistory,
                     { role: 'user' as const, content: cockpitMessage },
-                    { role: 'assistant' as const, content: data.message }
-                ];
-                setCockpitHistory(newHistory);
+                    newResponse
+                ]);
                 setCockpitTrace(data.trace);
                 if (data.trace?.invocations?.[0]?.response?.referencia_temporal_resolvida) {
                     setCockpitActiveFilter(data.trace.invocations[0].response.referencia_temporal_resolvida);
@@ -263,6 +271,16 @@ export default function SettingsPage() {
         setCockpitTrace(null);
         setCockpitActiveFilter(null);
         setCockpitMessage("");
+        setCockpitPromptOverride(null);
+        setCockpitContextOverride(null);
+        setIsHistoryEdited(false);
+    }
+
+    function resetToDefaults() {
+        if (!confirm("Deseja limpar todos os overrides e voltar à configuração real da clínica?")) return;
+        setCockpitPromptOverride(null);
+        setCockpitContextOverride(null);
+        // Mantém histórico mas reseta o trace para o próximo envio usar o real
     }
 
     function exportCockpitTrace() {
@@ -297,7 +315,10 @@ export default function SettingsPage() {
                 body: JSON.stringify({
                     messageText: lastUserMsg,
                     history: previousHistory,
-                    activeFilter: cockpitActiveFilter
+                    activeFilter: cockpitActiveFilter,
+                    promptOverride: cockpitPromptOverride,
+                    contextOverride: cockpitContextOverride,
+                    isHistoryEdited
                 })
             });
 
@@ -313,6 +334,30 @@ export default function SettingsPage() {
         } finally {
             setCockpitLoading(false);
         }
+    }
+
+    function editHistoryMessage(index: number, content: string) {
+        const updated = [...cockpitHistory];
+        updated[index].content = content;
+        setCockpitHistory(updated);
+        setIsHistoryEdited(true);
+    }
+
+    function deleteHistoryTurn(index: number) {
+        // Remove o turno completo (Msg + Resposta)
+        const isUser = cockpitHistory[index].role === 'user';
+        const start = isUser ? index : index - 1;
+        const updated = [...cockpitHistory];
+        updated.splice(start, 2);
+        setCockpitHistory(updated);
+        setIsHistoryEdited(true);
+    }
+
+    function updateOverrideContext(field: string, value: any) {
+        const base = cockpitContextOverride || cockpitTrace?.input?.clinicContextSnapshot || original;
+        if (!base) return;
+        const updated = { ...base, [field]: value };
+        setCockpitContextOverride(updated);
     }
 
     // ── Render Helpers ──────────────────────────────
@@ -682,7 +727,16 @@ export default function SettingsPage() {
                             )}
                             {cockpitHistory.map((msg, i) => (
                                 <div key={i} className={`chat-bubble ${msg.role}`}>
-                                    <div className="bubble-header">{msg.role === 'user' ? 'Você' : nomeAssistente}</div>
+                                    <div className="bubble-header">
+                                        {msg.role === 'user' ? 'Você' : nomeAssistente}
+                                        <div className="bubble-actions">
+                                            <button onClick={() => {
+                                                const news = prompt(`Editar mensagem de ${msg.role}:`, msg.content);
+                                                if (news !== null) editHistoryMessage(i, news);
+                                            }}>✎</button>
+                                            <button onClick={() => deleteHistoryTurn(i)}>×</button>
+                                        </div>
+                                    </div>
                                     <div className="bubble-content">{msg.content}</div>
                                 </div>
                             ))}
@@ -714,15 +768,22 @@ export default function SettingsPage() {
                                 <button className={`tab-btn ${cockpitTab === 'contexto' ? 'active' : ''}`} onClick={() => setCockpitTab('contexto')}>Contexto</button>
                                 <button className={`tab-btn ${cockpitTab === 'json' ? 'active' : ''}`} onClick={() => setCockpitTab('json')}>JSON</button>
                             </div>
-                            {cockpitTrace && (
-                                <button onClick={exportCockpitTrace} className="btn-export">Exportar</button>
-                            )}
+                            <div className="inspector-actions">
+                                {(cockpitPromptOverride || cockpitContextOverride || isHistoryEdited) && (
+                                    <button onClick={resetToDefaults} className="btn-warn">Resetar Overrides</button>
+                                )}
+                                {cockpitTrace && <button onClick={exportCockpitTrace} className="btn-export">Exportar</button>}
+                            </div>
                         </div>
                         <div className="inspector-content">
-                            {!cockpitTrace ? (
-                                <div className="no-trace">
-                                    Interaja com a IA para visualizar o trace técnico da execução.
+                            {(cockpitPromptOverride || cockpitContextOverride) && (
+                                <div className="override-banner">
+                                    ⚠️ Simulação rodando com Overrides Temporários
                                 </div>
+                            )}
+
+                            {!cockpitTrace && !cockpitPromptOverride && !cockpitContextOverride ? (
+                                <div className="no-trace">Interaja ou crie um override para começar.</div>
                             ) : (
                                 <div className="tab-viewport">
                                     {cockpitTab === 'json' && (
@@ -732,39 +793,85 @@ export default function SettingsPage() {
                                     )}
                                     {cockpitTab === 'prompt' && (
                                         <div className="prompt-view">
-                                            <h5>PROMPT DE SISTEMA (FASE 4.1):</h5>
-                                            <div className="prompt-text-box">
-                                                {cockpitTrace?.invocations?.[0]?.request?.messages?.[0]?.content}
+                                            <div className="view-header">
+                                                <h5>{cockpitPromptOverride ? 'SYSTEM PROMPT (MODIFICADO)' : 'SYSTEM PROMPT REAL'}</h5>
+                                                {!cockpitPromptOverride ? (
+                                                    <button onClick={() => setCockpitPromptOverride(cockpitTrace?.invocations?.[0]?.request?.messages?.[0]?.content || "")} className="btn-tiny">Editar Este Prompt</button>
+                                                ) : (
+                                                    <button onClick={() => setCockpitPromptOverride(null)} className="btn-tiny">Restaurar Original</button>
+                                                )}
                                             </div>
+                                            <textarea 
+                                                className="prompt-editor"
+                                                value={cockpitPromptOverride ?? (cockpitTrace?.invocations?.[0]?.request?.messages?.[0]?.content || "Aguardando execução...")}
+                                                onChange={e => setCockpitPromptOverride(e.target.value)}
+                                                readOnly={!cockpitPromptOverride && !cockpitTrace}
+                                            />
+                                            {cockpitPromptOverride && <small className="hint">As mudanças acima valem apenas para o Cockpit.</small>}
                                         </div>
                                     )}
                                     {cockpitTab === 'contexto' && (
                                         <div className="context-view">
-                                            <h5>SNAPSHOT DO CONTEXTO (CLÍNICA):</h5>
-                                            <div className="context-grid">
-                                                <div className="context-item"><strong>Assistente:</strong> {cockpitTrace?.input?.clinicContextSnapshot?.nomeAssistente}</div>
-                                                <div className="context-item"><strong>Modo:</strong> {cockpitTrace?.input?.clinicContextSnapshot?.aiContextMode}</div>
-                                                <div className="context-item full"><strong>Descrição:</strong> {cockpitTrace?.input?.clinicContextSnapshot?.descricaoServicos}</div>
-                                                <div className="context-item full"><strong>FAQs ({cockpitTrace?.input?.clinicContextSnapshot?.faq?.length}):</strong> 
-                                                    <ul className="mini-list">
-                                                        {cockpitTrace?.input?.clinicContextSnapshot?.faq?.slice(0, 3).map((f: any, i: number) => (
-                                                            <li key={i}>{f.pergunta.substring(0, 30)}...</li>
+                                            <div className="view-header">
+                                                <h5>{cockpitContextOverride ? 'CONTEXTO (MODIFICADO)' : 'CONTEXTO REAL'}</h5>
+                                                {cockpitContextOverride && <button onClick={() => setCockpitContextOverride(null)} className="btn-tiny">Restaurar Reais</button>}
+                                            </div>
+                                            
+                                            <div className="lab-form">
+                                                <div className="form-item">
+                                                    <label>Nome Assistente</label>
+                                                    <input 
+                                                        value={cockpitContextOverride?.nomeAssistente ?? (cockpitTrace?.input?.clinicContextSnapshot?.nomeAssistente || "")} 
+                                                        onChange={e => updateOverrideContext('nomeAssistente', e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="form-item">
+                                                    <label>Descrição Serviços</label>
+                                                    <textarea 
+                                                        value={cockpitContextOverride?.descricaoServicos ?? (cockpitTrace?.input?.clinicContextSnapshot?.descricaoServicos || "")} 
+                                                        onChange={e => updateOverrideContext('descricaoServicos', e.target.value)}
+                                                    />
+                                                </div>
+                                                <div className="form-item">
+                                                    <label>FAQs (Simuladas)</label>
+                                                    <div className="faq-mini-list">
+                                                        {(cockpitContextOverride?.faq || cockpitTrace?.input?.clinicContextSnapshot?.faq || []).map((f: any, i: number) => (
+                                                            <div key={i} className="faq-mini-item">
+                                                                <input value={f.pergunta} readOnly />
+                                                                <button onClick={() => {
+                                                                    const cur = cockpitContextOverride?.faq || cockpitTrace?.input?.clinicContextSnapshot?.faq;
+                                                                    updateOverrideContext('faq', cur.filter((_:any,idx:number)=>idx!==i));
+                                                                }}>×</button>
+                                                            </div>
                                                         ))}
-                                                    </ul>
+                                                        <button className="btn-tiny" onClick={() => {
+                                                             const q = prompt("Pergunta:");
+                                                             const a = prompt("Resposta:");
+                                                             if(q && a) {
+                                                                const cur = cockpitContextOverride?.faq || cockpitTrace?.input?.clinicContextSnapshot?.faq || [];
+                                                                updateOverrideContext('faq', [...cur, {pergunta:q, resposta:a}]);
+                                                             }
+                                                        }}>+ Mock FAQ</button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
                                     )}
                                     {cockpitTab === 'resumo' && (
                                         <div className="summary-view">
+                                            {cockpitTrace?.metadata?.overriddenLayers?.length > 0 && (
+                                                <div className="override-tag-list">
+                                                    Usando: {cockpitTrace.metadata.overriddenLayers.join(", ")}
+                                                </div>
+                                            )}
                                             <div className="summary-cards">
                                                 <div className="s-card">
                                                     <label>Ação Final</label>
                                                     <span className={`badge-action ${cockpitTrace?.finalOutput?.actionFinal}`}>{cockpitTrace?.finalOutput?.actionFinal}</span>
                                                 </div>
                                                 <div className="s-card">
-                                                    <label>Latência</label>
-                                                    <span>{cockpitTrace?.metadata?.totalLatencyMs}ms</span>
+                                                    <label>Intenção</label>
+                                                    <span>{cockpitTrace?.invocations?.[0]?.response?.estado_paciente || "-"}</span>
                                                 </div>
                                                 <div className="s-card full">
                                                     <label>Nota de Simulação</label>

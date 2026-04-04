@@ -33,25 +33,25 @@ export async function POST(req: NextRequest) {
         if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
         const body = await req.json();
-        const { messageText, history = [] } = body;
+        const { messageText, history = [], promptOverride, contextOverride } = body;
         const clinicId = session.clinicId as string;
 
         if (!messageText || !clinicId) {
             return NextResponse.json({ error: "Missing params" }, { status: 400 });
         }
 
-        // ── 1. Contexto da Clínica ───────────────────────────────────
-        const clinicContext = await ClinicService.buildContextForAI(clinicId);
+        // ── 1. Contexto da Clínica (Real vs Override) ──────────────
+        // Se houver contextOverride, ignoramos a busca no banco (Fase 4.2)
+        const clinicContext = contextOverride || await ClinicService.buildContextForAI(clinicId);
         if (!clinicContext) return NextResponse.json({ error: "Clinic context not found" }, { status: 500 });
 
         const timezone = 'America/Sao_Paulo';
-        // Simulação de Data Atual para o Mock
         const data_referencia = new Intl.DateTimeFormat('en-CA', {
             timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit'
         }).format(new Date());
 
-        // Constrói o histórico resumido a partir do array enviado pelo frontend
-        // No Cockpit, confiamos no histórico que o frontend mantém para o "Continuar Conversa"
+        // Histórico (Real vs Override)
+        // O array 'history' já contém o override se o usuário editou no frontend
         const historico_resumido = history.map((m: any) => `${m.role === 'user' ? 'PACIENTE' : 'ASSISTENTE'}: ${m.content}`).join("\n");
         const tabela_temporal = AIService.getDateReferences(timezone);
 
@@ -71,11 +71,17 @@ export async function POST(req: NextRequest) {
         // Snapshot inicial para o trace
         fullTrace.metadata.clinicId = clinicId;
         fullTrace.metadata.promptVersion = clinicContext.aiContextMode;
+        fullTrace.metadata.overriddenLayers = [];
+        if (promptOverride) fullTrace.metadata.overriddenLayers.push("PROMPT");
+        if (contextOverride) fullTrace.metadata.overriddenLayers.push("CONTEXT");
+        if (body.isHistoryEdited) fullTrace.metadata.overriddenLayers.push("HISTORY"); // Sinalizador opcional
+
         fullTrace.input = {
             patientMessage: messageText,
             recentMessagesUsed: history,
             clinicContextSnapshot: clinicContext,
-            isCockpit: true
+            isCockpit: true,
+            isOverridden: fullTrace.metadata.overriddenLayers.length > 0
         };
 
         // ── 2. Chamada à IA (Pernada 1) ────────────────────────────────
@@ -83,6 +89,7 @@ export async function POST(req: NextRequest) {
             stage: "PRIMARY",
             invocationIndex: 0,
             reason: "Cockpit: Interpretação inicial",
+            systemPromptOverride: promptOverride, // Injeção do Override (Fase 4.2)
             onTrace: (t) => fullTrace.invocations.push(t)
         });
 
