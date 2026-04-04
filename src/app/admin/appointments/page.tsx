@@ -41,7 +41,10 @@ export default function AppointmentsPage() {
     }
 
     useEffect(() => {
-        loadDay();
+        // Evita chamadas com datas parciais enquanto o usuário digita (Fase 3.5 fix)
+        if (currentDate && currentDate.length === 10) {
+            loadDay();
+        }
     }, [currentDate]);
 
     async function toggleBlock() {
