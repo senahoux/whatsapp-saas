@@ -68,7 +68,7 @@ export default function AuditPage() {
                 })
             });
             const data = await res.json();
-            if (data.ok) {
+            if (data.ok && selectedLog) {
                 const updated = logs.map(l => l.id === selectedLog.id ? { ...l, evaluation, evaluationNote: evalNote, evaluatedAt: new Date().toISOString() } : l);
                 setLogs(updated);
                 setSelectedLog({ ...selectedLog, evaluation, evaluationNote: evalNote });
