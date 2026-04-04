@@ -286,12 +286,6 @@ model Log {
   event     String
   details   String?  // JSON serializado
   
-  // Auditoria (Fase 5)
-  evaluation     String?   // GOOD | BAD | CRITICAL
-  evaluationNote String?
-  evaluatedAt    DateTime?
-  evaluatedBy    String?
-  
   createdAt DateTime @default(now())
 
   clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)

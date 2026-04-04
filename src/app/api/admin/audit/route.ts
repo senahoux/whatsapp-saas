@@ -46,12 +46,8 @@ export async function GET(req: NextRequest) {
                 take: limit,
                 select: {
                     id: true,
-                    evaluation: true,
-                    evaluationNote: true,
-                    evaluatedAt: true,
-                    evaluatedBy: true,
                     createdAt: true,
-                    details: true // O trace completo
+                    details: true,
                 }
             })
         ]);
@@ -82,33 +78,15 @@ export async function PATCH(req: NextRequest) {
         const session = await getSession();
         if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-        const clinicId = session.clinicId as string;
         const body = await req.json();
-        const { logId, evaluation, evaluationNote } = body;
+        const { logId } = body;
 
-        if (!logId || !evaluation) {
-            return NextResponse.json({ error: "Missing logId or evaluation" }, { status: 400 });
+        if (!logId) {
+            return NextResponse.json({ error: "Missing logId" }, { status: 400 });
         }
 
-        const updated = await prisma.log.updateMany({
-            where: {
-                id: logId,
-                clinicId,
-                event: "AI_FULL_TRACE"
-            },
-            data: {
-                evaluation,
-                evaluationNote,
-                evaluatedAt: new Date(),
-                evaluatedBy: session.userEmail || "System"
-            }
-        });
-
-        if (updated.count === 0) {
-            return NextResponse.json({ error: "Log not found or unauthorized" }, { status: 404 });
-        }
-
-        return NextResponse.json({ ok: true });
+        // Rollback: No evaluation update possible
+        return NextResponse.json({ ok: false, error: "Auditoria temporariamente indisponível após rollback." });
 
     } catch (error: any) {
         console.error("[Audit API] PATCH Error:", error);

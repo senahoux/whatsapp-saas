@@ -34,14 +34,27 @@ export const LogService = {
         details?: Record<string, unknown>
     ): Promise<Log> {
         console.log(`>>> [LogService] Criando evento: ${event} para ${clinicId}`);
-        return prisma.log.create({
-            data: {
+        try {
+            return await prisma.log.create({
+                data: {
+                    clinicId,
+                    event,
+                    level,
+                    details: details ? JSON.stringify(details) : null,
+                },
+            });
+        } catch (error) {
+            console.error(`!!! [LogService] ERRO ao persistir log: ${event}. O fluxo continuará sem log persistido.`, error);
+            // Retorna um objeto fake para não quebrar quem espera o retorno (quase ninguém usa o retorno)
+            return {
+                id: "error-log-" + Date.now(),
                 clinicId,
                 event,
                 level,
                 details: details ? JSON.stringify(details) : null,
-            },
-        });
+                createdAt: new Date()
+            } as Log;
+        }
     },
 
     /** Shortcut para nível INFO */
