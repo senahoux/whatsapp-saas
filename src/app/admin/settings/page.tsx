@@ -61,6 +61,13 @@ export default function SettingsPage() {
     const [aiContextMode, setAiContextMode] = useState("LEGACY");
     const [faq, setFaq] = useState<{ pergunta: string; resposta: string }[]>([]);
     const [regrasPersonalizadas, setRegrasPersonalizadas] = useState<string[]>([]);
+    
+    // Cockpit IA (Fase 4)
+    const [cockpitMessage, setCockpitMessage] = useState("");
+    const [cockpitHistory, setCockpitHistory] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
+    const [cockpitTrace, setCockpitTrace] = useState<any>(null);
+    const [cockpitLoading, setCockpitLoading] = useState(false);
+    const [cockpitActiveFilter, setCockpitActiveFilter] = useState<string | null>(null);
 
     // Original state for isDirty check
     const [original, setOriginal] = useState<any>(null);
@@ -208,6 +215,63 @@ export default function SettingsPage() {
         const updated = [...regrasPersonalizadas];
         updated[index] = value;
         setRegrasPersonalizadas(updated);
+    }
+
+    // ── Cockpit Handlers ────────────────────────────
+    async function handleCockpitTest() {
+        if (!cockpitMessage.trim() || cockpitLoading) return;
+        setCockpitLoading(true);
+
+        try {
+            const res = await fetch('/api/admin/cockpit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    messageText: cockpitMessage,
+                    history: cockpitHistory,
+                    activeFilter: cockpitActiveFilter
+                })
+            });
+
+            const data = await res.json();
+            if (data.ok) {
+                const newHistory = [
+                    ...cockpitHistory,
+                    { role: 'user' as const, content: cockpitMessage },
+                    { role: 'assistant' as const, content: data.message }
+                ];
+                setCockpitHistory(newHistory);
+                setCockpitTrace(data.trace);
+                if (data.trace?.invocations?.[0]?.response?.referencia_temporal_resolvida) {
+                    setCockpitActiveFilter(data.trace.invocations[0].response.referencia_temporal_resolvida);
+                }
+                setCockpitMessage("");
+            } else {
+                alert(data.error || "Erro na simulação.");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Erro de conexão com o Cockpit.");
+        } finally {
+            setCockpitLoading(false);
+        }
+    }
+
+    function resetCockpit() {
+        setCockpitHistory([]);
+        setCockpitTrace(null);
+        setCockpitActiveFilter(null);
+        setCockpitMessage("");
+    }
+
+    function exportCockpitTrace() {
+        if (!cockpitTrace) return;
+        const blob = new Blob([JSON.stringify(cockpitTrace, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `trace_${cockpitTrace.metadata.traceId}.json`;
+        a.click();
     }
 
     // ── Render Helpers ──────────────────────────────
@@ -553,6 +617,68 @@ export default function SettingsPage() {
                             </div>
                         </div>
                         <small className="help-text">Estas datas serão oferecidas primeiro pelo robô ao paciente.</small>
+                    </div>
+                </div>
+            </section>
+
+            {/* ── SEÇÃO 6: COCKPIT IA (ÁREA DE TESTE) ──────────────── */}
+            <section className="settings-section border-top">
+                <div className="section-intro">
+                    <div className="title-row">
+                        <h3>Cockpit da Inteligência Artificial</h3>
+                        <button type="button" onClick={resetCockpit} className="btn-reset">Nova Simulação</button>
+                    </div>
+                    <p>Teste o comportamento da IA e valide o contexto sem afetar pacientes reais.</p>
+                </div>
+
+                <div className="cockpit-container">
+                    <div className="cockpit-chat-panel">
+                        <div className="chat-window">
+                            {cockpitHistory.length === 0 && (
+                                <div className="chat-empty">
+                                    Aguardando mensagem para iniciar simulação profissional...
+                                </div>
+                            )}
+                            {cockpitHistory.map((msg, i) => (
+                                <div key={i} className={`chat-bubble ${msg.role}`}>
+                                    <div className="bubble-header">{msg.role === 'user' ? 'Você' : nomeAssistente}</div>
+                                    <div className="bubble-content">{msg.content}</div>
+                                </div>
+                            ))}
+                            {cockpitLoading && <div className="chat-bubble assistant loading">Pensando...</div>}
+                        </div>
+                        <div className="chat-input-area">
+                            <input 
+                                value={cockpitMessage}
+                                onChange={e => setCockpitMessage(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && handleCockpitTest()}
+                                placeholder="Digite uma mensagem de teste..."
+                                disabled={cockpitLoading}
+                            />
+                            <button onClick={handleCockpitTest} disabled={cockpitLoading || !cockpitMessage.trim()} className="btn-action">
+                                {cockpitLoading ? "..." : "Enviar"}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="cockpit-inspector-panel">
+                        <div className="inspector-header">
+                            <h4>AI_FULL_TRACE Inspector</h4>
+                            {cockpitTrace && (
+                                <button onClick={exportCockpitTrace} className="btn-export">Exportar JSON</button>
+                            )}
+                        </div>
+                        <div className="inspector-content">
+                            {!cockpitTrace ? (
+                                <div className="no-trace">
+                                    Interaja com a IA para visualizar o trace técnico da execução.
+                                </div>
+                            ) : (
+                                <pre className="trace-code">
+                                    {JSON.stringify(cockpitTrace, null, 2)}
+                                </pre>
+                            )}
+                        </div>
                     </div>
                 </div>
             </section>
