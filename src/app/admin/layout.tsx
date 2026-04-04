@@ -28,6 +28,7 @@ export default async function AdminLayout({
                 <nav className="sidebar-nav">
                     <Link href="/admin" className="nav-link">Dashboard</Link>
                     <Link href="/admin/appointments" className="nav-link">Agenda</Link>
+                    <Link href="/admin/audit" className="nav-link">Auditoria IA</Link>
                     <Link href="/admin/patients" className="nav-link">Pacientes</Link>
                     <Link href="/admin/settings" className="nav-link">Configurações</Link>
                     <Link href="/admin/logs" className="nav-link">Logs de Sistema</Link>
