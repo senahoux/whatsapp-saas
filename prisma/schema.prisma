@@ -280,16 +280,23 @@ model Setting {
 model Log {
   id        String   @id @default(cuid())
   clinicId  String
-  // level: INFO | WARN | ERROR | DEBUG
+  // level: INFO | ERROR | etc.
   level     String   @default("INFO")
-  // event: MESSAGE_RECEIVED | AI_RESPONSE | ACTION_EXECUTED | ERROR | etc.
+  // event: AI_FULL_TRACE | MESSAGE_RECEIVED | etc.
   event     String
-  details   String?  // JSON serializado com contexto adicional
+  details   String?  // JSON serializado
+  
+  // Auditoria (Fase 5)
+  evaluation     String?   // GOOD | BAD | CRITICAL
+  evaluationNote String?
+  evaluatedAt    DateTime?
+  evaluatedBy    String?
+  
   createdAt DateTime @default(now())
 
   clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
 
-  @@index([clinicId, createdAt])
+  @@index([clinicId, event, createdAt])
   @@index([clinicId, level])
   @@map("logs")
 }
