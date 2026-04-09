@@ -1,0 +1,444 @@
+/* ── Audit Page — Consistent with Settings Design ── */
+
+.audit-page {
+    padding: 40px 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: #1e293b;
+    background: #f8fafc;
+    min-height: 100vh;
+}
+
+/* ── Header ─────────────────────────────────── */
+.audit-page .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 32px;
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 24px;
+}
+
+.audit-page .page-title {
+    font-size: 1.85rem;
+    font-weight: 800;
+    color: #1e293b;
+    letter-spacing: -0.025em;
+    margin-bottom: 4px;
+}
+
+.audit-page .page-subtitle {
+    color: #64748b;
+    font-size: 1rem;
+}
+
+.stat-badge {
+    font-family: monospace;
+    font-size: 0.85rem;
+    background: #f1f5f9;
+    padding: 6px 14px;
+    border-radius: 6px;
+    color: #64748b;
+}
+
+/* ── Cards (reuso do settings) ───────────────── */
+.audit-page .card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.06);
+}
+
+.panel-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 16px;
+    letter-spacing: -0.01em;
+}
+
+/* ── Filtros ──────────────────────────────────── */
+.audit-filters-section {
+    margin-bottom: 28px;
+}
+
+.filters-row {
+    display: flex;
+    gap: 16px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.filter-group label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.filter-group select,
+.filter-group input {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #1e293b;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    min-width: 130px;
+    transition: border-color 0.15s;
+}
+
+.filter-group select:focus,
+.filter-group input:focus {
+    outline: none;
+    border-color: #2563eb;
+}
+
+.btn-action {
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+
+.btn-action:hover { background: #1e40af; }
+
+/* ── Layout Principal ────────────────────────── */
+.audit-body {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 24px;
+    align-items: start;
+}
+
+/* ── Lista de Traces (Sidebar) ───────────────── */
+.list-card {
+    padding: 20px;
+    max-height: calc(100vh - 280px);
+    display: flex;
+    flex-direction: column;
+}
+
+.trace-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 16px;
+}
+
+.trace-item {
+    padding: 12px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.12s;
+}
+
+.trace-item:hover {
+    background: #f1f5f9;
+}
+
+.trace-item.selected {
+    background: #eff6ff;
+    border-color: #2563eb;
+}
+
+.trace-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.trace-time {
+    font-size: 0.78rem;
+    font-family: monospace;
+    color: #64748b;
+}
+
+.eval-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.eval-badge.PENDING { background: #f1f5f9; color: #94a3b8; }
+.eval-badge.GOOD { background: #dcfce7; color: #166534; }
+.eval-badge.BAD { background: #fef3c7; color: #92400e; }
+.eval-badge.CRITICAL { background: #fee2e2; color: #991b1b; }
+
+.trace-preview {
+    font-size: 0.82rem;
+    color: #475569;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.4;
+}
+
+/* Paginação */
+.list-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.btn-page {
+    background: transparent;
+    border: 1px solid #e2e8f0;
+    color: #1e293b;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.12s;
+}
+
+.btn-page:hover:not(:disabled) { background: #f1f5f9; }
+.btn-page:disabled { opacity: 0.35; cursor: default; }
+
+.page-info {
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+.empty-panel {
+    text-align: center;
+    padding: 40px 16px;
+    color: #94a3b8;
+    font-size: 0.9rem;
+}
+
+/* ── Detalhe do Trace (Main) ─────────────────── */
+.audit-detail-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.detail-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    color: #94a3b8;
+    text-align: center;
+}
+
+.placeholder-icon {
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+    opacity: 0.5;
+}
+
+/* ── Turno (Paciente x IA) ───────────────────── */
+.turn-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.turn-card {
+    padding: 16px 20px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+}
+
+.turn-card.patient {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+}
+
+.turn-card.assistant {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+}
+
+.turn-label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    margin-bottom: 8px;
+}
+
+.turn-card p {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: #1e293b;
+}
+
+/* ── Avaliação ───────────────────────────────── */
+.eval-row {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.eval-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-eval {
+    padding: 8px 18px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    color: #475569;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.15s;
+}
+
+.btn-eval.good:hover, .btn-eval.good.active { background: #dcfce7; border-color: #22c55e; color: #166534; }
+.btn-eval.bad:hover, .btn-eval.bad.active { background: #fef3c7; border-color: #f59e0b; color: #92400e; }
+.btn-eval.critical:hover, .btn-eval.critical.active { background: #fee2e2; border-color: #ef4444; color: #991b1b; }
+
+.eval-section textarea {
+    width: 100%;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #1e293b;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    resize: vertical;
+    font-family: inherit;
+    transition: border-color 0.15s;
+}
+
+.eval-section textarea:focus {
+    outline: none;
+    border-color: #2563eb;
+}
+
+.eval-stamp {
+    font-size: 0.75rem;
+    color: #94a3b8;
+}
+
+/* ── Inspector Tabs ──────────────────────────── */
+.inspector-section {
+    overflow: hidden;
+}
+
+.inspector-tabs {
+    display: flex;
+    border-bottom: 1px solid #e2e8f0;
+    margin: -24px -24px 0;
+    padding: 0 24px;
+}
+
+.tab-btn {
+    padding: 12px 18px;
+    background: transparent;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+}
+
+.tab-btn:hover { color: #1e293b; }
+.tab-btn.active { color: #2563eb; border-bottom-color: #2563eb; }
+
+.inspector-viewport {
+    padding-top: 20px;
+    max-height: 450px;
+    overflow-y: auto;
+}
+
+/* ── Summary Grid ────────────────────────────── */
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+}
+
+.summary-card {
+    background: #f8fafc;
+    padding: 14px 18px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.summary-card label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #94a3b8;
+    margin-bottom: 6px;
+}
+
+.summary-card span {
+    font-size: 0.92rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.action-tag {
+    background: #eff6ff;
+    padding: 2px 10px;
+    border-radius: 6px;
+    font-size: 0.8rem !important;
+    color: #2563eb !important;
+}
+
+/* ── Code Block ──────────────────────────────── */
+.code-block {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-size: 0.78rem;
+    line-height: 1.65;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: #334155;
+    font-family: 'Fira Code', 'Consolas', monospace;
+    margin: 0;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* ── Responsivo ──────────────────────────────── */
+@media (max-width: 900px) {
+    .audit-body {
+        grid-template-columns: 1fr;
+    }
+    .turn-grid {
+        grid-template-columns: 1fr;
+    }
+}

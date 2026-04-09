@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import "./audit.module.css";
+import "./audit.css";
 
 type AuditLog = {
     id: string;
@@ -19,6 +19,7 @@ export default function AuditPage() {
     const [logs, setLogs] = useState<AuditLog[]>([]);
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
     const [loading, setLoading] = useState(true);
     const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
     const [filter, setFilter] = useState({
@@ -35,7 +36,7 @@ export default function AuditPage() {
         try {
             const params = new URLSearchParams({
                 page: page.toString(),
-                limit: "15"
+                limit: "20"
             });
             if (filter.evaluation !== "ALL") params.append("evaluation", filter.evaluation);
             if (filter.startDate) params.append("startDate", filter.startDate);
@@ -46,6 +47,7 @@ export default function AuditPage() {
             if (data.ok) {
                 setLogs(data.data);
                 setTotal(data.total);
+                setTotalPages(data.totalPages || 1);
             }
         } finally {
             setLoading(false);
@@ -80,124 +82,186 @@ export default function AuditPage() {
         }
     }
 
+    function getContactLabel(details: any): string {
+        return details?.input?.contactPhone || details?.input?.contactId || "Contato";
+    }
+
+    function getPatientMessage(details: any): string {
+        return details?.input?.patientMessage || "(sem mensagem)";
+    }
+
+    function getAiResponse(details: any): string {
+        return details?.finalOutput?.messageSent || details?.finalOutput?.messageText || "(sem resposta)";
+    }
+
     return (
-        <div className="audit-container">
-            <header className="audit-header">
-                <div className="header-info">
-                    <h1>Auditoria de Conversas</h1>
-                    <p>Revisão forense e feedback de qualidade para a IA.</p>
+        <div className="audit-page">
+            {/* ── HEADER ─────────────────────────── */}
+            <header className="page-header">
+                <div className="header-content">
+                    <h2 className="page-title">Auditoria de Conversas</h2>
+                    <p className="page-subtitle">Revisão forense e feedback de qualidade para a IA</p>
                 </div>
-                <div className="audit-filters">
-                    <select value={filter.evaluation} onChange={e => setFilter({ ...filter, evaluation: e.target.value })}>
-                        <option value="ALL">Todas</option>
-                        <option value="PENDING">Não Revisadas</option>
-                        <option value="GOOD">Boas</option>
-                        <option value="BAD">Ruins</option>
-                        <option value="CRITICAL">Críticas</option>
-                    </select>
-                    <input type="date" value={filter.startDate} onChange={e => setFilter({ ...filter, startDate: e.target.value })} />
-                    <input type="date" value={filter.endDate} onChange={e => setFilter({ ...filter, endDate: e.target.value })} />
-                    <button onClick={() => setPage(1)} className="btn-refresh">Filtrar</button>
+                <div className="audit-stats">
+                    <span className="stat-badge">{total} trace{total !== 1 ? 's' : ''}</span>
                 </div>
             </header>
-            <main className="audit-layout">
-                <aside className="audit-sidebar">
-                    {loading ? (
-                        <div className="loading-state">Carregando traces...</div>
-                    ) : (
-                        <div className="log-list">
-                            {logs.map(log => (
-                                <div
-                                    key={log.id}
-                                    className={`log-item ${selectedLog?.id === log.id ? 'active' : ''} ${log.evaluation || 'PENDING'}`}
-                                    onClick={() => { setSelectedLog(log); setEvalNote(log.evaluationNote || ""); }}
-                                >
-                                    <div className="log-item-meta">
-                                        <span>{format(new Date(log.createdAt), "HH:mm:ss dd/MM", { locale: ptBR })}</span>
-                                        <span className={`badge ${log.evaluation || 'PENDING'}`}>{log.evaluation || 'PENDING'}</span>
-                                    </div>
-                                    <div className="log-item-preview">
-                                        {log.details?.input?.patientMessage?.substring(0, 45)}...
-                                    </div>
-                                </div>
-                            ))}
-                            {logs.length === 0 && <div className="empty-state">Nenhum log encontrado.</div>}
+
+            {/* ── FILTROS ────────────────────────── */}
+            <section className="audit-filters-section">
+                <div className="card">
+                    <div className="filters-row">
+                        <div className="filter-group">
+                            <label>Status</label>
+                            <select value={filter.evaluation} onChange={e => { setFilter({ ...filter, evaluation: e.target.value }); setPage(1); }}>
+                                <option value="ALL">Todas</option>
+                                <option value="PENDING">Não Revisadas</option>
+                                <option value="GOOD">Boas</option>
+                                <option value="BAD">Ruins</option>
+                                <option value="CRITICAL">Críticas</option>
+                            </select>
                         </div>
-                    )}
-                    <div className="pagination-controls">
-                        <button disabled={page === 1} onClick={() => setPage(p => p - 1)}>Anterior</button>
-                        <span>Página {page}</span>
-                        <button disabled={logs.length < 15} onClick={() => setPage(p => p + 1)}>Próxima</button>
+                        <div className="filter-group">
+                            <label>De</label>
+                            <input type="date" value={filter.startDate} onChange={e => setFilter({ ...filter, startDate: e.target.value })} />
+                        </div>
+                        <div className="filter-group">
+                            <label>Até</label>
+                            <input type="date" value={filter.endDate} onChange={e => setFilter({ ...filter, endDate: e.target.value })} />
+                        </div>
+                        <button onClick={() => setPage(1)} className="btn-action">Filtrar</button>
+                    </div>
+                </div>
+            </section>
+
+            {/* ── CONTEÚDO PRINCIPAL ──────────────── */}
+            <div className="audit-body">
+                {/* ── LISTA DE TRACES ── */}
+                <aside className="audit-list-panel">
+                    <div className="card list-card">
+                        <h4 className="panel-title">Interações ({total})</h4>
+                        {loading ? (
+                            <div className="empty-panel">Carregando traces...</div>
+                        ) : logs.length === 0 ? (
+                            <div className="empty-panel">Nenhum log encontrado para os filtros atuais.</div>
+                        ) : (
+                            <div className="trace-list">
+                                {logs.map(log => (
+                                    <div
+                                        key={log.id}
+                                        className={`trace-item ${selectedLog?.id === log.id ? 'selected' : ''}`}
+                                        onClick={() => { setSelectedLog(log); setEvalNote(log.evaluationNote || ""); setActiveTab('resumo'); }}
+                                    >
+                                        <div className="trace-meta">
+                                            <span className="trace-time">
+                                                {format(new Date(log.createdAt), "dd/MM HH:mm:ss", { locale: ptBR })}
+                                            </span>
+                                            <span className={`eval-badge ${log.evaluation || 'PENDING'}`}>
+                                                {log.evaluation === 'GOOD' ? '✓ Boa' : log.evaluation === 'BAD' ? '✗ Ruim' : log.evaluation === 'CRITICAL' ? '⚠ Crítica' : 'Pendente'}
+                                            </span>
+                                        </div>
+                                        <div className="trace-preview">{getPatientMessage(log.details).substring(0, 60)}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        <div className="list-pagination">
+                            <button disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="btn-page">← Anterior</button>
+                            <span className="page-info">{page} / {totalPages}</span>
+                            <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="btn-page">Próxima →</button>
+                        </div>
                     </div>
                 </aside>
-                <section className="audit-details">
+
+                {/* ── DETALHE DO TRACE ── */}
+                <main className="audit-detail-panel">
                     {!selectedLog ? (
-                        <div className="details-placeholder">Selecione uma interação para auditar.</div>
+                        <div className="card detail-placeholder">
+                            <div className="placeholder-icon">🔍</div>
+                            <p>Selecione uma interação na lista para inspecionar o trace completo.</p>
+                        </div>
                     ) : (
-                        <div className="audit-workspace">
-                            <div className="workspace-top">
-                                <div className="turn-summary">
-                                    <div className="turn-bubble user">
-                                        <small>Paciente</small>
-                                        <p>{selectedLog.details?.input?.patientMessage}</p>
+                        <>
+                            {/* Turno: Paciente → IA */}
+                            <section className="card turn-section">
+                                <h4 className="panel-title">Turno da Conversa</h4>
+                                <div className="turn-grid">
+                                    <div className="turn-card patient">
+                                        <span className="turn-label">Paciente</span>
+                                        <p>{getPatientMessage(selectedLog.details)}</p>
                                     </div>
-                                    <div className="turn-bubble ai">
-                                        <small>IA (Resposta Final)</small>
-                                        <p>{selectedLog.details?.finalOutput?.messageSent || selectedLog.details?.finalOutput?.messageText}</p>
+                                    <div className="turn-card assistant">
+                                        <span className="turn-label">IA (Resposta Final)</span>
+                                        <p>{getAiResponse(selectedLog.details)}</p>
                                     </div>
                                 </div>
-                                <div className="evaluation-panel">
-                                    <h3>Avaliação Qualitativa</h3>
+                            </section>
+
+                            {/* Avaliação */}
+                            <section className="card eval-section">
+                                <h4 className="panel-title">Avaliação Qualitativa</h4>
+                                <div className="eval-row">
                                     <div className="eval-buttons">
-                                        <button className={`btn-eval good ${selectedLog.evaluation === 'GOOD' ? 'selected' : ''}`} onClick={() => handleSaveEvaluation('GOOD')} disabled={saving}>Boa</button>
-                                        <button className={`btn-eval bad ${selectedLog.evaluation === 'BAD' ? 'selected' : ''}`} onClick={() => handleSaveEvaluation('BAD')} disabled={saving}>Ruim</button>
-                                        <button className={`btn-eval critical ${selectedLog.evaluation === 'CRITICAL' ? 'selected' : ''}`} onClick={() => handleSaveEvaluation('CRITICAL')} disabled={saving}>Crítica</button>
+                                        <button className={`btn-eval good ${selectedLog.evaluation === 'GOOD' ? 'active' : ''}`} onClick={() => handleSaveEvaluation('GOOD')} disabled={saving}>✓ Boa</button>
+                                        <button className={`btn-eval bad ${selectedLog.evaluation === 'BAD' ? 'active' : ''}`} onClick={() => handleSaveEvaluation('BAD')} disabled={saving}>✗ Ruim</button>
+                                        <button className={`btn-eval critical ${selectedLog.evaluation === 'CRITICAL' ? 'active' : ''}`} onClick={() => handleSaveEvaluation('CRITICAL')} disabled={saving}>⚠ Crítica</button>
                                     </div>
-                                    <textarea placeholder="Observação da auditoria..." value={evalNote} onChange={e => setEvalNote(e.target.value)} />
+                                    <textarea
+                                        placeholder="Observação da auditoria (opcional)..."
+                                        value={evalNote}
+                                        onChange={e => setEvalNote(e.target.value)}
+                                        rows={2}
+                                    />
                                     {selectedLog.evaluatedAt && (
-                                        <small className="audit-timestamp">Revisado por {selectedLog.evaluatedBy} em {format(new Date(selectedLog.evaluatedAt), "dd/MM/yy HH:mm")}</small>
+                                        <small className="eval-stamp">Revisado por {selectedLog.evaluatedBy} em {format(new Date(selectedLog.evaluatedAt), "dd/MM/yy HH:mm")}</small>
                                     )}
                                 </div>
-                            </div>
-                            <div className="audit-inspector">
+                            </section>
+
+                            {/* Inspector */}
+                            <section className="card inspector-section">
                                 <div className="inspector-tabs">
-                                    <button className={activeTab === 'resumo' ? 'active' : ''} onClick={() => setActiveTab('resumo')}>Resumo</button>
-                                    <button className={activeTab === 'prompt' ? 'active' : ''} onClick={() => setActiveTab('prompt')}>Prompt</button>
-                                    <button className={activeTab === 'contexto' ? 'active' : ''} onClick={() => setActiveTab('contexto')}>Contexto</button>
-                                    <button className={activeTab === 'json' ? 'active' : ''} onClick={() => setActiveTab('json')}>JSON</button>
+                                    <button className={`tab-btn ${activeTab === 'resumo' ? 'active' : ''}`} onClick={() => setActiveTab('resumo')}>Resumo</button>
+                                    <button className={`tab-btn ${activeTab === 'prompt' ? 'active' : ''}`} onClick={() => setActiveTab('prompt')}>Prompt</button>
+                                    <button className={`tab-btn ${activeTab === 'contexto' ? 'active' : ''}`} onClick={() => setActiveTab('contexto')}>Contexto</button>
+                                    <button className={`tab-btn ${activeTab === 'json' ? 'active' : ''}`} onClick={() => setActiveTab('json')}>JSON Completo</button>
                                 </div>
-                                <div className="inspector-content-audit">
+                                <div className="inspector-viewport">
                                     {activeTab === 'resumo' && (
-                                        <div className="summary-view">
-                                            <div className="a-card">
-                                                <label>Intenção</label>
-                                                <span>{selectedLog.details?.invocations?.[0]?.response?.estado_paciente || "-"}</span>
+                                        <div className="summary-grid">
+                                            <div className="summary-card">
+                                                <label>Intenção Detectada</label>
+                                                <span>{selectedLog.details?.invocations?.[0]?.response?.estado_paciente || "—"}</span>
                                             </div>
-                                            <div className="a-card">
+                                            <div className="summary-card">
                                                 <label>Ação Backend</label>
-                                                <span className={`badge-action ${selectedLog.details?.finalOutput?.actionFinal}`}>{selectedLog.details?.finalOutput?.actionFinal}</span>
+                                                <span className="action-tag">{selectedLog.details?.finalOutput?.actionFinal || "—"}</span>
                                             </div>
-                                            <div className="a-card">
-                                                <label>Latência</label>
-                                                <span>{selectedLog.details?.metadata?.totalLatencyMs}ms</span>
+                                            <div className="summary-card">
+                                                <label>Latência Total</label>
+                                                <span>{selectedLog.details?.metadata?.totalLatencyMs ? `${selectedLog.details.metadata.totalLatencyMs}ms` : "—"}</span>
+                                            </div>
+                                            <div className="summary-card">
+                                                <label>Contato</label>
+                                                <span>{getContactLabel(selectedLog.details)}</span>
                                             </div>
                                         </div>
                                     )}
                                     {activeTab === 'prompt' && (
-                                        <div className="prompt-view-audit"><pre>{selectedLog.details?.invocations?.[0]?.request?.messages?.[0]?.content}</pre></div>
+                                        <pre className="code-block">{selectedLog.details?.invocations?.[0]?.request?.messages?.[0]?.content || "(prompt não disponível)"}</pre>
                                     )}
                                     {activeTab === 'contexto' && (
-                                        <div className="context-view-audit"><pre>{JSON.stringify(selectedLog.details?.input?.clinicContextSnapshot, null, 2)}</pre></div>
+                                        <pre className="code-block">{JSON.stringify(selectedLog.details?.input?.clinicContextSnapshot, null, 2) || "(contexto não disponível)"}</pre>
                                     )}
                                     {activeTab === 'json' && (
-                                        <pre className="json-view-audit">{JSON.stringify(selectedLog.details, null, 2)}</pre>
+                                        <pre className="code-block">{JSON.stringify(selectedLog.details, null, 2)}</pre>
                                     )}
                                 </div>
-                            </div>
-                        </div>
+                            </section>
+                        </>
                     )}
-                </section>
-            </main>
+                </main>
+            </div>
         </div>
     );
 }
