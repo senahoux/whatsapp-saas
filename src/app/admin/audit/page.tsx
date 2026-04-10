@@ -208,6 +208,35 @@ export default function AuditPage() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [replayOpen, showSearch, searchQuery, searchResults, activeSearchIndex]);
 
+    // Auto-scroll para a ocorrência ativa
+    useEffect(() => {
+        if (activeSearchIndex !== -1 && showSearch) {
+            // Pequeno delay para garantir que o render do realce terminou
+            setTimeout(() => {
+                const activeEl = document.querySelector('.search-highlight.active');
+                if (activeEl) {
+                    activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                // Para o textarea, a lógica é diferente (seleção de texto)
+                if (replayTab === 'prompt') {
+                    const textarea = document.querySelector('.replay-prompt-editor') as HTMLTextAreaElement;
+                    if (textarea && searchResults[activeSearchIndex] !== undefined) {
+                        const start = searchResults[activeSearchIndex];
+                        const end = start + searchQuery.length;
+                        textarea.focus();
+                        textarea.setSelectionRange(start, end);
+                        
+                        // Scroll manual aproximado para o textarea se necessário
+                        const lineHeight = 20; // Aproximado
+                        const textBefore = replayPrompt.substring(0, start);
+                        const linesBefore = textBefore.split('\n').length;
+                        textarea.scrollTop = (linesBefore * lineHeight) - (textarea.clientHeight / 2);
+                    }
+                }
+            }, 50);
+        }
+    }, [activeSearchIndex, showSearch, replayTab, searchResults, searchQuery]);
+
     function performSearch(query: string) {
         setSearchQuery(query);
         if (!query || query.length < 2) {
@@ -244,15 +273,25 @@ export default function AuditPage() {
     const highlightText = (text: string) => {
         if (!searchQuery || searchQuery.length < 2) return text;
         const parts = text.split(new RegExp(`(${searchQuery})`, 'gi'));
+        let matchCount = 0;
         return (
             <>
-                {parts.map((part, i) => (
-                    part.toLowerCase() === searchQuery.toLowerCase() ? (
-                        <span key={i} className={`search-highlight ${activeSearchIndex !== -1 && searchResults[activeSearchIndex] === i ? 'active' : ''}`}>
-                            {part}
-                        </span>
-                    ) : part
-                ))}
+                {parts.map((part, i) => {
+                    const isMatch = part.toLowerCase() === searchQuery.toLowerCase();
+                    if (isMatch) {
+                        const currentMatchIndex = matchCount;
+                        matchCount++;
+                        return (
+                            <span 
+                                key={i} 
+                                className={`search-highlight ${activeSearchIndex === currentMatchIndex ? 'active' : ''}`}
+                            >
+                                {part}
+                            </span>
+                        );
+                    }
+                    return part;
+                })}
             </>
         );
     };

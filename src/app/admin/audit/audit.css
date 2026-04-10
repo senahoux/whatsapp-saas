@@ -572,6 +572,7 @@
     font-size: 0.85rem;
     width: 300px;
     outline: none;
+    color: #1e293b; /* Garantir texto escuro */
     transition: border-color 0.15s;
 }
 
@@ -609,14 +610,18 @@
 
 /* ── Search Highlights ──────────────────────── */
 .search-highlight {
-    background-color: #fef08a; /* Amarelo suave */
+    background-color: #fef08a; /* Amarelo claro para todas */
     color: #000;
     border-radius: 2px;
+    transition: background-color 0.2s;
 }
 
 .search-highlight.active {
-    background-color: #f59e0b; /* Laranja forte */
-    outline: 2px solid #b45309;
+    background-color: #f59e0b !important; /* Laranja forte para o ativo */
+    color: #fff !important;
+    box-shadow: 0 0 0 2px #b45309;
+    z-index: 5;
+    position: relative;
 }
 
 .replay-modal-body {
