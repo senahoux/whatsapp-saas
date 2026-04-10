@@ -48,6 +48,10 @@ export async function GET(req: NextRequest) {
                     id: true,
                     createdAt: true,
                     details: true,
+                    evaluation: true,
+                    evaluationNote: true,
+                    evaluatedAt: true,
+                    evaluatedBy: true,
                 }
             })
         ]);
@@ -78,15 +82,39 @@ export async function PATCH(req: NextRequest) {
         const session = await getSession();
         if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+        const clinicId = session.clinicId as string;
         const body = await req.json();
-        const { logId } = body;
+        const { logId, evaluation, evaluationNote } = body;
 
         if (!logId) {
             return NextResponse.json({ error: "Missing logId" }, { status: 400 });
         }
 
-        // Rollback: No evaluation update possible
-        return NextResponse.json({ ok: false, error: "Auditoria temporariamente indisponível após rollback." });
+        if (!evaluation || !["GOOD", "BAD", "CRITICAL"].includes(evaluation)) {
+            return NextResponse.json({ error: "Invalid evaluation value" }, { status: 400 });
+        }
+
+        // Verificar que o log pertence à clínica do operador
+        const log = await prisma.log.findFirst({
+            where: { id: logId, clinicId },
+            select: { id: true }
+        });
+
+        if (!log) {
+            return NextResponse.json({ error: "Log not found" }, { status: 404 });
+        }
+
+        await prisma.log.update({
+            where: { id: logId },
+            data: {
+                evaluation,
+                evaluationNote: evaluationNote || null,
+                evaluatedAt: new Date(),
+                evaluatedBy: (session as any).user?.email || "admin"
+            }
+        });
+
+        return NextResponse.json({ ok: true });
 
     } catch (error: any) {
         console.error("[Audit API] PATCH Error:", error);

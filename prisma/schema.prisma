@@ -70,7 +70,8 @@ model Clinic {
   scheduleBlocks ScheduleBlock[]
   notifications  Notification[]
   settings       Setting?
-  logs           Log[]
+  logs              Log[]
+  replayExperiments ReplayExperiment[]
 
   @@map("clinics")
 }
@@ -278,14 +279,20 @@ model Setting {
 // 10. LOGS — Registros de eventos do sistema por clínica
 // =============================================================
 model Log {
-  id        String   @id @default(cuid())
-  clinicId  String
+  id             String    @id @default(cuid())
+  clinicId       String
   // level: INFO | ERROR | etc.
-  level     String   @default("INFO")
+  level          String    @default("INFO")
   // event: AI_FULL_TRACE | MESSAGE_RECEIVED | etc.
-  event     String
-  details   String?  // JSON serializado
-  
+  event          String
+  details        String?   // JSON serializado
+
+  // Avaliação humana (Fase 5 / reativada na Fase 6)
+  evaluation     String?   // GOOD | BAD | CRITICAL
+  evaluationNote String?
+  evaluatedAt    DateTime?
+  evaluatedBy    String?
+
   createdAt DateTime @default(now())
 
   clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
@@ -293,4 +300,42 @@ model Log {
   @@index([clinicId, event, createdAt])
   @@index([clinicId, level])
   @@map("logs")
+}
+
+// =============================================================
+// 11. REPLAY_EXPERIMENTS — Laboratório de Replay e Comparação
+//     Cada experimento congela um snapshot de um trace real
+//     e permite reexecução com prompt editado.
+// =============================================================
+model ReplayExperiment {
+  id                 String   @id @default(cuid())
+  clinicId           String
+  sourceLogId        String   // Log.id do trace original
+
+  // Snapshot congelado do trace original (JSON)
+  frozenSnapshot     String   // mensagem, histórico, contexto, prompt, agenda
+
+  // Variação testada
+  candidatePrompt    String   // Prompt editado pelo operador
+  candidateResponse  String?  // Resposta gerada pelo replay
+  candidateTrace     String?  // JSON: trace completo da reexecução
+
+  // Resposta original (extraída do trace)
+  originalResponse   String
+
+  // Status e avaliação
+  status             String   @default("DRAFT") // DRAFT | EXECUTED | EVALUATED
+  verdict            String?  // BETTER | WORSE | EQUIVALENT
+  verdictNote        String?
+  evaluationProvider String?  // HUMAN | GEMMA (futuro)
+
+  createdBy          String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  @@index([clinicId, createdAt])
+  @@index([sourceLogId])
+  @@map("replay_experiments")
 }
