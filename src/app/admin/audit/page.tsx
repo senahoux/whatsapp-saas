@@ -42,6 +42,15 @@ export default function AuditPage() {
     const [replayVerdictNote, setReplayVerdictNote] = useState("");
     const [replaySaving, setReplaySaving] = useState(false);
 
+    // ── Forensic Replay States ──────────────────────
+    const [replayTab, setReplayTab] = useState<'prompt' | 'json' | 'contexto' | 'comparacao'>('prompt');
+    const [searchQuery, setSearchQuery] = useState("");
+    const [searchResults, setSearchResults] = useState<number[]>([]);
+    const [activeSearchIndex, setActiveSearchIndex] = useState(-1);
+    const [showSearch, setShowSearch] = useState(false);
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+    const [candidateTrace, setCandidateTrace] = useState<any>(null);
+
     const fetchLogs = useCallback(async () => {
         setLoading(true);
         try {
@@ -99,8 +108,11 @@ export default function AuditPage() {
         setReplayLoading(true);
         setReplayOpen(true);
         setReplayCandidateResponse(null);
+        setCandidateTrace(null);
         setReplayVerdict(null);
         setReplayVerdictNote("");
+        setReplayTab('prompt'); // Reset para a aba principal
+        setHasUnsavedChanges(false);
         try {
             const res = await fetch("/api/admin/replay", {
                 method: "POST",
@@ -110,8 +122,11 @@ export default function AuditPage() {
             const data = await res.json();
             if (data.ok) {
                 setReplayExperimentId(data.experiment.id);
-                setReplayPrompt(data.experiment.frozenSnapshot.originalPrompt);
+                // Prioridade: Invocations[0] request content (bruto)
+                const traceRaw = data.experiment.frozenSnapshot.metadata?.traceId ? data.experiment.frozenSnapshot : null;
+                setReplayPrompt(data.experiment.candidatePrompt || data.experiment.frozenSnapshot.originalPrompt);
                 setReplayOriginalResponse(data.experiment.originalResponse);
+                setCandidateTrace(data.experiment.candidateTrace || null);
             } else {
                 alert(data.error || "Erro ao criar experimento.");
                 setReplayOpen(false);
@@ -136,6 +151,8 @@ export default function AuditPage() {
             const data = await res.json();
             if (data.ok) {
                 setReplayCandidateResponse(data.candidateResponse);
+                setCandidateTrace(data.trace);
+                setReplayTab('comparacao'); // Muda para a aba de comparação após rodar
             } else {
                 alert(data.error || "Erro na execução do replay.");
             }
@@ -155,12 +172,98 @@ export default function AuditPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ verdict: replayVerdict, verdictNote: replayVerdictNote })
             });
+            setHasUnsavedChanges(false);
             setReplayOpen(false);
         } catch {
             alert("Erro ao salvar veredicto.");
         } finally {
             setReplaySaving(false);
         }
+    }
+
+    // ── Internal Search Engine ────────────────────────
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (!replayOpen) return;
+            if (e.ctrlKey && e.key === 'f') {
+                e.preventDefault();
+                setShowSearch(true);
+                setTimeout(() => document.getElementById('internal-search-input')?.focus(), 50);
+            }
+            if (showSearch && e.key === 'Enter') {
+                if (e.shiftKey) {
+                    navigateSearch(-1);
+                } else {
+                    navigateSearch(1);
+                }
+            }
+            if (e.key === 'Escape') {
+                setShowSearch(false);
+                setSearchQuery("");
+                setSearchResults([]);
+                setActiveSearchIndex(-1);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [replayOpen, showSearch, searchQuery, searchResults, activeSearchIndex]);
+
+    function performSearch(query: string) {
+        setSearchQuery(query);
+        if (!query || query.length < 2) {
+            setSearchResults([]);
+            setActiveSearchIndex(-1);
+            return;
+        }
+
+        // Busca básica por texto na aba ativa
+        let contentToSearch = "";
+        if (replayTab === 'prompt') contentToSearch = replayPrompt;
+        if (replayTab === 'json') contentToSearch = JSON.stringify({ original: selectedLog?.details, candidate: candidateTrace }, null, 2);
+        if (replayTab === 'contexto') contentToSearch = JSON.stringify(selectedLog?.details?.input?.clinicContextSnapshot, null, 2);
+
+        const regex = new RegExp(query, 'gi');
+        const matches = [];
+        let match;
+        while ((match = regex.exec(contentToSearch)) !== null) {
+            matches.push(match.index);
+        }
+
+        setSearchResults(matches);
+        setActiveSearchIndex(matches.length > 0 ? 0 : -1);
+    }
+
+    function navigateSearch(direction: number) {
+        if (searchResults.length === 0) return;
+        let nextIndex = activeSearchIndex + direction;
+        if (nextIndex >= searchResults.length) nextIndex = 0;
+        if (nextIndex < 0) nextIndex = searchResults.length - 1;
+        setActiveSearchIndex(nextIndex);
+    }
+
+    const highlightText = (text: string) => {
+        if (!searchQuery || searchQuery.length < 2) return text;
+        const parts = text.split(new RegExp(`(${searchQuery})`, 'gi'));
+        return (
+            <>
+                {parts.map((part, i) => (
+                    part.toLowerCase() === searchQuery.toLowerCase() ? (
+                        <span key={i} className={`search-highlight ${activeSearchIndex !== -1 && searchResults[activeSearchIndex] === i ? 'active' : ''}`}>
+                            {part}
+                        </span>
+                    ) : part
+                ))}
+            </>
+        );
+    };
+
+    function handleCloseReplay() {
+        if (hasUnsavedChanges) {
+            if (!window.confirm("Você tem alterações não salvas no prompt. Deseja realmente sair?")) {
+                return;
+            }
+        }
+        setReplayOpen(false);
     }
 
     function getContactLabel(details: any): string {
@@ -356,63 +459,164 @@ export default function AuditPage() {
 
             {/* ── REPLAY LABORATORY MODAL ──────────────── */}
             {replayOpen && (
-                <div className="replay-overlay" onClick={() => setReplayOpen(false)}>
+                <div className="replay-overlay" onClick={handleCloseReplay}>
                     <div className="replay-modal" onClick={e => e.stopPropagation()}>
                         <div className="replay-modal-header">
-                            <h3>🔬 Laboratório de Replay</h3>
-                            <button className="btn-close" onClick={() => setReplayOpen(false)}>×</button>
+                            <div className="header-left">
+                                <h3>🔬 Laboratório de Replay</h3>
+                                <div className="replay-tabs-nav">
+                                    <button className={`tab-link ${replayTab === 'prompt' ? 'active' : ''}`} onClick={() => setReplayTab('prompt')}>Prompt Bruto</button>
+                                    <button className={`tab-link ${replayTab === 'json' ? 'active' : ''}`} onClick={() => setReplayTab('json')}>JSON Completo</button>
+                                    <button className={`tab-link ${replayTab === 'contexto' ? 'active' : ''}`} onClick={() => setReplayTab('contexto')}>Contexto</button>
+                                    <button className={`tab-link ${replayTab === 'comparacao' ? 'active' : ''}`} onClick={() => setReplayTab('comparacao')}>Comparação</button>
+                                </div>
+                            </div>
+                            <div className="header-right">
+                                <button className="btn-close" onClick={handleCloseReplay}>×</button>
+                            </div>
                         </div>
 
+                        {/* Barra de Busca Interna */}
+                        {showSearch && (
+                            <div className="internal-search-bar">
+                                <div className="search-input-wrapper">
+                                    <input
+                                        id="internal-search-input"
+                                        type="text"
+                                        placeholder="Buscar neste conteúdo..."
+                                        value={searchQuery}
+                                        onChange={e => performSearch(e.target.value)}
+                                        autoComplete="off"
+                                    />
+                                    {searchResults.length > 0 && (
+                                        <span className="search-counter">
+                                            {activeSearchIndex + 1} de {searchResults.length}
+                                        </span>
+                                    )}
+                                    {searchQuery && searchResults.length === 0 && (
+                                        <span className="search-no-results">Nenhuma ocorrência</span>
+                                    )}
+                                </div>
+                                <div className="search-nav-buttons">
+                                    <button className="btn-search-nav" onClick={() => navigateSearch(-1)} title="Anterior (Shift+Enter)">↑</button>
+                                    <button className="btn-search-nav" onClick={() => navigateSearch(1)} title="Próximo (Enter)">↓</button>
+                                    <button className="btn-search-nav clear" onClick={() => { setShowSearch(false); setSearchQuery(""); setSearchResults([]); setActiveSearchIndex(-1); }}>×</button>
+                                </div>
+                            </div>
+                        )}
+
                         {replayLoading && !replayCandidateResponse ? (
-                            <div className="empty-panel">Congelando snapshot e preparando experimento...</div>
+                            <div className="empty-panel modal-loading">Congelando snapshot e preparando experimento...</div>
                         ) : (
                             <div className="replay-modal-body">
-                                {/* Editor de Prompt */}
-                                <div className="replay-section">
-                                    <h4 className="panel-title">Prompt Candidato</h4>
-                                    <small className="replay-hint">Edite o prompt abaixo e execute o replay para ver como a IA responde.</small>
-                                    <textarea
-                                        className="replay-prompt-editor"
-                                        value={replayPrompt}
-                                        onChange={e => setReplayPrompt(e.target.value)}
-                                        rows={12}
-                                    />
-                                    <button className="btn-action replay-run-btn" onClick={handleRunReplay} disabled={replayLoading}>
-                                        {replayLoading ? "Executando..." : "▶ Executar Replay"}
-                                    </button>
-                                </div>
+                                {/* Aba 1: Prompt Bruto */}
+                                {replayTab === 'prompt' && (
+                                    <div className="replay-section">
+                                        <h4 className="panel-title">Prompt bruto da execução original</h4>
+                                        <small className="replay-hint">Você está editando o system prompt real daquele trace.</small>
+                                        <textarea
+                                            className="replay-prompt-editor"
+                                            value={replayPrompt}
+                                            onChange={e => { setReplayPrompt(e.target.value); setHasUnsavedChanges(true); }}
+                                            rows={20}
+                                            spellCheck={false}
+                                        />
+                                        <div className="editor-footer">
+                                            <button className="btn-action replay-run-btn" onClick={handleRunReplay} disabled={replayLoading}>
+                                                {replayLoading ? "Executando..." : "▶ Executar Replay"}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
 
-                                {/* Comparação */}
-                                {replayCandidateResponse !== null && (
+                                {/* Aba 2: JSON */}
+                                {replayTab === 'json' && (
+                                    <div className="replay-section">
+                                        <h4 className="panel-title">Forense: Traces Completos</h4>
+                                        <div className="json-compare-view">
+                                            <div className="json-block">
+                                                <label>Original Trace (AI_FULL_TRACE)</label>
+                                                <pre className="code-block read-only">
+                                                    {highlightText(JSON.stringify(selectedLog?.details, null, 2))}
+                                                </pre>
+                                            </div>
+                                            {candidateTrace && (
+                                                <div className="json-block">
+                                                    <label>Candidate Trace (Replay)</label>
+                                                    <pre className="code-block read-only">
+                                                        {highlightText(JSON.stringify(candidateTrace, null, 2))}
+                                                    </pre>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Aba 3: Contexto */}
+                                {replayTab === 'contexto' && (
+                                    <div className="replay-section">
+                                        <h4 className="panel-title">Contexto de Clínica (Congelado)</h4>
+                                        <pre className="code-block read-only">
+                                            {highlightText(JSON.stringify(selectedLog?.details?.input?.clinicContextSnapshot, null, 2))}
+                                        </pre>
+                                    </div>
+                                )}
+
+                                {/* Aba 4: Comparação */}
+                                {replayTab === 'comparacao' && (
                                     <div className="replay-section">
                                         <h4 className="panel-title">Comparação: Original vs Candidato</h4>
+                                        
+                                        <div className="replay-metrics-row">
+                                            <div className="metric">
+                                                <label>Latência Original</label>
+                                                <span>{selectedLog?.details?.metadata?.totalLatencyMs}ms</span>
+                                            </div>
+                                            <div className="metric">
+                                                <label>Latência Candidata</label>
+                                                <span className={candidateTrace?.metadata?.totalLatencyMs > selectedLog?.details?.metadata?.totalLatencyMs ? 'worse' : 'better'}>
+                                                    {candidateTrace?.metadata?.totalLatencyMs}ms
+                                                </span>
+                                            </div>
+                                            <div className="metric">
+                                                <label>Tokens (Total)</label>
+                                                <span>{ (candidateTrace?.invocations?.[0]?.response_meta?.usage?.total_tokens) || '—' }</span>
+                                            </div>
+                                        </div>
+
                                         <div className="replay-compare-grid">
                                             <div className="replay-compare-card original">
-                                                <span className="replay-compare-label">Resposta Original</span>
+                                                <div className="card-header">
+                                                    <span className="replay-compare-label">Resposta Original</span>
+                                                    <span className="action-tag">{selectedLog?.details?.finalOutput?.actionFinal}</span>
+                                                </div>
                                                 <p>{replayOriginalResponse}</p>
                                             </div>
                                             <div className="replay-compare-card candidate">
-                                                <span className="replay-compare-label">Resposta Candidata</span>
-                                                <p>{replayCandidateResponse}</p>
+                                                <div className="card-header">
+                                                    <span className="replay-compare-label">Resposta Candidata</span>
+                                                    <span className="action-tag">{candidateTrace?.finalOutput?.actionFinal}</span>
+                                                </div>
+                                                <p>{replayCandidateResponse || "Aguardando execução..."}</p>
                                             </div>
                                         </div>
 
                                         {/* Veredicto */}
-                                        <div className="replay-verdict-section">
-                                            <h4 className="panel-title">Veredicto</h4>
+                                        <div className="replay-verdict-section card">
+                                            <h4 className="panel-title">Veredicto Qualitativo</h4>
                                             <div className="verdict-buttons">
                                                 <button className={`btn-verdict better ${replayVerdict === 'BETTER' ? 'active' : ''}`} onClick={() => setReplayVerdict('BETTER')}>✓ Melhor</button>
                                                 <button className={`btn-verdict equivalent ${replayVerdict === 'EQUIVALENT' ? 'active' : ''}`} onClick={() => setReplayVerdict('EQUIVALENT')}>≡ Equivalente</button>
                                                 <button className={`btn-verdict worse ${replayVerdict === 'WORSE' ? 'active' : ''}`} onClick={() => setReplayVerdict('WORSE')}>✗ Pior</button>
                                             </div>
                                             <textarea
-                                                placeholder="Observação do veredicto (opcional)..."
+                                                placeholder="Por que esta versão é melhor/pior? (Opcional)"
                                                 value={replayVerdictNote}
                                                 onChange={e => setReplayVerdictNote(e.target.value)}
                                                 rows={2}
                                             />
-                                            <button className="btn-action" onClick={handleSaveVerdict} disabled={!replayVerdict || replaySaving}>
-                                                {replaySaving ? "Salvando..." : "Salvar Veredicto"}
+                                            <button className="btn-action save-btn" onClick={handleSaveVerdict} disabled={!replayVerdict || replaySaving}>
+                                                {replaySaving ? "Salvando..." : "Finalizar Experimento"}
                                             </button>
                                         </div>
                                     </div>
