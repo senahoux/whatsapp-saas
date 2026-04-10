@@ -220,17 +220,30 @@ export default function AuditPage() {
                 // Para o textarea, a lógica é diferente (seleção de texto)
                 if (replayTab === 'prompt') {
                     const textarea = document.querySelector('.replay-prompt-editor') as HTMLTextAreaElement;
+                    const searchInput = document.getElementById('internal-search-input');
+                    
                     if (textarea && searchResults[activeSearchIndex] !== undefined) {
                         const start = searchResults[activeSearchIndex];
                         const end = start + searchQuery.length;
-                        textarea.focus();
+                        
+                        // NÃO dar focus() se o usuário estiver digitando na busca
                         textarea.setSelectionRange(start, end);
                         
-                        // Scroll manual aproximado para o textarea se necessário
-                        const lineHeight = 20; // Aproximado
+                        // Cálculo de scroll manual para o textarea
+                        const lineHeight = 21; 
                         const textBefore = replayPrompt.substring(0, start);
                         const linesBefore = textBefore.split('\n').length;
-                        textarea.scrollTop = (linesBefore * lineHeight) - (textarea.clientHeight / 2);
+                        const targetScroll = (linesBefore * lineHeight) - (textarea.clientHeight / 2);
+                        
+                        textarea.scrollTo({
+                            top: targetScroll,
+                            behavior: 'smooth'
+                        });
+
+                        // Se o foco não está no input de busca, aí sim podemos focar o editor (ex: navegação via botões)
+                        if (document.activeElement !== searchInput) {
+                            textarea.focus();
+                        }
                     }
                 }
             }, 50);
