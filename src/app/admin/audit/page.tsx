@@ -31,6 +31,17 @@ export default function AuditPage() {
     const [evalNote, setEvalNote] = useState("");
     const [saving, setSaving] = useState(false);
 
+    // ── Replay Laboratory State ──────────────────────
+    const [replayOpen, setReplayOpen] = useState(false);
+    const [replayLoading, setReplayLoading] = useState(false);
+    const [replayPrompt, setReplayPrompt] = useState("");
+    const [replayExperimentId, setReplayExperimentId] = useState<string | null>(null);
+    const [replayOriginalResponse, setReplayOriginalResponse] = useState("");
+    const [replayCandidateResponse, setReplayCandidateResponse] = useState<string | null>(null);
+    const [replayVerdict, setReplayVerdict] = useState<string | null>(null);
+    const [replayVerdictNote, setReplayVerdictNote] = useState("");
+    const [replaySaving, setReplaySaving] = useState(false);
+
     const fetchLogs = useCallback(async () => {
         setLoading(true);
         try {
@@ -79,6 +90,76 @@ export default function AuditPage() {
             }
         } finally {
             setSaving(false);
+        }
+    }
+
+    // ── Replay Laboratory Handlers ────────────────────
+    async function handleStartReplay() {
+        if (!selectedLog) return;
+        setReplayLoading(true);
+        setReplayOpen(true);
+        setReplayCandidateResponse(null);
+        setReplayVerdict(null);
+        setReplayVerdictNote("");
+        try {
+            const res = await fetch("/api/admin/replay", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ sourceLogId: selectedLog.id })
+            });
+            const data = await res.json();
+            if (data.ok) {
+                setReplayExperimentId(data.experiment.id);
+                setReplayPrompt(data.experiment.frozenSnapshot.originalPrompt);
+                setReplayOriginalResponse(data.experiment.originalResponse);
+            } else {
+                alert(data.error || "Erro ao criar experimento.");
+                setReplayOpen(false);
+            }
+        } catch {
+            alert("Erro de conexão.");
+            setReplayOpen(false);
+        } finally {
+            setReplayLoading(false);
+        }
+    }
+
+    async function handleRunReplay() {
+        if (!replayExperimentId) return;
+        setReplayLoading(true);
+        try {
+            const res = await fetch(`/api/admin/replay/${replayExperimentId}/run`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ candidatePrompt: replayPrompt })
+            });
+            const data = await res.json();
+            if (data.ok) {
+                setReplayCandidateResponse(data.candidateResponse);
+            } else {
+                alert(data.error || "Erro na execução do replay.");
+            }
+        } catch {
+            alert("Erro de conexão.");
+        } finally {
+            setReplayLoading(false);
+        }
+    }
+
+    async function handleSaveVerdict() {
+        if (!replayExperimentId || !replayVerdict) return;
+        setReplaySaving(true);
+        try {
+            await fetch(`/api/admin/replay/${replayExperimentId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ verdict: replayVerdict, verdictNote: replayVerdictNote })
+            });
+            setReplayOpen(false);
+        } catch {
+            alert("Erro ao salvar veredicto.");
+        } finally {
+            setReplaySaving(false);
         }
     }
 
@@ -197,6 +278,16 @@ export default function AuditPage() {
                                 </div>
                             </section>
 
+                            {/* Ação: Ramificar Teste */}
+                            <section className="card replay-action-section">
+                                <div className="replay-action-row">
+                                    <button className="btn-replay" onClick={handleStartReplay} disabled={replayLoading}>
+                                        🔬 Ramificar Teste
+                                    </button>
+                                    <small>Cria uma ramificação de laboratório a partir deste trace real.</small>
+                                </div>
+                            </section>
+
                             {/* Avaliação */}
                             <section className="card eval-section">
                                 <h4 className="panel-title">Avaliação Qualitativa</h4>
@@ -262,6 +353,75 @@ export default function AuditPage() {
                     )}
                 </main>
             </div>
+
+            {/* ── REPLAY LABORATORY MODAL ──────────────── */}
+            {replayOpen && (
+                <div className="replay-overlay" onClick={() => setReplayOpen(false)}>
+                    <div className="replay-modal" onClick={e => e.stopPropagation()}>
+                        <div className="replay-modal-header">
+                            <h3>🔬 Laboratório de Replay</h3>
+                            <button className="btn-close" onClick={() => setReplayOpen(false)}>×</button>
+                        </div>
+
+                        {replayLoading && !replayCandidateResponse ? (
+                            <div className="empty-panel">Congelando snapshot e preparando experimento...</div>
+                        ) : (
+                            <div className="replay-modal-body">
+                                {/* Editor de Prompt */}
+                                <div className="replay-section">
+                                    <h4 className="panel-title">Prompt Candidato</h4>
+                                    <small className="replay-hint">Edite o prompt abaixo e execute o replay para ver como a IA responde.</small>
+                                    <textarea
+                                        className="replay-prompt-editor"
+                                        value={replayPrompt}
+                                        onChange={e => setReplayPrompt(e.target.value)}
+                                        rows={12}
+                                    />
+                                    <button className="btn-action replay-run-btn" onClick={handleRunReplay} disabled={replayLoading}>
+                                        {replayLoading ? "Executando..." : "▶ Executar Replay"}
+                                    </button>
+                                </div>
+
+                                {/* Comparação */}
+                                {replayCandidateResponse !== null && (
+                                    <div className="replay-section">
+                                        <h4 className="panel-title">Comparação: Original vs Candidato</h4>
+                                        <div className="replay-compare-grid">
+                                            <div className="replay-compare-card original">
+                                                <span className="replay-compare-label">Resposta Original</span>
+                                                <p>{replayOriginalResponse}</p>
+                                            </div>
+                                            <div className="replay-compare-card candidate">
+                                                <span className="replay-compare-label">Resposta Candidata</span>
+                                                <p>{replayCandidateResponse}</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Veredicto */}
+                                        <div className="replay-verdict-section">
+                                            <h4 className="panel-title">Veredicto</h4>
+                                            <div className="verdict-buttons">
+                                                <button className={`btn-verdict better ${replayVerdict === 'BETTER' ? 'active' : ''}`} onClick={() => setReplayVerdict('BETTER')}>✓ Melhor</button>
+                                                <button className={`btn-verdict equivalent ${replayVerdict === 'EQUIVALENT' ? 'active' : ''}`} onClick={() => setReplayVerdict('EQUIVALENT')}>≡ Equivalente</button>
+                                                <button className={`btn-verdict worse ${replayVerdict === 'WORSE' ? 'active' : ''}`} onClick={() => setReplayVerdict('WORSE')}>✗ Pior</button>
+                                            </div>
+                                            <textarea
+                                                placeholder="Observação do veredicto (opcional)..."
+                                                value={replayVerdictNote}
+                                                onChange={e => setReplayVerdictNote(e.target.value)}
+                                                rows={2}
+                                            />
+                                            <button className="btn-action" onClick={handleSaveVerdict} disabled={!replayVerdict || replaySaving}>
+                                                {replaySaving ? "Salvando..." : "Salvar Veredicto"}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
