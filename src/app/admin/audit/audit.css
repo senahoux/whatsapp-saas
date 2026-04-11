@@ -807,6 +807,23 @@
     letter-spacing: 0.05em;
 }
 
+.readonly-alert-hint {
+    background: #fffbeb;
+    border: 1px solid #fef3c7;
+    color: #92400e;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.readonly-alert-hint strong {
+    color: #b45309;
+}
+
 /* ── Responsivo ──────────────────────────────── */
 @media (max-width: 900px) {
     .audit-body {

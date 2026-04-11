@@ -197,27 +197,18 @@ export default function AuditPage() {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (!replayOpen) return;
             
-            // Atalho de abertura
+            // Apenas interceptamos Ctrl+F para abrir nossa busca interna
             if (e.ctrlKey && e.key === 'f') {
                 e.preventDefault();
                 setShowSearch(true);
+                // A única chamada de foco automática permitida: levar o cursor para o buscador ao abrir
                 setTimeout(() => document.getElementById('internal-search-input')?.focus(), 50);
                 return;
             }
 
-            if (showSearch) {
-                // Navegação de busca só intercepta se o foco estiver no buscador
-                if (e.key === 'Enter' && document.activeElement?.id === 'internal-search-input') {
-                    e.preventDefault();
-                    if (e.shiftKey) {
-                        navigateSearch(-1);
-                    } else {
-                        navigateSearch(1);
-                    }
-                }
-                if (e.key === 'Escape') {
-                    handleCloseSearch();
-                }
+            // Atalhos de navegação da busca SÓ funcionam se o buscador estiver aberto E com foco
+            if (showSearch && e.key === 'Escape') {
+                handleCloseSearch();
             }
         };
         window.addEventListener('keydown', handleKeyDown);
@@ -227,41 +218,33 @@ export default function AuditPage() {
     // Auto-scroll para a ocorrência ativa
     useEffect(() => {
         if (activeSearchIndex !== -1 && showSearch) {
-            // Pequeno delay para garantir que o render do realce terminou
-            setTimeout(() => {
-                const activeEl = document.querySelector('.search-highlight.active');
-                if (activeEl) {
-                    activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-                
-                // Para o textarea, a lógica só dispara se for uma ação consciente de busca (trigger)
-                if (replayTab === 'prompt' && searchActionTrigger > 0) {
-                    const textarea = document.querySelector('.replay-prompt-editor') as HTMLTextAreaElement;
-                    const searchInput = document.getElementById('internal-search-input');
+            // Scroll para visuais (JSON/Contexto)
+            const activeEl = document.querySelector('.search-highlight.active');
+            if (activeEl) {
+                activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            
+            // Para o textarea, calculamos apenas o scroll, SEM mexer no foco ou seleção forçada
+            if (replayTab === 'prompt' && searchActionTrigger > 0) {
+                const textarea = document.querySelector('.replay-prompt-editor') as HTMLTextAreaElement;
+                if (textarea && searchResults[activeSearchIndex] !== undefined) {
+                    const start = searchResults[activeSearchIndex];
+                    const end = start + searchQuery.length;
                     
-                    if (textarea && searchResults[activeSearchIndex] !== undefined) {
-                        const start = searchResults[activeSearchIndex];
-                        const end = start + searchQuery.length;
-                        
-                        // Seleciona e foca apenas se não estivermos já digitando ou editando no editor
-                        textarea.setSelectionRange(start, end);
-                        
-                        const lineHeight = 21; 
-                        const textBefore = replayPrompt.substring(0, start);
-                        const linesBefore = textBefore.split('\n').length;
-                        const targetScroll = (linesBefore * lineHeight) - (textarea.clientHeight / 2);
-                        
-                        textarea.scrollTo({
-                            top: targetScroll,
-                            behavior: 'smooth'
-                        });
-
-                        if (document.activeElement !== searchInput) {
-                            textarea.focus();
-                        }
-                    }
+                    // Apenas selecionamos se a intenção for clara (ao trocar de resultado)
+                    textarea.setSelectionRange(start, end);
+                    
+                    const lineHeight = 21; 
+                    const textBefore = replayPrompt.substring(0, start);
+                    const linesBefore = textBefore.split('\n').length;
+                    const targetScroll = (linesBefore * lineHeight) - (textarea.clientHeight / 2);
+                    
+                    textarea.scrollTo({
+                        top: targetScroll,
+                        behavior: 'smooth'
+                    });
                 }
-            }, 50);
+            }
         }
     }, [searchActionTrigger, showSearch, replayTab]); // Disparar APENAS via trigger ou troca de aba manual
 
@@ -604,6 +587,9 @@ export default function AuditPage() {
                                         <div className="section-header-flex">
                                             <h4 className="panel-title">Forense: Traces Completos</h4>
                                             <span className="readonly-badge">Somente Leitura</span>
+                                        </div>
+                                        <div className="readonly-alert-hint">
+                                            Para editar o prompt desta execução, use a aba <strong>Prompt Bruto</strong>.
                                         </div>
                                         <div className="json-compare-view">
                                             <div className="json-block">
