@@ -58,7 +58,7 @@ export default function SettingsPage() {
 
     // IA Config
     const [nomeAssistente, setNomeAssistente] = useState("Assistente");
-    const [aiContextMode, setAiContextMode] = useState("LEGACY");
+    const [aiContextMode, setAiContextMode] = useState("DYNAMIC");
     const [faq, setFaq] = useState<{ pergunta: string; resposta: string }[]>([]);
     const [regrasPersonalizadas, setRegrasPersonalizadas] = useState<string[]>([]);
     
@@ -94,7 +94,7 @@ export default function SettingsPage() {
                     consultaDuracao: clinic.consultaDuracao || 0,
                     descricaoServicos: clinic.descricaoServicos || "",
                     nomeAssistente: clinic.nomeAssistente || "Assistente",
-                    aiContextMode: clinic.aiContextMode || "LEGACY",
+                    aiContextMode: "DYNAMIC",
                     faq: JSON.parse(clinic.faq || "[]"),
                     regrasPersonalizadas: JSON.parse(clinic.regrasPersonalizadas || "[]"),
                     workingDays: clinic.workingDays || [1, 2, 3, 4, 5],
@@ -175,7 +175,7 @@ export default function SettingsPage() {
                     descricaoServicos,
                     faq,
                     nomeAssistente,
-                    aiContextMode,
+                    aiContextMode: "DYNAMIC",
                     regrasPersonalizadas
                 }),
             });
@@ -489,10 +489,9 @@ export default function SettingsPage() {
                         <div className="form-group">
                             <label>Motor de Contexto</label>
                             <select value={aiContextMode} onChange={e => setAiContextMode(e.target.value)}>
-                                <option value="LEGACY">LEGACY (Padrão de Fábrica)</option>
-                                <option value="DYNAMIC">DYNAMIC (Dados da Clínica)</option>
+                                <option value="DYNAMIC">DYNAMIC (Contexto Ativo)</option>
                             </select>
-                            <small className="help-text">DYNAMIC ativa o uso do FAQ e Regras no robô.</small>
+                            <small className="field-hint">O modo DYNAMIC agora é o padrão global da plataforma para maior flexibilidade.</small>
                         </div>
                     </div>
 

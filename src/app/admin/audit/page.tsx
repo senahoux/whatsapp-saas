@@ -42,8 +42,11 @@ export default function AuditPage() {
     const [replayVerdictNote, setReplayVerdictNote] = useState("");
     const [replaySaving, setReplaySaving] = useState(false);
 
-    // ── Forensic Replay States ──────────────────────
-    const [replayTab, setReplayTab] = useState<'prompt' | 'json' | 'contexto' | 'comparacao'>('prompt');
+    // ── Forensic Replay States (Fase 6 Multiparamétrico) ──────────────────────
+    const [replayTab, setReplayTab] = useState<'prompt' | 'cenario' | 'contexto' | 'comparacao' | 'json'>('prompt');
+    const [candidateMessage, setCandidateMessage] = useState("");
+    const [candidateHistory, setCandidateHistory] = useState("");
+    const [candidateContext, setCandidateContext] = useState(""); // JSON format string
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState<number[]>([]);
     const [activeSearchIndex, setActiveSearchIndex] = useState(-1);
@@ -123,9 +126,11 @@ export default function AuditPage() {
             const data = await res.json();
             if (data.ok) {
                 setReplayExperimentId(data.experiment.id);
-                // Prioridade: Invocations[0] request content (bruto)
-                const traceRaw = data.experiment.frozenSnapshot.metadata?.traceId ? data.experiment.frozenSnapshot : null;
                 setReplayPrompt(data.experiment.candidatePrompt || data.experiment.frozenSnapshot.originalPrompt);
+                setCandidateMessage(data.experiment.candidateMessage || data.experiment.frozenSnapshot.patientMessage || "");
+                setCandidateHistory(data.experiment.candidateHistory || "");
+                setCandidateContext(data.experiment.candidateContext || JSON.stringify(data.experiment.frozenSnapshot.clinicContext, null, 2));
+                
                 setReplayOriginalResponse(data.experiment.originalResponse);
                 setCandidateTrace(data.experiment.candidateTrace || null);
             } else {
@@ -147,7 +152,12 @@ export default function AuditPage() {
             const res = await fetch(`/api/admin/replay/${replayExperimentId}/run`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ candidatePrompt: replayPrompt })
+                body: JSON.stringify({ 
+                    candidatePrompt: replayPrompt,
+                    candidateMessage,
+                    candidateHistory,
+                    candidateContext
+                })
             });
             const data = await res.json();
             if (data.ok) {
@@ -260,7 +270,8 @@ export default function AuditPage() {
         let contentToSearch = "";
         if (replayTab === 'prompt') contentToSearch = replayPrompt;
         if (replayTab === 'json') contentToSearch = JSON.stringify({ original: selectedLog?.details, candidate: candidateTrace }, null, 2);
-        if (replayTab === 'contexto') contentToSearch = JSON.stringify(selectedLog?.details?.input?.clinicContextSnapshot, null, 2);
+        if (replayTab === 'contexto') contentToSearch = candidateContext;
+        if (replayTab === 'cenario') contentToSearch = candidateMessage + "\n" + candidateHistory;
 
         const regex = new RegExp(query, 'gi');
         const matches = [];
@@ -517,10 +528,11 @@ export default function AuditPage() {
                             <div className="header-left">
                                 <h3>🔬 Laboratório de Replay</h3>
                                 <div className="replay-tabs-nav">
-                                    <button className={`tab-link ${replayTab === 'prompt' ? 'active' : ''}`} onClick={() => setReplayTab('prompt')}>Prompt Bruto</button>
-                                    <button className={`tab-link ${replayTab === 'json' ? 'active' : ''}`} onClick={() => setReplayTab('json')}>JSON Completo</button>
-                                    <button className={`tab-link ${replayTab === 'contexto' ? 'active' : ''}`} onClick={() => setReplayTab('contexto')}>Contexto</button>
-                                    <button className={`tab-link ${replayTab === 'comparacao' ? 'active' : ''}`} onClick={() => setReplayTab('comparacao')}>Comparação</button>
+                                    <button className={`tab-link ${replayTab === 'prompt' ? 'active' : ''}`} onClick={() => setReplayTab('prompt')}>1. Prompt</button>
+                                    <button className={`tab-link ${replayTab === 'cenario' ? 'active' : ''}`} onClick={() => setReplayTab('cenario')}>2. Cenário</button>
+                                    <button className={`tab-link ${replayTab === 'contexto' ? 'active' : ''}`} onClick={() => setReplayTab('contexto')}>3. Contexto Clínico</button>
+                                    <button className={`tab-link ${replayTab === 'comparacao' ? 'active' : ''}`} onClick={() => setReplayTab('comparacao')}>4. Veredicto</button>
+                                    <button className={`tab-link ${replayTab === 'json' ? 'active' : ''}`} onClick={() => setReplayTab('json')}>JSON Bruto</button>
                                 </div>
                             </div>
                             <div className="header-right">
@@ -564,8 +576,8 @@ export default function AuditPage() {
                                 {/* Aba 1: Prompt Bruto */}
                                 {replayTab === 'prompt' && (
                                     <div className="replay-section">
-                                        <h4 className="panel-title">Prompt bruto da execução original</h4>
-                                        <small className="replay-hint">Você está editando o system prompt real daquele trace.</small>
+                                        <h4 className="panel-title">Edição do System Prompt</h4>
+                                        <small className="replay-hint">Modifique as diretrizes estruturais da IA para testar novos comportamentos.</small>
                                         <textarea
                                             className="replay-prompt-editor"
                                             value={replayPrompt}
@@ -575,7 +587,60 @@ export default function AuditPage() {
                                         />
                                         <div className="editor-footer">
                                             <button className="btn-action replay-run-btn" onClick={handleRunReplay} disabled={replayLoading}>
-                                                {replayLoading ? "Executando..." : "▶ Executar Replay"}
+                                                {replayLoading ? "Executando..." : "▶ Re-executar com este Prompt"}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Aba 2: Cenário (Paciente + Histórico) */}
+                                {replayTab === 'cenario' && (
+                                    <div className="replay-section">
+                                        <h4 className="panel-title">Simulação de Cenário (Input)</h4>
+                                        <div className="cenario-grid">
+                                            <div className="cenario-field">
+                                                <label>Mensagem Atual do Paciente</label>
+                                                <input 
+                                                    type="text" 
+                                                    value={candidateMessage}
+                                                    onChange={e => { setCandidateMessage(e.target.value); setHasUnsavedChanges(true); }}
+                                                    className="cenario-input"
+                                                />
+                                            </div>
+                                            <div className="cenario-field">
+                                                <label>Histórico Recente (Resumido)</label>
+                                                <textarea 
+                                                    value={candidateHistory}
+                                                    onChange={e => { setCandidateHistory(e.target.value); setHasUnsavedChanges(true); }}
+                                                    rows={10}
+                                                    className="replay-prompt-editor history-editor"
+                                                    spellCheck={false}
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="editor-footer">
+                                            <button className="btn-action replay-run-btn" onClick={handleRunReplay} disabled={replayLoading}>
+                                                {replayLoading ? "Executando..." : "▶ Re-executar com este Cenário"}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Aba 3: Contexto Clínico (Editável) */}
+                                {replayTab === 'contexto' && (
+                                    <div className="replay-section">
+                                        <h4 className="panel-title">Contexto Clínico (Variáveis de Negócio)</h4>
+                                        <small className="replay-hint">Edite os dados estruturados (médico, preços, serviços) que alimentam o prompt dinâmico.</small>
+                                        <textarea
+                                            className="replay-prompt-editor json-editor"
+                                            value={candidateContext}
+                                            onChange={e => { setCandidateContext(e.target.value); setHasUnsavedChanges(true); }}
+                                            rows={20}
+                                            spellCheck={false}
+                                        />
+                                        <div className="editor-footer">
+                                            <button className="btn-action replay-run-btn" onClick={handleRunReplay} disabled={replayLoading}>
+                                                {replayLoading ? "Executando..." : "▶ Re-executar com este Contexto"}
                                             </button>
                                         </div>
                                     </div>
@@ -614,11 +679,11 @@ export default function AuditPage() {
                                 {replayTab === 'contexto' && (
                                     <div className="replay-section">
                                         <div className="section-header-flex">
-                                            <h4 className="panel-title">Contexto de Clínica (Congelado)</h4>
+                                            <h4 className="panel-title">Auditoria de Dados (Trace JSON)</h4>
                                             <span className="readonly-badge">Somente Leitura</span>
                                         </div>
                                         <pre className="code-block read-only">
-                                            {highlightText(JSON.stringify(selectedLog?.details?.input?.clinicContextSnapshot, null, 2))}
+                                            {highlightText(JSON.stringify(selectedLog?.details, null, 2))}
                                         </pre>
                                     </div>
                                 )}

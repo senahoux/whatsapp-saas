@@ -74,14 +74,61 @@ export async function POST(req: NextRequest) {
 
         const trace = JSON.parse(sourceLog.details);
 
-        // Extrair e congelar o snapshot
+        // --- 1. NORMALIZAÇÃO DE HISTÓRICO ---
+        // O trace pode vir com history em formatos variados. Forçamos {role, content}[]
+        const rawHistory = trace.input?.recentMessagesUsed || [];
+        const normalizedHistory = Array.isArray(rawHistory) ? rawHistory.map((m: any) => {
+            if (typeof m === 'string') return { role: 'user', content: m };
+            return {
+                role: m.role || (m.author === 'ROBO' ? 'assistant' : 'user'),
+                content: m.content || m.text || ""
+            };
+        }) : [];
+
+        // --- 2. EXTRAÇÃO DE METADADOS ---
+        const patientMessage = trace.input?.patientMessage || "";
+        const patientName = trace.input?.contactName || trace.input?.nome_paciente || null;
+        const conversationStatus = trace.input?.conversationStatus || trace.input?.status_conversa || "NORMAL";
+        const activeTemporalFilter = trace.input?.activeSchedulingFilter || trace.input?.foco_temporal_ativo || null;
+
+        // --- 3. NORMALIZAÇÃO LEGACY-TO-DYNAMIC (O CORAÇÃO DA TRANSIÇÃO) ---
+        let clinicContext = trace.input?.clinicContextSnapshot || trace.input?.contexto_clinica || {};
+        
+        // Se o contexto estiver vazio ou for explicitamente LEGACY, injetamos o hardcode histórico
+        const isLegacyTrace = !clinicContext.aiContextMode || clinicContext.aiContextMode === 'LEGACY';
+        
+        if (isLegacyTrace) {
+            clinicContext = {
+                ...clinicContext,
+                aiContextMode: 'DYNAMIC', // Normalizamos para o futuro
+                nomeAssistente: clinicContext.nomeAssistente || "Rafaela",
+                nomeMedico: clinicContext.nomeMedico || "Dr. Lucas Sena",
+                nomeClinica: clinicContext.nomeClinica || "ClinCare",
+                endereco: clinicContext.endereco || "ClinCare\nRua Manoel de Paula, 33\nCapela, Mogi Guaçu - SP",
+                consultaValor: clinicContext.consultaValor || 400,
+                consultaDuracao: clinicContext.consultaDuracao || 60,
+                descricaoServicos: clinicContext.descricaoServicos || "Saúde hormonal, performance, reposição hormonal, emagrecimento, implantes hormonais.",
+                faq: clinicContext.faq || [
+                    { pergunta: "Quanto tempo dura o implante no corpo?", resposta: "O implante costuma durar em média 6 meses no organismo." },
+                    { pergunta: "Qual o valor do implante?", resposta: "Em média, costuma ficar em torno de 3.500 reais." },
+                    { pergunta: "Como é o procedimento?", resposta: "É um procedimento simples, feito em consultório, com anestesia local, e dura em média 30 minutos." }
+                ],
+                regrasPersonalizadas: clinicContext.regrasPersonalizadas || [
+                    "Não use emojis ou emoticons.",
+                    "Fale como se já estivesse garantido no sistema ao agendar.",
+                    "Nunca dê diagnóstico ou fale efeitos colaterais."
+                ]
+            };
+        }
+
+        // Extrair e congelar o snapshot normalizado
         const snapshot: FrozenSnapshot = {
-            patientMessage: trace.input?.patientMessage || "",
-            patientName: trace.input?.contactName || null,
-            history: trace.input?.recentMessagesUsed || [],
-            clinicContext: trace.input?.clinicContextSnapshot || null,
-            conversationStatus: trace.input?.conversationStatus || "NORMAL",
-            activeTemporalFilter: trace.input?.activeSchedulingFilter || null,
+            patientMessage,
+            patientName,
+            history: normalizedHistory,
+            clinicContext,
+            conversationStatus,
+            activeTemporalFilter,
             agendaSnapshot: trace.input?.agendaSnapshot || null,
             originalPrompt: trace.invocations?.[0]?.request?.messages?.[0]?.content || "",
             metadata: {
@@ -99,13 +146,16 @@ export async function POST(req: NextRequest) {
             || trace.finalOutput?.messageText
             || "(sem resposta)";
 
-        // Criar experimento em DRAFT
+        // Criar experimento em DRAFT (Populando os campos de candidata para edição inicial)
         const experiment = await prisma.replayExperiment.create({
             data: {
                 clinicId,
                 sourceLogId,
                 frozenSnapshot: JSON.stringify(snapshot),
-                candidatePrompt: snapshot.originalPrompt, // começa com o prompt original
+                candidatePrompt: snapshot.originalPrompt,
+                candidateMessage: snapshot.patientMessage,
+                candidateHistory: normalizedHistory.map(m => `${m.role === 'assistant' ? 'ASSISTENTE' : 'PACIENTE'}: ${m.content}`).join("\n"),
+                candidateContext: JSON.stringify(snapshot.clinicContext),
                 originalResponse,
                 status: "DRAFT",
                 createdBy: (session as any).user?.email || "admin",

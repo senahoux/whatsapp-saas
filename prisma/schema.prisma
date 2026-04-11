@@ -52,7 +52,7 @@ model Clinic {
   faq                 String?  // JSON serializado
   regrasPersonalizadas String? // JSON serializado
   timezone            String   @default("America/Sao_Paulo")
-  aiContextMode       String   @default("LEGACY") // LEGACY | DYNAMIC
+  aiContextMode       String   @default("DYNAMIC") // LEGACY (deprecado) | DYNAMIC
   nomeAssistente      String   @default("Assistente")
   // Configuração de calendário da clínica
   workingDays         Int[]    @default([1, 2, 3, 4, 5]) // 0=Dom, 1=Seg, ..., 6=Sáb
@@ -317,6 +317,9 @@ model ReplayExperiment {
 
   // Variação testada
   candidatePrompt    String   // Prompt editado pelo operador
+  candidateMessage   String?  // Mensagem do paciente editada
+  candidateHistory   String?  // Histórico de mensagens editado (formato texto)
+  candidateContext   String?  // JSON: Overrides do contexto clínico
   candidateResponse  String?  // Resposta gerada pelo replay
   candidateTrace     String?  // JSON: trace completo da reexecução
 

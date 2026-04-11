@@ -37,28 +37,52 @@ export async function POST(
             return NextResponse.json({ error: "Experiment not found" }, { status: 404 });
         }
 
-        // 2. Reconstruir o contexto a partir do snapshot congelado
+        // 2. Reconstruir o contexto a partir do snapshot congelado + Overrides
         const snapshot: FrozenSnapshot = JSON.parse(experiment.frozenSnapshot);
         const body = await req.json().catch(() => ({}));
-        const candidatePrompt = body.candidatePrompt || experiment.candidatePrompt;
+        
+        // Camadas de Simulação (Ordem de precedência: Request Body > DB Candidate > Snapshot Original)
+        const candidatePrompt = body.candidatePrompt || experiment.candidatePrompt || snapshot.originalPrompt;
+        const candidateMessage = body.candidateMessage || (experiment as any).candidateMessage || snapshot.patientMessage;
+        const candidateHistory = body.candidateHistory || (experiment as any).candidateHistory || null;
+        const candidateContextRaw = body.candidateContext || (experiment as any).candidateContext || null;
+
+        // Processar overrides de contexto clínico
+        let finalContext = snapshot.clinicContext;
+        if (candidateContextRaw) {
+            try {
+                const overrides = typeof candidateContextRaw === 'string' 
+                    ? JSON.parse(candidateContextRaw) 
+                    : candidateContextRaw;
+                finalContext = { ...finalContext, ...overrides };
+            } catch (e) {
+                console.error("[Replay Run] Erro ao parsear candidateContext override:", e);
+            }
+        }
 
         const timezone = 'America/Sao_Paulo';
         const data_referencia = new Intl.DateTimeFormat('en-CA', {
             timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit'
         }).format(new Date());
 
-        const historico_resumido = snapshot.history
-            .map(m => `${m.role === 'user' ? 'PACIENTE' : 'ASSISTENTE'}: ${m.content}`)
-            .join("\n");
+        // Processar histórico (se houver override em texto, converter)
+        let historico_resumido = "";
+        if (candidateHistory) {
+            historico_resumido = candidateHistory;
+        } else {
+            historico_resumido = snapshot.history
+                .map(m => `${m.role === 'user' ? 'PACIENTE' : 'ASSISTENTE'}: ${m.content}`)
+                .join("\n");
+        }
 
         const tabela_temporal = AIService.getDateReferences(timezone);
 
         const aiCtx: any = {
-            mensagem_paciente: snapshot.patientMessage,
+            mensagem_paciente: candidateMessage,
             nome_paciente: snapshot.patientName || "Paciente de Teste (Replay)",
             historico_resumido,
             status_conversa: snapshot.conversationStatus || "PRIMARY",
-            contexto_clinica: snapshot.clinicContext,
+            contexto_clinica: finalContext,
             agenda_snapshot: snapshot.agendaSnapshot,
             foco_temporal_ativo: snapshot.activeTemporalFilter,
             data_referencia,
@@ -73,13 +97,18 @@ export async function POST(
                 timestamp: new Date().toISOString(),
                 isReplay: true,
                 sourceExperimentId: id,
-                pipelineVersion: "replay-lab-v1"
+                pipelineVersion: "replay-lab-v2"
             },
             input: {
-                patientMessage: snapshot.patientMessage,
-                recentMessagesUsed: snapshot.history,
-                clinicContextSnapshot: snapshot.clinicContext,
-                isReplay: true
+                patientMessage: candidateMessage,
+                recentMessagesUsed: candidateHistory ? [{ role: 'system', content: 'History Override Active' }] : snapshot.history,
+                clinicContextSnapshot: finalContext,
+                isReplay: true,
+                simulationParameters: {
+                    promptModified: candidatePrompt !== snapshot.originalPrompt,
+                    messageModified: candidateMessage !== snapshot.patientMessage,
+                    contextModified: !!candidateContextRaw
+                }
             },
             invocations: [],
             finalOutput: {
@@ -92,7 +121,7 @@ export async function POST(
         let aiResponse = await AIService.respond(aiCtx, {
             stage: "PRIMARY",
             invocationIndex: 0,
-            reason: "Replay Lab: Execução com prompt candidato",
+            reason: "Replay Lab: Execução Multiparamétrica",
             systemPromptOverride: candidatePrompt,
             onTrace: (t) => replayTrace.invocations.push(t)
         });
@@ -128,11 +157,14 @@ export async function POST(
 
         replayTrace.metadata.totalLatencyMs = Date.now() - startTime;
 
-        // 7. Persistir resultado
+        // 7. Persistir resultado e salvar os overrides usados
         await prisma.replayExperiment.update({
             where: { id },
             data: {
                 candidatePrompt,
+                candidateMessage,
+                candidateHistory,
+                candidateContext: typeof candidateContextRaw === 'object' ? JSON.stringify(candidateContextRaw) : candidateContextRaw,
                 candidateResponse: aiResponse.mensagem,
                 candidateTrace: JSON.stringify(replayTrace),
                 status: "EXECUTED",
