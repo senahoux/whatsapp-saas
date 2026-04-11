@@ -783,6 +783,29 @@
     max-height: 600px;
 }
 
+.code-block.replay-verdict-section textarea:focus {
+    outline: none;
+    border-color: #7c3aed;
+}
+
+/* ── UI Helpers ──────────────────────────────── */
+.section-header-flex {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.readonly-badge {
+    background: #f1f5f9;
+    color: #475569;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
 
 /* ── Responsivo ──────────────────────────────── */
 @media (max-width: 900px) {

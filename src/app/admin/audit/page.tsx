@@ -183,31 +183,46 @@ export default function AuditPage() {
     }
 
     // ── Internal Search Engine ────────────────────────
+    const handleCloseSearch = useCallback(() => {
+        setShowSearch(false);
+        setSearchQuery("");
+        setSearchResults([]);
+        setActiveSearchIndex(-1);
+        if (replayTab === 'prompt') {
+            setTimeout(() => (document.querySelector('.replay-prompt-editor') as HTMLElement)?.focus(), 50);
+        }
+    }, [replayTab]);
+
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             if (!replayOpen) return;
+            
+            // Atalho de abertura
             if (e.ctrlKey && e.key === 'f') {
                 e.preventDefault();
                 setShowSearch(true);
                 setTimeout(() => document.getElementById('internal-search-input')?.focus(), 50);
+                return;
             }
-            if (showSearch && e.key === 'Enter') {
-                if (e.shiftKey) {
-                    navigateSearch(-1);
-                } else {
-                    navigateSearch(1);
+
+            if (showSearch) {
+                // Navegação de busca só intercepta se o foco estiver no buscador
+                if (e.key === 'Enter' && document.activeElement?.id === 'internal-search-input') {
+                    e.preventDefault();
+                    if (e.shiftKey) {
+                        navigateSearch(-1);
+                    } else {
+                        navigateSearch(1);
+                    }
                 }
-            }
-            if (e.key === 'Escape') {
-                setShowSearch(false);
-                setSearchQuery("");
-                setSearchResults([]);
-                setActiveSearchIndex(-1);
+                if (e.key === 'Escape') {
+                    handleCloseSearch();
+                }
             }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [replayOpen, showSearch, searchQuery, searchResults, activeSearchIndex]);
+    }, [replayOpen, showSearch, handleCloseSearch]);
 
     // Auto-scroll para a ocorrência ativa
     useEffect(() => {
@@ -554,7 +569,7 @@ export default function AuditPage() {
                                 <div className="search-nav-buttons">
                                     <button className="btn-search-nav" onClick={() => navigateSearch(-1)} title="Anterior (Shift+Enter)">↑</button>
                                     <button className="btn-search-nav" onClick={() => navigateSearch(1)} title="Próximo (Enter)">↓</button>
-                                    <button className="btn-search-nav clear" onClick={() => { setShowSearch(false); setSearchQuery(""); setSearchResults([]); setActiveSearchIndex(-1); }}>×</button>
+                                    <button className="btn-search-nav clear" onClick={handleCloseSearch}>×</button>
                                 </div>
                             </div>
                         )}
@@ -586,7 +601,10 @@ export default function AuditPage() {
                                 {/* Aba 2: JSON */}
                                 {replayTab === 'json' && (
                                     <div className="replay-section">
-                                        <h4 className="panel-title">Forense: Traces Completos</h4>
+                                        <div className="section-header-flex">
+                                            <h4 className="panel-title">Forense: Traces Completos</h4>
+                                            <span className="readonly-badge">Somente Leitura</span>
+                                        </div>
                                         <div className="json-compare-view">
                                             <div className="json-block">
                                                 <label>Original Trace (AI_FULL_TRACE)</label>
@@ -609,7 +627,10 @@ export default function AuditPage() {
                                 {/* Aba 3: Contexto */}
                                 {replayTab === 'contexto' && (
                                     <div className="replay-section">
-                                        <h4 className="panel-title">Contexto de Clínica (Congelado)</h4>
+                                        <div className="section-header-flex">
+                                            <h4 className="panel-title">Contexto de Clínica (Congelado)</h4>
+                                            <span className="readonly-badge">Somente Leitura</span>
+                                        </div>
                                         <pre className="code-block read-only">
                                             {highlightText(JSON.stringify(selectedLog?.details?.input?.clinicContextSnapshot, null, 2))}
                                         </pre>
