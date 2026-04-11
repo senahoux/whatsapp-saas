@@ -48,6 +48,7 @@ export default function AuditPage() {
     const [searchResults, setSearchResults] = useState<number[]>([]);
     const [activeSearchIndex, setActiveSearchIndex] = useState(-1);
     const [showSearch, setShowSearch] = useState(false);
+    const [searchActionTrigger, setSearchActionTrigger] = useState(0); // Gatilho de navegação na busca
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [candidateTrace, setCandidateTrace] = useState<any>(null);
 
@@ -217,8 +218,9 @@ export default function AuditPage() {
                 if (activeEl) {
                     activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
-                // Para o textarea, a lógica é diferente (seleção de texto)
-                if (replayTab === 'prompt') {
+                
+                // Para o textarea, a lógica só dispara se for uma ação consciente de busca (trigger)
+                if (replayTab === 'prompt' && searchActionTrigger > 0) {
                     const textarea = document.querySelector('.replay-prompt-editor') as HTMLTextAreaElement;
                     const searchInput = document.getElementById('internal-search-input');
                     
@@ -226,10 +228,9 @@ export default function AuditPage() {
                         const start = searchResults[activeSearchIndex];
                         const end = start + searchQuery.length;
                         
-                        // NÃO dar focus() se o usuário estiver digitando na busca
+                        // Seleciona e foca apenas se não estivermos já digitando ou editando no editor
                         textarea.setSelectionRange(start, end);
                         
-                        // Cálculo de scroll manual para o textarea
                         const lineHeight = 21; 
                         const textBefore = replayPrompt.substring(0, start);
                         const linesBefore = textBefore.split('\n').length;
@@ -240,7 +241,6 @@ export default function AuditPage() {
                             behavior: 'smooth'
                         });
 
-                        // Se o foco não está no input de busca, aí sim podemos focar o editor (ex: navegação via botões)
                         if (document.activeElement !== searchInput) {
                             textarea.focus();
                         }
@@ -248,7 +248,7 @@ export default function AuditPage() {
                 }
             }, 50);
         }
-    }, [activeSearchIndex, showSearch, replayTab, searchResults, searchQuery]);
+    }, [searchActionTrigger, showSearch, replayTab]); // Disparar APENAS via trigger ou troca de aba manual
 
     function performSearch(query: string) {
         setSearchQuery(query);
@@ -273,6 +273,7 @@ export default function AuditPage() {
 
         setSearchResults(matches);
         setActiveSearchIndex(matches.length > 0 ? 0 : -1);
+        setSearchActionTrigger(prev => prev + 1); // Dispara o pulo visual
     }
 
     function navigateSearch(direction: number) {
@@ -281,6 +282,7 @@ export default function AuditPage() {
         if (nextIndex >= searchResults.length) nextIndex = 0;
         if (nextIndex < 0) nextIndex = searchResults.length - 1;
         setActiveSearchIndex(nextIndex);
+        setSearchActionTrigger(prev => prev + 1); // Dispara o pulo visual
     }
 
     const highlightText = (text: string) => {
