@@ -675,18 +675,7 @@ export default function AuditPage() {
                                     </div>
                                 )}
 
-                                {/* Aba 3: Contexto */}
-                                {replayTab === 'contexto' && (
-                                    <div className="replay-section">
-                                        <div className="section-header-flex">
-                                            <h4 className="panel-title">Auditoria de Dados (Trace JSON)</h4>
-                                            <span className="readonly-badge">Somente Leitura</span>
-                                        </div>
-                                        <pre className="code-block read-only">
-                                            {highlightText(JSON.stringify(selectedLog?.details, null, 2))}
-                                        </pre>
-                                    </div>
-                                )}
+
 
                                 {/* Aba 4: Comparação */}
                                 {replayTab === 'comparacao' && (
@@ -706,7 +695,7 @@ export default function AuditPage() {
                                             </div>
                                             <div className="metric">
                                                 <label>Tokens (Total)</label>
-                                                <span>{ (candidateTrace?.invocations?.[0]?.response_meta?.usage?.total_tokens) || '—' }</span>
+                                                <span>{ (candidateTrace?.invocations?.[0]?.metrics?.tokens?.total) || '—' }</span>
                                             </div>
                                         </div>
 

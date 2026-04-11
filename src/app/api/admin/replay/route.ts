@@ -91,35 +91,9 @@ export async function POST(req: NextRequest) {
         const conversationStatus = trace.input?.conversationStatus || trace.input?.status_conversa || "NORMAL";
         const activeTemporalFilter = trace.input?.activeSchedulingFilter || trace.input?.foco_temporal_ativo || null;
 
-        // --- 3. NORMALIZAÇÃO LEGACY-TO-DYNAMIC (O CORAÇÃO DA TRANSIÇÃO) ---
-        let clinicContext = trace.input?.clinicContextSnapshot || trace.input?.contexto_clinica || {};
-        
-        // Se o contexto estiver vazio ou for explicitamente LEGACY, injetamos o hardcode histórico
-        const isLegacyTrace = !clinicContext.aiContextMode || clinicContext.aiContextMode === 'LEGACY';
-        
-        if (isLegacyTrace) {
-            clinicContext = {
-                ...clinicContext,
-                aiContextMode: 'DYNAMIC', // Normalizamos para o futuro
-                nomeAssistente: clinicContext.nomeAssistente || "Rafaela",
-                nomeMedico: clinicContext.nomeMedico || "Dr. Lucas Sena",
-                nomeClinica: clinicContext.nomeClinica || "ClinCare",
-                endereco: clinicContext.endereco || "ClinCare\nRua Manoel de Paula, 33\nCapela, Mogi Guaçu - SP",
-                consultaValor: clinicContext.consultaValor || 400,
-                consultaDuracao: clinicContext.consultaDuracao || 60,
-                descricaoServicos: clinicContext.descricaoServicos || "Saúde hormonal, performance, reposição hormonal, emagrecimento, implantes hormonais.",
-                faq: clinicContext.faq || [
-                    { pergunta: "Quanto tempo dura o implante no corpo?", resposta: "O implante costuma durar em média 6 meses no organismo." },
-                    { pergunta: "Qual o valor do implante?", resposta: "Em média, costuma ficar em torno de 3.500 reais." },
-                    { pergunta: "Como é o procedimento?", resposta: "É um procedimento simples, feito em consultório, com anestesia local, e dura em média 30 minutos." }
-                ],
-                regrasPersonalizadas: clinicContext.regrasPersonalizadas || [
-                    "Não use emojis ou emoticons.",
-                    "Fale como se já estivesse garantido no sistema ao agendar.",
-                    "Nunca dê diagnóstico ou fale efeitos colaterais."
-                ]
-            };
-        }
+        // --- 3. NORMALIZAÇÃO LEGACY-TO-DYNAMIC ---
+        const clinicContext = normalizeClinicContext(trace.input?.clinicContextSnapshot || trace.input?.contexto_clinica || {});
+
 
         // Extrair e congelar o snapshot normalizado
         const snapshot: FrozenSnapshot = {
@@ -174,4 +148,35 @@ export async function POST(req: NextRequest) {
         console.error("[Replay API] POST Error:", error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
+}
+
+/**
+ * Auxiliar de Normalização: Encapsula dados de migração LEGACY -> DYNAMIC.
+ * Mantém o corpo da API limpo de hardcodes históricos.
+ */
+function normalizeClinicContext(ctx: any): any {
+    const isLegacy = !ctx.aiContextMode || ctx.aiContextMode === 'LEGACY';
+    if (!isLegacy) return ctx;
+
+    return {
+        ...ctx,
+        aiContextMode: 'DYNAMIC',
+        nomeAssistente: ctx.nomeAssistente || "Rafaela",
+        nomeMedico: ctx.nomeMedico || "Dr. Lucas Sena",
+        nomeClinica: ctx.nomeClinica || "ClinCare",
+        endereco: ctx.endereco || "ClinCare\nRua Manoel de Paula, 33\nCapela, Mogi Guaçu - SP",
+        consultaValor: ctx.consultaValor || 400,
+        consultaDuracao: ctx.consultaDuracao || 60,
+        descricaoServicos: ctx.descricaoServicos || "Saúde hormonal, performance, reposição hormonal, emagrecimento, implantes hormonais.",
+        faq: ctx.faq || [
+            { pergunta: "Quanto tempo dura o implante no corpo?", resposta: "O implante costuma durar em média 6 meses no organismo." },
+            { pergunta: "Qual o valor do implante?", resposta: "Em média, costuma ficar em torno de 3.500 reais." },
+            { pergunta: "Como é o procedimento?", resposta: "É um procedimento simples, feito em consultório, com anestesia local, e dura em média 30 minutos." }
+        ],
+        regrasPersonalizadas: ctx.regrasPersonalizadas || [
+            "Não use emojis ou emoticons.",
+            "Fale como se já estivesse garantido no sistema ao agendar.",
+            "Nunca dê diagnóstico ou fale efeitos colaterais."
+        ]
+    };
 }
