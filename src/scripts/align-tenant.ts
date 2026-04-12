@@ -5,18 +5,18 @@ const prisma = new PrismaClient();
 async function alignTenant() {
     console.log('--- ALINHAMENTO DE TENANT (OPÇÃO A) ---');
 
-    const email = 'lucasaraujosena@gmail.com';
+    const email = 'admin@exemplo.com';
     const targetClinicId = 'clinic-demo-id';
 
     // 1. Renomeia a clínica demo para um nome profissional
     await prisma.clinic.update({
         where: { id: targetClinicId },
         data: {
-            nomeClinica: 'Dr. Lucas Sena',
-            nomeMedico: 'Dr. Lucas Sena'
+            nomeClinica: 'Clínica Demo',
+            nomeMedico: 'Médico Responsável'
         }
     });
-    console.log(`[+] Clínica ${targetClinicId} renomeada para 'Dr. Lucas Sena'.`);
+    console.log(`[+] Clínica ${targetClinicId} renomeada para 'Clínica Demo'.`);
 
     // 2. Vincula o usuário admin ao tenant operacional
     const user = await prisma.user.findFirst({

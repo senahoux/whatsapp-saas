@@ -5,19 +5,19 @@ import type { ClinicContext } from "../src/services/clinic.service";
 require('dotenv').config();
 
 const clinicContext: ClinicContext = {
-    nomeClinica: "Clínica Nova Vida",
-    nomeMedico: "Dr. Lucas Sena",
-    endereco: "Mogi Guaçu - SP", 
+    nomeClinica: "Clínica Demo",
+    nomeMedico: "Médico de Teste",
+    endereco: "Cidade Exemplo - SP", 
     telefone: "5511999999999",
-    consultaValor: 400,
+    consultaValor: 500,
     consultaDuracao: 60,
     promocaoAtiva: false,
     promocaoTexto: null,
-    descricaoServicos: "Saúde hormonal e performance",
+    descricaoServicos: "Consulta especializada e tratamentos preventivos",
     faq: [],
     regrasPersonalizadas: [],
-    aiContextMode: "LEGACY",
-    nomeAssistente: "Rafaela",
+    aiContextMode: "DYNAMIC",
+    nomeAssistente: "Assistente",
 };
 
 const baseCtx: AIRequestContext = {

@@ -23,15 +23,15 @@ async function main() {
     const clinic = await prisma.clinic.upsert({
         where: { id: "clinic-demo-id" },
         update: {
-            nomeClinica: "ClinCare",
-            nomeMedico: "Dr. Lucas Sena",
-            endereco: "Rua Manoel de Paula, 33, Capela, Mogi Guaçu - SP",
-            telefone: "5519996068411",
-            consultaValor: 400.00,
+            nomeClinica: "Clínica Demo",
+            nomeMedico: "Médico Responsável",
+            endereco: "Rua Exemplo, 123, Centro, Cidade - SP",
+            telefone: "5511999999999",
+            consultaValor: 500.00,
             consultaDuracao: 60, // minutos
             promocaoAtiva: true,
-            promocaoTexto: "Esse mês estamos com uma avaliação hormonal inicial gratuita 😊",
-            descricaoServicos: "Saúde hormonal, performance, reposição hormonal, emagrecimento e implantes hormonais, com abordagem individualizada.",
+            promocaoTexto: "Este mês temos condições especiais para novos pacientes 😊",
+            descricaoServicos: "Consulta médica especializada, acompanhamento preventivo e tratamentos avançados.",
             faq: JSON.stringify([
                 {
                     pergunta: "Como funciona a consulta?",
@@ -76,47 +76,47 @@ async function main() {
         },
         create: {
             id: "clinic-demo-id",
-            nomeClinica: "ClinCare",
-            nomeMedico: "Dr. Lucas Sena",
-            endereco: "Rua Manoel de Paula, 33, Capela, Mogi Guaçu - SP",
-            telefone: "5519996068411",
-            consultaValor: 400.00,
+            nomeClinica: "Clínica Demo",
+            nomeMedico: "Médico Responsável",
+            endereco: "Rua Exemplo, 123, Centro, Cidade - SP",
+            telefone: "5511999999999",
+            consultaValor: 500.00,
             consultaDuracao: 60, // minutos
             promocaoAtiva: true,
-            promocaoTexto: "Esse mês estamos com uma avaliação hormonal inicial gratuita 😊",
-            descricaoServicos: "Saúde hormonal, performance, reposição hormonal, emagrecimento e implantes hormonais, com abordagem individualizada.",
+            promocaoTexto: "Este mês temos condições especiais para novos pacientes 😊",
+            descricaoServicos: "Consulta médica especializada, acompanhamento preventivo e tratamentos avançados.",
             faq: JSON.stringify([
                 {
                     pergunta: "Como funciona a consulta?",
-                    resposta: "A consulta tem duração de 1 hora, no valor de R$400. É feita uma avaliação completa do seu quadro e podem ser solicitados exames posteriormente. O retorno já está incluso.",
+                    resposta: "A consulta tem duração de 1 hora. É feita uma avaliação completa do seu quadro e podem ser solicitados exames posteriormente. O retorno está incluso dentro do prazo estabelecido.",
                 },
                 {
                     pergunta: "Tem alguma promoção?",
-                    resposta: "Esse mês estamos com uma avaliação hormonal inicial gratuita 😊 É uma avaliação inicial para entender seus sintomas hormonais e ver se há indicação de tratamento.",
+                    resposta: "No momento, consulte nossa equipe para saber sobre condições especiais vigentes 😊",
                 },
                 {
-                    pergunta: "O que são implantes hormonais e como funcionam?",
-                    resposta: "Os implantes hormonais fazem parte de um acompanhamento médico de 6 meses. Eles são uma forma moderna de reposição hormonal, que liberam os hormônios de forma contínua e estável no organismo. Ajudam em sintomas como cansaço, baixa libido, alterações de humor e menopausa.",
+                    pergunta: "Quais os principais tratamentos oferecidos?",
+                    resposta: "Oferecemos uma gama completa de acompanhamento médico preventivo e tratamentos especializados focados no seu bem-estar e performance.",
                 },
                 {
-                    pergunta: "Quanto tempo dura o implante no corpo?",
-                    resposta: "O implante costuma durar em média 6 meses no organismo 😊",
+                    pergunta: "Quanto tempo dura o tratamento?",
+                    resposta: "A duração varia conforme o protocolo estabelecido pelo médico, geralmente com acompanhamento semestral 😊",
                 },
                 {
                     pergunta: "Precisa trazer exames para a avaliação inicial?",
-                    resposta: "Não solicita exames na avaliação inicial, o primeiro passo é a avaliação clínica. Mas se já tiver exames, pode trazer sim, o Dr. avalia tudo.",
+                    resposta: "Não é obrigatório para a primeira conversa, mas se já possuir exames recentes de laboratório, recomendamos trazê-los para análise.",
                 },
                 {
                     pergunta: "Qual o valor da consulta?",
-                    resposta: "A consulta custa R$400, com duração de 1 hora e direito a retorno.",
+                    resposta: "O valor da consulta especializada é de R$500, com suporte pós-atendimento e direito a retorno.",
                 },
                 {
                     pergunta: "Qual o endereço da clínica?",
-                    resposta: "ClinCare - Rua Manoel de Paula, 33, Capela, Mogi Guaçu - SP",
+                    resposta: "Estamos localizados na Rua Exemplo, 123, Centro, Cidade - SP.",
                 },
                 {
                     pergunta: "Vocês trabalham com planos de emagrecimento?",
-                    resposta: "O Dr. trabalha com protocolos específicos para emagrecimento, sempre de forma individualizada.",
+                    resposta: "Sim, possuímos protocolos específicos e individualizados para gerenciamento de peso e saúde metabólica.",
                 }
             ]),
             regrasPersonalizadas: JSON.stringify([
@@ -139,13 +139,13 @@ async function main() {
             // unique: [clinicId, email]
             clinicId_email: {
                 clinicId: clinic.id,
-                email: "admin@clinicaexemplo.com",
+                email: "admin@exemplo.com",
             },
         },
         update: {},
         create: {
             clinicId: clinic.id,
-            email: "admin@clinicaexemplo.com",
+            email: "admin@exemplo.com",
             passwordHash: "PLACEHOLDER_FASE2", // auth real na Fase 2
             role: "ADMIN",
         },
@@ -159,14 +159,14 @@ async function main() {
     const settings = await prisma.setting.upsert({
         where: { clinicId: clinic.id },
         update: {
-            adminPhoneNumber: "5519996068411",
+            adminPhoneNumber: "5511999999999",
         },
         create: {
             clinicId: clinic.id,
             robotEnabled: true,
             robotModeDefault: "AUTO",
             debounceSeconds: 8,
-            adminPhoneNumber: "5519996068411", // formato E.164 sem '+'
+            adminPhoneNumber: "5511999999999", // formato E.164 sem '+'
         },
     });
 

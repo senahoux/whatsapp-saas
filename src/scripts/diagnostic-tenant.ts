@@ -4,12 +4,8 @@ import fs from 'fs';
 const prisma = new PrismaClient();
 
 const TEST_NUMBERS = [
-    '5519998868883',
-    '19998868883',
-    '998868883',
-    '5519996068411',
-    '19996068411',
-    '996068411'
+    '5511999999999',
+    '5511888888888'
 ];
 
 async function diagnostic() {
@@ -55,12 +51,12 @@ async function diagnostic() {
     }
 
     // Check for "Orphan" logs or messages that might be using a generic ID
-    const demoLogs = await prisma.log.count({ where: { clinicId: 'clinic-demo-id' } });
-    const demoMessages = await prisma.message.count({ where: { clinicId: 'clinic-demo-id' } });
+    const demoLogs = await prisma.log.count({ where: { clinicId: 'tenant-exemplo-id' } });
+    const demoMessages = await prisma.message.count({ where: { clinicId: 'tenant-exemplo-id' } });
 
     report += `\n[GENERAL LEAKS Check]`;
-    report += `\nclinic-demo-id Logs: ${demoLogs}`;
-    report += `\nclinic-demo-id Messages: ${demoMessages}`;
+    report += `\ntenant-exemplo-id Logs: ${demoLogs}`;
+    report += `\ntenant-exemplo-id Messages: ${demoMessages}`;
 
     fs.writeFileSync('/tmp/tenant-audit-v2.txt', report);
     console.log('Report saved to /tmp/tenant-audit-v2.txt');
