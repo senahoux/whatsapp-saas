@@ -72,8 +72,39 @@ model Clinic {
   settings       Setting?
   logs              Log[]
   replayExperiments ReplayExperiment[]
+  contextVersions   ClinicContextVersion[]
 
   @@map("clinics")
+}
+
+// =============================================================
+// 1.1 CLINIC_CONTEXT_VERSIONS — Histórico versionado do contexto
+// =============================================================
+model ClinicContextVersion {
+  id                  String   @id @default(cuid())
+  clinicId            String
+  effectiveFrom       DateTime
+  effectiveTo         DateTime?
+  
+  // Historical data fields
+  nomeAssistente      String
+  nomeMedico          String
+  nomeClinica         String
+  endereco            String?
+  consultaValor       Float?
+  consultaDuracao     Int?     // minutos
+  descricaoServicos   String?
+  faq                 Json?
+  regrasPersonalizadas Json?
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  @@unique([clinicId, effectiveFrom])
+  @@index([clinicId, effectiveFrom])
+  @@map("clinic_context_versions")
 }
 
 // =============================================================

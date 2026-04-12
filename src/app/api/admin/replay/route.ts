@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import type { FrozenSnapshot } from "@/lib/replay/types";
+import { ReplayContextResolver } from "@/lib/replay/context-resolver";
 
 /**
  * GET /api/admin/replay
@@ -91,8 +92,13 @@ export async function POST(req: NextRequest) {
         const conversationStatus = trace.input?.conversationStatus || trace.input?.status_conversa || "NORMAL";
         const activeTemporalFilter = trace.input?.activeSchedulingFilter || trace.input?.foco_temporal_ativo || null;
 
-        // --- 3. NORMALIZAÇÃO LEGACY-TO-DYNAMIC ---
-        const clinicContext = normalizeClinicContext(trace.input?.clinicContextSnapshot || trace.input?.contexto_clinica || {});
+        // --- 3. RESOLUÇÃO HISTÓRICA DO CONTEXTO (Regra 3 & 4) ---
+        const rawClinicContext = trace.input?.clinicContextSnapshot || trace.input?.contexto_clinica || {};
+        const clinicContext = await ReplayContextResolver.resolve(
+            clinicId,
+            sourceLog.createdAt,
+            rawClinicContext
+        );
 
 
         // Extrair e congelar o snapshot normalizado
@@ -150,33 +156,3 @@ export async function POST(req: NextRequest) {
     }
 }
 
-/**
- * Auxiliar de Normalização: Encapsula dados de migração LEGACY -> DYNAMIC.
- * Mantém o corpo da API limpo de hardcodes históricos.
- */
-function normalizeClinicContext(ctx: any): any {
-    const isLegacy = !ctx.aiContextMode || ctx.aiContextMode === 'LEGACY';
-    if (!isLegacy) return ctx;
-
-    return {
-        ...ctx,
-        aiContextMode: 'DYNAMIC',
-        nomeAssistente: ctx.nomeAssistente || "Rafaela",
-        nomeMedico: ctx.nomeMedico || "Dr. Lucas Sena",
-        nomeClinica: ctx.nomeClinica || "ClinCare",
-        endereco: ctx.endereco || "ClinCare\nRua Manoel de Paula, 33\nCapela, Mogi Guaçu - SP",
-        consultaValor: ctx.consultaValor || 400,
-        consultaDuracao: ctx.consultaDuracao || 60,
-        descricaoServicos: ctx.descricaoServicos || "Saúde hormonal, performance, reposição hormonal, emagrecimento, implantes hormonais.",
-        faq: ctx.faq || [
-            { pergunta: "Quanto tempo dura o implante no corpo?", resposta: "O implante costuma durar em média 6 meses no organismo." },
-            { pergunta: "Qual o valor do implante?", resposta: "Em média, costuma ficar em torno de 3.500 reais." },
-            { pergunta: "Como é o procedimento?", resposta: "É um procedimento simples, feito em consultório, com anestesia local, e dura em média 30 minutos." }
-        ],
-        regrasPersonalizadas: ctx.regrasPersonalizadas || [
-            "Não use emojis ou emoticons.",
-            "Fale como se já estivesse garantido no sistema ao agendar.",
-            "Nunca dê diagnóstico ou fale efeitos colaterais."
-        ]
-    };
-}
